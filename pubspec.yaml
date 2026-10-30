@@ -13,7 +13,7 @@ dependencies:
   flutter_riverpod: ^2.5.1
   http: ^1.2.0
   flutter_tts: ^4.0.2
-  vibration: ^2.0.0
+  vibration: ^3.2.1
   audioplayers: ^6.0.0
   image_picker: ^1.1.0
   speech_to_text: ^7.0.0
