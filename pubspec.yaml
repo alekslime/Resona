@@ -1,0 +1,46 @@
+name: resonant
+description: Learn by sound and touch. Drag a finger across a picture and feel its parts.
+publish_to: none
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.27.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.5.1
+  http: ^1.2.0
+  flutter_tts: ^4.0.2
+  vibration: ^2.0.0
+  audioplayers: ^6.0.0
+  image_picker: ^1.1.0
+  speech_to_text: ^7.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/sample/
+    - assets/brand/
+  fonts:
+    # Carried over from Resonant. Open-licensed fonts; see NOTICE.md.
+    - family: Metropolis
+      fonts:
+        - asset: assets/fonts/metropolis_semibold.otf
+          weight: 600
+        - asset: assets/fonts/metropolis_black.otf
+          weight: 900
+    - family: Atkinson
+      fonts:
+        - asset: assets/fonts/atkinson_regular.ttf
+          weight: 400
+        - asset: assets/fonts/atkinson_semibold.ttf
+          weight: 600
+        - asset: assets/fonts/atkinson_extrabold.ttf
+          weight: 800

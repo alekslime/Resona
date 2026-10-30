@@ -1,0 +1,25 @@
+{
+  "name": "resonant-backend",
+  "version": "0.1.0",
+  "description": "Resonant backend: Muse Spark names the parts of a picture, SAM 3.1 outlines them.",
+  "type": "module",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "node": ">=20.17.0"
+  },
+  "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
+    "test": "node --test \"test/*.test.js\"",
+    "check:api": "node scripts/check-api.js",
+    "sample": "python3 scripts/make-sample.py"
+  },
+  "dependencies": {
+    "@meta-sam/parser": "0.1.0",
+    "dotenv": "^18.0.0",
+    "express": "^5.1.0",
+    "image-size": "^2.0.0",
+    "openai": "^7.0.0"
+  }
+}

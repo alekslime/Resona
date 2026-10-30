@@ -1,0 +1,134 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../../../core/providers.dart';
+import '../../../core/theme/resonant_theme.dart';
+import '../../../core/ui/resonant_dots.dart';
+import '../application/touch_controller.dart';
+import '../data/touch_repository.dart';
+import 'touch_screen.dart';
+
+class HomeScreen extends ConsumerStatefulWidget {
+  const HomeScreen({super.key});
+
+  @override
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(speechProvider).speak('Resonant. Choose a picture to explore by touch.');
+    });
+  }
+
+  Future<void> _pick(ImageSource source) async {
+    final file = await ImagePicker().pickImage(
+      source: source,
+      maxWidth: 1280,
+      maxHeight: 1280,
+      imageQuality: 88,
+    );
+    if (file == null) return;
+    final bytes = await file.readAsBytes();
+    final mime =
+        file.mimeType ?? (file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+    await ref.read(touchControllerProvider.notifier).analyze(PictureBytes(bytes, mime));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final state = ref.watch(touchControllerProvider);
+    if (state.phase == Phase.explore) return const TouchScreen();
+
+    final palette = ref.watch(paletteProvider);
+    final busy = state.phase == Phase.busy;
+    return Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 460),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ResonantDots(
+                    state: busy ? DotsState.thinking : DotsState.idle,
+                    size: 200,
+                    color: palette.ink,
+                  ),
+                  const SizedBox(height: 12),
+                  Semantics(
+                    header: true,
+                    child: Text('Resonant', style: brandStyle(64, palette.ink)),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    busy ? 'Reading the picture.' : 'Learn by sound and touch. Drag a finger across a picture and feel its parts.',
+                    style: TextStyle(
+                      fontSize: 22,
+                      height: 1.3,
+                      fontWeight: FontWeight.w600,
+                      color: palette.ink,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+                  if (!busy) ...[
+                    FilledButton(
+                      onPressed: () => _pick(ImageSource.gallery),
+                      child: const Text('Choose a picture'),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => _pick(ImageSource.camera),
+                      child: const Text('Take a photo'),
+                    ),
+                    const SizedBox(height: 12),
+                    FilledButton(
+                      onPressed: () => ref.read(touchControllerProvider.notifier).openSample(),
+                      child: const Text('Try the sample'),
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: () {
+                        final next = ref.read(paletteProvider.notifier).next();
+                        ref.read(speechProvider).speak('${next.label} theme.');
+                      },
+                      child: Text(
+                        'Theme: ${palette.label}',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: palette.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                  if (state.message.isNotEmpty) ...[
+                    const SizedBox(height: 12),
+                    Semantics(
+                      liveRegion: true,
+                      child: Text(
+                        state.message,
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: palette.ink,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

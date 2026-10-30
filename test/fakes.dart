@@ -1,0 +1,105 @@
+import 'dart:convert';
+import 'dart:io';
+import 'dart:typed_data';
+
+import 'package:resonant/core/services/haptics.dart';
+import 'package:resonant/core/services/sound.dart';
+import 'package:resonant/core/services/speech.dart';
+import 'package:resonant/features/touch/data/touch_repository.dart';
+import 'package:resonant/features/touch/domain/region.dart';
+
+/// Records everything the session does, in order.
+class Log {
+  final events = <String>[];
+  List<String> where(String prefix) => events.where((e) => e.startsWith(prefix)).toList();
+}
+
+class FakeSpeech implements SpeechOutput {
+  FakeSpeech(this.log);
+  final Log log;
+  bool speaking = false;
+  @override
+  double rate = 1.0;
+  @override
+  bool get isSpeaking => speaking;
+  @override
+  Future<void> speak(String text, {bool queue = false}) async {
+    speaking = true;
+    log.events.add('say${queue ? '+' : ''}: $text');
+  }
+
+  @override
+  Future<void> stop() async {
+    speaking = false;
+    log.events.add('stop');
+  }
+}
+
+class FakeHaptics implements Haptics {
+  FakeHaptics(this.log);
+  final Log log;
+  @override
+  Future<void> play(HapticPattern pattern) async => log.events.add('haptic:${pattern.name}');
+  @override
+  Future<void> pulse(int ms) async => log.events.add('pulse:$ms');
+}
+
+class FakeCues implements Cues {
+  FakeCues(this.log);
+  final Log log;
+  @override
+  Future<void> play(HapticPattern pattern) async => log.events.add('cue:${pattern.name}');
+  @override
+  Future<void> position({required double x01, required double y01}) async =>
+      log.events.add('tone:${x01.toStringAsFixed(2)},${y01.toStringAsFixed(2)}');
+}
+
+class FakeInput implements SpeechInput {
+  FakeInput(this.log, {this.heard = 'what is this?', this.available = true});
+  final Log log;
+  String heard;
+  bool available;
+  @override
+  Future<bool> start() async {
+    log.events.add('mic:start');
+    return available;
+  }
+
+  @override
+  Future<String> stop() async {
+    log.events.add('mic:stop');
+    return heard;
+  }
+}
+
+class FakeRepository implements TouchRepository {
+  FakeRepository(this.log, {this.answer = 'It is the sun.', this.fail});
+  final Log log;
+  String answer;
+  Object? fail;
+  @override
+  Future<Analysis> analyze(PictureBytes picture) => throw UnimplementedError();
+  @override
+  Future<String> ask(
+    PictureBytes picture, {
+    required String question,
+    required String title,
+    String regionLabel = '',
+  }) async {
+    log.events.add('ask:$question|$regionLabel');
+    if (fail != null) throw fail!;
+    return answer;
+  }
+
+  @override
+  Future<(Analysis, PictureBytes)> sample() => throw UnimplementedError();
+}
+
+/// The bundled sample: 800x600, with sun, cloud, mountain and sea.
+Analysis loadSample() {
+  final json =
+      jsonDecode(File('assets/sample/sample.json').readAsStringSync()) as Map<String, dynamic>;
+  return Analysis.fromJson(json);
+}
+
+final tinyPicture = PictureBytes(Uint8List.fromList([1, 2, 3]), 'image/png');

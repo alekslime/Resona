@@ -1,32 +1,25 @@
-# Plan: Oct 29 to Nov 4
+# Plan: Oct 30 to Nov 4
 
-Goal: a public repo with a working demo on real pictures, and a 3-minute video, with a day to spare.
+Goal: a public repo, a link an iPhone can open, an Android build, and a 3-minute video, with a day to spare.
 
-**Oct 29 (today)**
-- Create the new public repo. Copy these files in. First commit. Do not import any history.
-- `npm install`, add your key to `.env`, run `npm run check:api`. This is the one thing the starter has not been run against: it was tested with a stand-in for the Meta API. If a call fails, the error names the model or parameter to fix in `server/meta.js`.
-- Run `npm start` and try the sample on a phone.
+**Oct 30 (today): make it run**
+- Install Flutter if you have not. Run `tool/setup.sh`, then `flutter test`. **This is the first time the Flutter layer is compiled.** The pure-Dart core (gestures, hit-testing, the session, sound) is already tested; expect a few compile errors in the plugin and widget code (version differences, an import). Fix them, they are small.
+- `cd backend && npm install && cp .env.example .env`, add your key, `npm run check:api`.
+- `flutter run` on a real Android phone, open the sample, drag a finger over it.
 
-**Oct 30: real pictures**
-- Collect 6 pictures: a bar chart, a pie chart, a labeled biology diagram, a map, a simple photo, a textbook-style figure. Run each through the app.
-- Read what Muse Spark proposes as parts. Tighten `PARTS_PROMPT` in `server/meta.js` where labels are vague. Check `skipped` for labels SAM could not match.
-- Commit the prompt changes with messages that say what improved.
+**Oct 31: real pictures, real feel**
+- Run six pictures through it: a bar chart, a pie chart, a labelled diagram, a map, a photo, a textbook figure. Tighten `PARTS_PROMPT` in `backend/server/meta.js` where labels are vague; check `skipped`.
+- On the phone, tune what you can feel and hear: `GestureConfig` timings, `hapticMsFor`, `pitchForY`, the stereo width. Headphones on.
 
-**Oct 31: the feel**
-- Tune vibration lengths, dwell times (800 ms / 1100 ms in `app.js`) and tolerance on a real phone.
-- Try Ask with a typed question, then with the microphone over an HTTPS tunnel.
-- Add one feature that is clearly yours and new. Good candidates: a "trace the outline" mode that vibrates along a region's edge, or a chart mode that reads values in order when you swipe along bars.
-
-**Nov 1: make it runnable by judges**
-- Deploy to any Node host with `MODEL_API_KEY` set as a secret, rate limit on. Put the URL at the top of the README.
-- Add a handful of pictures to `public/sample/` only if you own them or they are public-domain; note each source.
+**Nov 1: the iPhone route**
+- `flutter build web --release`, deploy the backend with the web build, open it on a real iPhone. Fix what breaks. If you have a Mac and an Apple Developer account, do the TestFlight build too.
+- Add one thing that is clearly new: tracing a part's outline by vibration, or a chart mode that reads values in order as you slide along bars.
 
 **Nov 2: test with the people it is for**
-- If you can reach a blind or low-vision student or teacher, watch them use it for ten minutes and write down what confused them. If not, use it with your eyes closed and fix what fails.
+- Ten minutes with a blind or low-vision student or teacher if you can reach one; otherwise eyes closed and headphones on. Write down what confused you.
 
 **Nov 3: video and README**
-- Record `docs/DEMO_SCRIPT.md` on a real phone screen with real audio. Fill in the README with a screenshot or two taken from the running app.
-- Do a full fresh-clone install on another machine or folder to prove the README steps work.
+- Record `docs/DEMO_SCRIPT.md` on a real phone, with the screen covered for the main demo. Add two real screenshots to the README. Do a fresh-clone install to prove the steps work.
 
 **Nov 4: submit early**
-- Submit by the afternoon ET. Re-check the public repo opens in a private browser window, the video link works, and no `.env` or key is in the history (`git log -p | grep -i key`).
+- Submit by the afternoon ET. Check the repo opens in a private window, the link works on an iPhone, and no key is anywhere in the history (`git log -p | grep -i -E "key|secret"`).

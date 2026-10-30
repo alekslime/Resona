@@ -1,30 +1,35 @@
 # Hackathon compliance
 
-Rules below are from the organizers' Discord FAQ, as pasted on Oct 29, 2026. Re-read the Official Rules before you submit; they win over this file.
+Check this against the Official Rules before you submit. They win over this file.
 
-## What the rules require
+## Rules you told me apply
 
-1. The submitted repository must be **public** and **created on or after Oct 26**, containing only work done during the event.
-2. No pre-event code copied in, and no carried-over git history. Pre-event code may live in a separate repo and be used as a library or service, **if** the README and the video name it.
-3. The README must say what was pre-existing and what was built during the event.
-4. The first line of the 3-minute demo video must say the same.
-5. The demo may only highlight features, code and functionality built during the event.
-6. Avoid: medical advice, mental-health advisors, skin-condition detectors; basic RAG apps, simple image analyzers, generic education chatbots; job screeners, nutrition coaches, personality analyzers; sports analyzers; anything political or about war.
+You told me the earlier FAQ text was the wrong one and that building on the earlier app is fine. I could not
+see the correct rules, so I have not assumed more than that. If the real rules say anything about
+repository age, git history, or copied code, follow them over this file.
 
-## How Touch Atlas stays inside them
+What holds under any reasonable reading, and is already done in this repo:
 
-- Fresh repo, first commit on or after Oct 26, no history imported. Do not `git init` inside a copy of any older project.
-- Nothing from an earlier project is used, so the README says "None" under Pre-existing work. **If you later pull in any earlier code, assets or designs, change that section and the video line to name them.** Silence about reused work is the thing that gets entries disqualified.
-- It is not a "simple image analyzer": the model output is not the product. The product is a spatial touch interface (masks, haptics, direction hints) that a description alone cannot give.
+1. The README says plainly what came from the earlier app and what was built during the event
+   (see "Pre-existing work" in `README.md`).
+2. The first line of the video says the same (below).
+3. The demo shows the new work: exploring a picture by touch, the Meta pipeline behind it, the sound mapping.
+4. The repository is public and contains no keys (`.env` is ignored; `.env.example` is empty).
 
-## Text to use
+## First line of the video
 
-README section: already in `README.md` ("Pre-existing work").
+> "Resonant is an app I started before the hackathon. I brought over its name, logo, look and gesture
+> design. Everything you will see about exploring pictures, from the Meta models to the touch and sound, was
+> built during the hackathon."
 
-First line of the video (say it before anything else):
+## Check before you submit
 
-> "Everything in this project was built during the hackathon, and no code from any earlier project is used."
+- Keep the Pre-existing work table accurate. If you port more from the earlier app, add it. If you remove something, remove it.
+- Keep dated commits. A history that shows the new work arriving is your proof.
+- The earlier app's `agent/.env` held real LiveKit keys. Rotate them, and do not add anything from that file here.
+- Read whether the rules say anything about AI-assisted code. The README credits Claude for the initial scaffold; edit it to match what is true by the time you submit.
 
 ## Deadline
 
-Submissions close Nov 4, 9:00 PM ET. In Tirana that is 3:00 AM on Nov 5 (US clocks go back on Nov 1). Aim to submit a complete entry by the afternoon of Nov 4 ET and only polish after that.
+Submissions close Nov 4, 9:00 PM ET, which is 3:00 AM on Nov 5 in Tirana (US clocks go back on Nov 1).
+Aim to submit by the afternoon of Nov 4 ET and polish only after that.
