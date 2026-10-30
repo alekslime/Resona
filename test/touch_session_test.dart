@@ -59,7 +59,7 @@ void main() {
       cues: FakeCues(log),
       input: FakeInput(log),
       repository: FakeRepository(log),
-    )..load(loadSample(), tinyPicture);
+    ).load(loadSample(), tinyPicture);
     final said = log.where('say').single;
     expect(said.contains('The water cycle. 4 parts found.'), isTrue);
     expect(said.contains('drawn by hand, not by the model'), isTrue);
