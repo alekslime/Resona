@@ -1,0 +1,160 @@
+// Everything that talks to the Meta Model API lives here.
+//   Muse Spark (muse-spark-1.3): looks at the picture, names its parts, answers questions.
+//   SAM 3.1   (sam-3.1)        : returns the exact pixels of each named part.
+import OpenAI from "openai";
+import { parseImageStream } from "@meta-sam/parser";
+import { extractJson } from "./json.js";
+
+const PARTS_PROMPT = `You are helping a blind student explore a picture by touch. List the distinct parts of this picture that the student would want to find with a finger and hear about.
+
+Return only JSON in this shape:
+{"title": "...", "kind": "chart | diagram | photo | map | other", "overview": "...", "parts": [{"label": "...", "spoken": "...", "detail": "..."}]}
+
+Rules:
+- overview: two or three plain sentences saying what the picture is and how it is laid out (what is at the top, bottom, left and right).
+- parts: 3 to 8, in reading order (top to bottom, left to right). Fewer is better than padding.
+- label: a short, concrete noun phrase of 1 to 4 words naming something you can see, such as "red bar" or "left lung". It is sent to an image segmentation model, so describe what the thing looks like. No verbs, questions, lists or abstract ideas. One thing per label. If several things look alike, separate them with a visible attribute or position in the label.
+- spoken: one short sentence read aloud the moment a finger rests on the part.
+- detail: two to four sentences: what it is, why it matters, and any numbers or words printed on or beside it. Plain words.
+- Never invent text or numbers that are not in the picture.`;
+
+export function textOf(response) {
+  if (typeof response?.output_text === "string" && response.output_text) return response.output_text;
+  const chunks = [];
+  for (const item of response?.output ?? []) {
+    for (const part of item?.content ?? []) {
+      if (part?.type === "output_text" && typeof part.text === "string") chunks.push(part.text);
+    }
+  }
+  return chunks.join("");
+}
+
+async function withRetry(fn, tries = 2) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      last = err;
+      const status = err?.status;
+      const retryable = status === 429 || (status >= 500 && status < 600) || status === undefined;
+      if (!retryable || i === tries - 1) break;
+      await new Promise((r) => setTimeout(r, 800 * (i + 1)));
+    }
+  }
+  throw last;
+}
+
+export async function mapLimit(items, limit, fn) {
+  const out = new Array(items.length);
+  let next = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await fn(items[i], i);
+    }
+  });
+  await Promise.all(workers);
+  return out;
+}
+
+export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkModel = "muse-spark-1.3", samModel = "sam-3.1", effort = "low" }) {
+  const client = new OpenAI({ apiKey, baseURL });
+
+  // Muse Spark is a reasoning model. Try with our preferred options first, then drop any the API rejects.
+  async function spark(content, maxTokens) {
+    const base = { model: sparkModel, input: [{ type: "message", role: "user", content }] };
+    const variants = [
+      { ...base, reasoning: { effort }, max_output_tokens: maxTokens },
+      { ...base, max_output_tokens: maxTokens },
+      base,
+    ];
+    let lastErr;
+    for (const body of variants) {
+      try {
+        return textOf(await withRetry(() => client.responses.create(body)));
+      } catch (err) {
+        lastErr = err;
+        if (err?.status !== 400) throw err;
+      }
+    }
+    throw lastErr;
+  }
+
+  return {
+    sparkModel,
+    samModel,
+
+    async describeParts(dataUrl) {
+      const text = await spark(
+        [
+          { type: "input_text", text: PARTS_PROMPT },
+          { type: "input_image", image_url: dataUrl },
+        ],
+        6000,
+      );
+      const json = extractJson(text);
+      const parts = (Array.isArray(json.parts) ? json.parts : [])
+        .filter((p) => p && typeof p.label === "string" && p.label.trim())
+        .slice(0, 8)
+        .map((p) => ({
+          label: p.label.trim(),
+          spoken: String(p.spoken ?? p.label).trim(),
+          detail: String(p.detail ?? p.spoken ?? p.label).trim(),
+        }));
+      if (!parts.length) throw new Error("The model found no parts in this picture.");
+      return {
+        title: String(json.title ?? "Picture").trim(),
+        kind: String(json.kind ?? "other").trim(),
+        overview: String(json.overview ?? "").trim(),
+        parts,
+      };
+    },
+
+    /** One concept per request: SAM 3.1 does not accept lists. Zero matches is a normal result. */
+    async segment(dataUrl, concept) {
+      return withRetry(async () => {
+        const events = await client.responses.create({
+          model: samModel,
+          input: [
+            {
+              type: "message",
+              role: "user",
+              content: [
+                { type: "input_text", text: concept },
+                { type: "input_image", image_url: dataUrl },
+              ],
+            },
+          ],
+          stream: true,
+          metadata: { mask_encoding: "one_bit", include_confidence: "true" },
+        });
+        try {
+          return await parseImageStream(events).finalResult;
+        } catch (err) {
+          // Zero matches can arrive as a stream with no output text at all. That is a normal result.
+          if (err?.code === "response_lane") return { records: [], diagnostics: [], outcome: { status: "completed" } };
+          throw err;
+        }
+      });
+    },
+
+    async ask(dataUrl, question, { title, regionLabel }) {
+      const where = regionLabel
+        ? `The student's finger is on "${regionLabel}".`
+        : "The student's finger is not on a named part right now.";
+      const prompt = `A blind student is exploring this picture by touch${title ? ` (it is titled "${title}")` : ""}. ${where}
+Answer their question in at most three short sentences, in plain words that sound natural read aloud. No lists, no markdown. If the picture does not show the answer, say so.
+Question: ${question}`;
+      return (
+        await spark(
+          [
+            { type: "input_text", text: prompt },
+            { type: "input_image", image_url: dataUrl },
+          ],
+          3000,
+        )
+      ).trim();
+    },
+  };
+}
