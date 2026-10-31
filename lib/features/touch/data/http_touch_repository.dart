@@ -124,6 +124,28 @@ class HttpTouchRepository implements TouchRepository {
   }
 
   @override
+  Future<LiveVoiceConnection> liveVoice({
+    required String title,
+    String overview = '',
+    String regionLabel = '',
+    String regionSpoken = '',
+    String regionDetail = '',
+  }) async {
+    final json = await _post('/api/livekit-token', {
+      'title': title,
+      'overview': overview,
+      'regionLabel': regionLabel,
+      'regionSpoken': regionSpoken,
+      'regionDetail': regionDetail,
+    }, const Duration(seconds: 30));
+    return LiveVoiceConnection(
+      url: json['url'] as String,
+      token: json['token'] as String,
+      room: json['room'] as String,
+    );
+  }
+
+  @override
   Future<(Analysis, PictureBytes)> sample() async {
     final json = jsonDecode(
       await rootBundle.loadString('assets/sample/sample.json'),

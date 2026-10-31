@@ -9,9 +9,11 @@ import '../../../core/theme/resonant_theme.dart';
 import '../../../core/ui/resonant_dots.dart';
 import '../application/touch_controller.dart';
 import '../application/touch_session.dart';
+import '../data/touch_repository.dart';
 import '../domain/region.dart';
 import '../gestures/gesture_types.dart';
 import 'gesture_surface.dart';
+import 'live_talk_screen.dart';
 import 'picture_painter.dart';
 import 'study_notes_screen.dart';
 
@@ -194,6 +196,33 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                       child: const Text('Lesson'),
                     ),
                     FilledButton(onPressed: controller.startQuiz, child: const Text('Quiz me')),
+                    FilledButton(
+                      onPressed: () async {
+                        final repo = ref.read(repositoryProvider);
+                        final highlight = state.view.highlight;
+                        await ref.read(speechProvider).stop();
+                        try {
+                          final connection = await repo.liveVoice(
+                            title: analysis.title,
+                            overview: analysis.overview,
+                            regionLabel: highlight?.label ?? '',
+                            regionSpoken: highlight?.spoken ?? '',
+                            regionDetail: highlight?.detail ?? '',
+                          );
+                          if (!context.mounted) return;
+                          await Navigator.of(context).push(
+                            MaterialPageRoute<void>(
+                              builder: (_) => LiveTalkScreen(connection: connection, title: analysis.title),
+                            ),
+                          );
+                        } on TouchApiException catch (e) {
+                          ref.read(speechProvider).speak(e.message);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+                        }
+                      },
+                      child: const Text('Talk live'),
+                    ),
                     FilledButton(
                       onPressed: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(

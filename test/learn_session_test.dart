@@ -1,5 +1,4 @@
 import 'package:resonant/features/learn/application/learn_session.dart';
-import 'package:resonant/features/learn/domain/learn.dart';
 import 'package:resonant/features/touch/application/touch_session.dart';
 import 'package:resonant/features/touch/gestures/gesture_types.dart';
 import 'package:flutter_test/flutter_test.dart';

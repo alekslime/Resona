@@ -135,6 +135,18 @@ class FakeRepository implements TouchRepository {
   }
 
   @override
+  Future<LiveVoiceConnection> liveVoice({
+    required String title,
+    String overview = '',
+    String regionLabel = '',
+    String regionSpoken = '',
+    String regionDetail = '',
+  }) async {
+    log.events.add('live:$title|$regionLabel');
+    return const LiveVoiceConnection(url: 'wss://fake', token: 'fake-token', room: 'resonant-fake');
+  }
+
+  @override
   Future<(Analysis, PictureBytes)> sample() => throw UnimplementedError();
 }
 
