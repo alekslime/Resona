@@ -8,6 +8,7 @@ import path from "node:path";
 import { imageSize } from "image-size";
 import { createMeta, mapLimit } from "../server/meta.js";
 import { buildRegions } from "../server/regions.js";
+import { recordsOfKind } from "@meta-sam/parser";
 
 const file = process.argv[2];
 if (!file) {
@@ -36,7 +37,7 @@ const meta = createMeta({
 console.log(`Picture ${imgW}x${imgH}. Asking ${meta.sparkModel} to name the parts...`);
 const li = process.argv.indexOf("--labels"); const described = li > -1 ? { title: "Custom labels", kind: "other", overview: "", parts: process.argv[li + 1].split(",").map((s) => s.trim()).filter(Boolean).map((l) => ({ label: l, spoken: l, detail: l })) } : await meta.describeParts(dataUrl);
 console.log(`\n${described.title} (${described.kind})\n${described.overview}\n`);
-console.log("Parts named: " + described.parts.map((p) => p.label).join(" | ") + "\n");
+console.log("Parts named: " + described.parts.map((p) => p.label + (p.where ? " " + JSON.stringify(p.where.map((x) => +x.toFixed(2))) : " (no box)")).join(" | ") + "\n");
 
 const regions = [];
 const missing = [];
@@ -44,7 +45,7 @@ const failed = [];
 await mapLimit(described.parts, 3, async (part, i) => {
   try {
     const seg = await meta.segment(dataUrl, part.label);
-    const found = buildRegions({ part, partIndex: i, records: seg.records, imgW, imgH });
+    const raw = recordsOfKind(seg.records, "mask"); console.log(part.label + ": SAM returned " + raw.length + " match(es): " + raw.map((m) => "conf " + (m.confidence ?? "n/a") + " at " + m.bounds.left + "," + m.bounds.top + "," + m.bounds.right + "," + m.bounds.bottom).join(" | ")); if (part.where) { const [l, t, r, b] = part.where; const inside = raw.filter((m) => { const cx = (m.bounds.left + m.bounds.right) / 2 / imgW, cy = (m.bounds.top + m.bounds.bottom) / 2 / imgH; return cx >= l - 0.05 && cx <= r + 0.05 && cy >= t - 0.05 && cy <= b + 0.05; }); console.log("  inside Spark box (+5%): " + inside.length + " of " + raw.length); } const found = buildRegions({ part, partIndex: i, records: seg.records, imgW, imgH });
     if (!found.length) missing.push(part.label);
     regions.push(...found);
   } catch (err) {
@@ -55,7 +56,7 @@ await mapLimit(described.parts, 3, async (part, i) => {
 regions.sort((a, b) => a.order - b.order);
 for (const r of regions) {
   const pct = ((r.area / (imgW * imgH)) * 100).toFixed(1);
-  console.log(`${String(r.order + 1).padStart(2)}. ${r.label} | ${pct}% of picture | box ${r.box.join(",")} | mask ${r.mask.w}x${r.mask.h}`);
+  console.log(`${String(r.order + 1).padStart(2)}. ${r.label} | ${pct}% of picture | box ${r.box.join(",")} | mask ${r.mask.w}x${r.mask.h} | confidence ${r.confidence ?? "n/a"}`);
 }
 if (missing.length) console.log(`\nSAM found nothing for: ${missing.join(", ")}`);
 if (failed.length) console.log(`\nFailed: ${failed.join("; ")}`);
