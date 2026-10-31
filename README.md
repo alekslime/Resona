@@ -11,6 +11,15 @@ it says which way to walk to the nearest part.
 
 The logo is the letter R in braille (⠗: dots 1-2-3-5), because sound and touch resonate through everything.
 
+## Screenshots
+
+| | |
+| --- | --- |
+| ![Home screen: braille-R dots logo, the word Resonant, and three large buttons — Choose a picture, Take a photo, Try the sample](docs/screenshots/01-home.png) | ![Explore screen: the sample landscape with the sun outlined, its spoken caption below, gesture strips on both sides, and buttons for Overview, Previous and Next part, Lesson, Quiz me, Talk live and Study notes](docs/screenshots/02-explore.png) |
+| *Pick a picture — or try the sample, no key needed.* | *Explore: the sun is outlined, captioned, and one tap from a lesson, a quiz, or a live tutor.* |
+| ![Study notes: the picture as plain text — title, overview, the map in words, and every part with its description, ready for a screen reader](docs/screenshots/03-study-notes.png) | |
+| *Study notes: the whole picture as readable text for revision.* | |
+
 ## Pre-existing work
 
 Resonant began as an Android app (Kotlin and Jetpack Compose) that I started **before** the
