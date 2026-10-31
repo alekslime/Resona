@@ -70,6 +70,13 @@ class StudyNotesScreen extends ConsumerWidget {
                 '${aroundWords(r, parts)}',
                 style: TextStyle(fontSize: 17, color: p.ink, height: 1.4),
               ),
+              if (r.approximate) ...[
+                const SizedBox(height: 4),
+                Text(
+                  'Approximate outline: the model could not trace this part, so it is a rough rectangle.',
+                  style: TextStyle(fontSize: 17, color: p.ink, height: 1.4),
+                ),
+              ],
             ],
             if (analysis.skipped.isNotEmpty) ...[
               const SizedBox(height: 20),

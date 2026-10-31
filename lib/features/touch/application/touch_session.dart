@@ -105,7 +105,11 @@ class TouchSession {
     final note = analysis.synthetic
         ? ' This is a sample. Its outlines were drawn by hand, not by the model.'
         : '';
-    _say('${analysis.title}. ${regions.length} parts found. Drag a finger over the picture.$note');
+    final rough = regions.where((r) => r.approximate).length;
+    final roughNote = rough == 0
+        ? ''
+        : ' $rough ${rough == 1 ? 'part is' : 'parts are'} a rough rectangle, not an exact outline.';
+    _say('${analysis.title}. ${regions.length} parts found. Drag a finger over the picture.$note$roughNote');
   }
 
   void dispose() => _labelTimer?.cancel();

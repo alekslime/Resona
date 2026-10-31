@@ -6,7 +6,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { imageSize } from "image-size";
 import { createMeta, mapLimit } from "./meta.js";
-import { buildRegions } from "./regions.js";
+import { buildRegions, conceptVariants, dedupeRegions } from "./regions.js";
 import { orientedSize } from "./orient.js";
 import { cleanRegions } from "./learn.js";
 
@@ -107,18 +107,29 @@ export function createApp(meta) {
       const described = await meta.describeParts(dataUrl);
 
       // 2. SAM 3.1 finds the exact pixels of each part (one request per concept).
-      const results = await mapLimit(described.parts, 3, async (part) => {
-        try {
-          return { part, records: (await meta.segment(dataUrl, part.label)).records };
-        } catch (err) {
-          console.error(`segment "${part.label}" failed:`, err?.message ?? err);
-          return { part, records: [] };
+      //    Labels SAM cannot ground ("orthodontic braces row") get retried with
+      //    simpler concepts ("braces") before we give up on the mask.
+      const segmentPart = async (part) => {
+        for (const variant of conceptVariants(part.label)) {
+          try {
+            const records = (await meta.segment(dataUrl, variant)).records;
+            if (records.length) return records;
+          } catch (err) {
+            console.error(`segment "${variant}" failed:`, err?.message ?? err);
+          }
         }
-      });
+        return [];
+      };
+      const results = await mapLimit(described.parts, 3, async (part) => ({
+        part,
+        records: await segmentPart(part),
+      }));
 
-      const regions = results.flatMap(({ part, records }, partIndex) =>
-        buildRegions({ part, partIndex, records, imgW: width, imgH: height }),
-      );
+      const perPart = results.map(({ part, records }, partIndex) => ({
+        part,
+        regions: buildRegions({ part, partIndex, records, imgW: width, imgH: height }),
+      }));
+      const regions = dedupeRegions(perPart.flatMap((p) => p.regions));
       if (!regions.length) {
         throw httpError(422, "No parts could be outlined in this picture. Try a clearer picture with distinct shapes.");
       }
@@ -129,7 +140,7 @@ export function createApp(meta) {
         kind: described.kind,
         overview: described.overview,
         regions,
-        skipped: results.filter((r) => !r.records.length).map((r) => r.part.label),
+        skipped: perPart.filter((p) => !p.regions.length).map((p) => p.part.label),
       };
       cachePut(dataUrl, payload);
       res.json(payload);

@@ -9,7 +9,7 @@ const clampText = (v, max = 600) => String(v ?? "").trim().slice(0, max);
 /** Normalise the regions a client sends us. Never trust ids/labels blindly. */
 export function cleanRegions(regions) {
   return (Array.isArray(regions) ? regions : [])
-    .filter((r) => r && typeof r.id === "string" && typeof r.label === "string" && r.label.trim())
+    .filter((r) => r && typeof r.id === "string" && r.id.trim() && typeof r.label === "string" && r.label.trim())
     .slice(0, 8)
     .map((r) => ({
       id: r.id.slice(0, 80),

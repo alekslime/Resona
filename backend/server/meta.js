@@ -18,7 +18,9 @@ Rules:
 - spoken: one short sentence read aloud the moment a finger rests on the part.
 - detail: two to four sentences: what it is, why it matters, and any numbers or words printed on or beside it. Plain words.
 - Never invent text or numbers that are not in the picture.
-- where: a rough box around the part as fractions of the whole picture, [left, top, right, bottom], each from 0 to 1, with 0,0 at the top left corner. It only needs to be roughly right.`;
+- where: a rough box around the part as fractions of the whole picture, [left, top, right, bottom], each from 0 to 1, with 0,0 at the top left corner. It only needs to be roughly right.
+- Pages with several photographs or panels (textbook spreads, figure grids, collages): treat each whole photograph or panel as ONE part. Its label names what the whole photo shows (such as "teeth with braces photo"), its where box covers the whole photo, not one tooth or detail inside it.
+- Avoid labels ending in row, pair, group, set or close-up, and never name a single small repeated item (one tooth, one bar, one dot) when the student needs the whole group it belongs to.`;
 
 export function textOf(response) {
   if (typeof response?.output_text === "string" && response.output_text) return response.output_text;

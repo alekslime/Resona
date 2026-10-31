@@ -7,7 +7,7 @@ import os from "node:os";
 import path from "node:path";
 import { imageSize } from "image-size";
 import { createMeta, mapLimit } from "../server/meta.js";
-import { buildRegions } from "../server/regions.js";
+import { buildRegions, conceptVariants, dedupeRegions } from "../server/regions.js";
 import { recordsOfKind } from "@meta-sam/parser";
 
 const file = process.argv[2];
@@ -44,7 +44,14 @@ const missing = [];
 const failed = [];
 await mapLimit(described.parts, 3, async (part, i) => {
   try {
-    const seg = await meta.segment(dataUrl, part.label);
+    let seg = { records: [] };
+    let usedConcept = part.label;
+    for (const variant of conceptVariants(part.label)) {
+      usedConcept = variant;
+      seg = await meta.segment(dataUrl, variant);
+      if (seg.records.length) break;
+    }
+    if (usedConcept !== part.label.toLowerCase()) console.log(part.label + ": retried as \"" + usedConcept + "\"");
     const raw = recordsOfKind(seg.records, "mask"); console.log(part.label + ": SAM returned " + raw.length + " match(es): " + raw.map((m) => "conf " + (m.confidence ?? "n/a") + " at " + m.bounds.left + "," + m.bounds.top + "," + m.bounds.right + "," + m.bounds.bottom).join(" | ")); if (part.where) { const [l, t, r, b] = part.where; const inside = raw.filter((m) => { const cx = (m.bounds.left + m.bounds.right) / 2 / imgW, cy = (m.bounds.top + m.bounds.bottom) / 2 / imgH; return cx >= l - 0.05 && cx <= r + 0.05 && cy >= t - 0.05 && cy <= b + 0.05; }); console.log("  inside Spark box (+5%): " + inside.length + " of " + raw.length); } const found = buildRegions({ part, partIndex: i, records: seg.records, imgW, imgH });
     if (!found.length) missing.push(part.label);
     regions.push(...found);
@@ -53,10 +60,13 @@ await mapLimit(described.parts, 3, async (part, i) => {
   }
 });
 
+const deduped = dedupeRegions(regions);
+regions.length = 0;
+regions.push(...deduped);
 regions.sort((a, b) => a.order - b.order);
 for (const r of regions) {
   const pct = ((r.area / (imgW * imgH)) * 100).toFixed(1);
-  console.log(`${String(r.order + 1).padStart(2)}. ${r.label} | ${pct}% of picture | box ${r.box.join(",")} | mask ${r.mask.w}x${r.mask.h} | confidence ${r.confidence ?? "n/a"}`);
+  console.log(`${String(r.order + 1).padStart(2)}. ${r.label} | ${pct}% of picture | box ${r.box.join(",")} | mask ${r.mask.w}x${r.mask.h} | confidence ${r.confidence ?? "n/a"}${r.approximate ? " | APPROXIMATE (Spark box)" : ""}${r.merged ? ` | merged ${r.merged} matches` : ""}`);
 }
 if (missing.length) console.log(`\nSAM found nothing for: ${missing.join(", ")}`);
 if (failed.length) console.log(`\nFailed: ${failed.join("; ")}`);

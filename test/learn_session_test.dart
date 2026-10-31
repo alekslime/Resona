@@ -68,12 +68,12 @@ void main() {
       await r.quiz();
       expect(r.log.where('say').single.contains('Find the sun.'), isTrue);
       r.log.events.clear();
-      r.session.handle(const ExploreStart(cloud.$1, cloud.$2)); // wrong part
+      r.session.handle(ExploreStart(cloud.$1, cloud.$2)); // wrong part
       expect(r.log.where('haptic:incorrect').length, 1);
       expect(r.log.where('say').single.contains('That is the cloud. Try again.'), isTrue);
       r.session.handle(const ExploreEnd());
       r.log.events.clear();
-      r.session.handle(const ExploreStart(sun.$1, sun.$2)); // right part
+      r.session.handle(ExploreStart(sun.$1, sun.$2)); // right part
       expect(r.log.where('haptic:correct').length, 1);
       expect(r.log.where('say').single.contains('Correct.'), isTrue);
       expect(r.log.where('say').single.contains('Question 2.'), isTrue);
@@ -83,9 +83,9 @@ void main() {
       final r = Rig();
       await r.quiz();
       r.log.events.clear();
-      r.session.handle(const ExploreStart(cloud.$1, cloud.$2));
+      r.session.handle(ExploreStart(cloud.$1, cloud.$2));
       r.session.handle(const ExploreEnd());
-      r.session.handle(const ExploreStart(cloud.$1, cloud.$2));
+      r.session.handle(ExploreStart(cloud.$1, cloud.$2));
       expect(r.log.where('say').last.contains('The answer was the sun.'), isTrue);
       expect(r.log.where('say').last.contains('Question 2.'), isTrue);
     });
@@ -110,9 +110,9 @@ void main() {
       final r = Rig(heard: 'it holds water');
       await r.quiz();
       // Miss the find-it (revealed), get the say-it right.
-      r.session.handle(const ExploreStart(cloud.$1, cloud.$2));
+      r.session.handle(ExploreStart(cloud.$1, cloud.$2));
       r.session.handle(const ExploreEnd());
-      r.session.handle(const ExploreStart(cloud.$1, cloud.$2));
+      r.session.handle(ExploreStart(cloud.$1, cloud.$2));
       r.session.handle(const LongPress(Zone.center));
       await settle();
       r.session.handle(const LongPressEnd(Zone.center));
@@ -124,7 +124,7 @@ void main() {
       r.log.events.clear();
       r.session.retryMissed();
       expect(r.log.where('say').single.contains('Practising the ones to work on. 1 questions.'), isTrue);
-      r.session.handle(const ExploreStart(sun.$1, sun.$2));
+      r.session.handle(ExploreStart(sun.$1, sun.$2));
       expect(r.log.where('say').last.contains('You got 1 of 1.'), isTrue);
       expect(r.lastView!.missedCount, 0);
     });

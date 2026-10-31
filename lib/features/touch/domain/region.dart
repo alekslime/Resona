@@ -22,6 +22,7 @@ class Region {
     required this.area,
     required this.areaFrac,
     this.confidence,
+    this.approximate = false,
   });
 
   final String id;
@@ -39,6 +40,10 @@ class Region {
   final int area;
   final double areaFrac;
   final double? confidence;
+
+  /// True when SAM could not outline this part and the region is Muse Spark's
+  /// rough rectangle instead — touchable, but not the part's true shape.
+  final bool approximate;
 
   factory Region.fromJson(
     Map<String, dynamic> j, {
@@ -64,6 +69,7 @@ class Region {
       area: area,
       areaFrac: area / (imageWidth * imageHeight),
       confidence: (j['confidence'] as num?)?.toDouble(),
+      approximate: (j['approximate'] as bool?) ?? false,
     );
   }
 

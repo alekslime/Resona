@@ -155,7 +155,7 @@ cd backend && npm test  # the Meta pipeline, mask handling, the API
 ## Known limits
 
 - One picture at a time; analysis takes roughly half a minute because every part is its own SAM request.
-- SAM 3.1 matches one concept per request, so a vaguely phrased label can match nothing. Those parts are skipped and reported.
+- SAM 3.1 matches one concept per request, so a vaguely phrased label can match nothing. The backend retries with simpler concepts; if it still finds nothing but Muse Spark gave a rough box, the part stays touchable as an approximate rectangle (the app says so), and many tiny matches in one photo (every tooth in a close-up) are merged into one region.
 - Vibration is timed on Android. On iPhone it is a series of taps, and none at all in the browser.
 - With TalkBack or VoiceOver on, the screen reader takes over one-finger touch, so use the buttons under the picture.
 

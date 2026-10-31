@@ -141,7 +141,9 @@ test("analyze is cached: the same picture is only segmented once", async () => {
   await withServer(counting, async (base) => {
     await post(base, "/api/analyze", { image });
     await post(base, "/api/analyze", { image });
-    assert.equal(segments, 2); // two parts, once each — not twice each
+    // "button" once + "missing thing" retried with simpler concepts; the second
+    // analyze is a cache hit and segments nothing at all.
+    assert.equal(segments, 4);
   });
 });
 
