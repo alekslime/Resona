@@ -34,7 +34,7 @@ const meta = createMeta({
 });
 
 console.log(`Picture ${imgW}x${imgH}. Asking ${meta.sparkModel} to name the parts...`);
-const described = await meta.describeParts(dataUrl);
+const li = process.argv.indexOf("--labels"); const described = li > -1 ? { title: "Custom labels", kind: "other", overview: "", parts: process.argv[li + 1].split(",").map((s) => s.trim()).filter(Boolean).map((l) => ({ label: l, spoken: l, detail: l })) } : await meta.describeParts(dataUrl);
 console.log(`\n${described.title} (${described.kind})\n${described.overview}\n`);
 console.log("Parts named: " + described.parts.map((p) => p.label).join(" | ") + "\n");
 
