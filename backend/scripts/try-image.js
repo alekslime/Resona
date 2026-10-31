@@ -21,7 +21,7 @@ if (!apiKey) {
 }
 
 const buf = fs.readFileSync(file);
-const { width: imgW, height: imgH } = imageSize(buf);
+const dims = imageSize(buf); const turned = (dims.orientation ?? 1) >= 5; const imgW = turned ? dims.height : dims.width; const imgH = turned ? dims.width : dims.height;
 const mime = path.extname(file).toLowerCase() === ".png" ? "image/png" : "image/jpeg";
 const dataUrl = `data:${mime};base64,${buf.toString("base64")}`;
 
