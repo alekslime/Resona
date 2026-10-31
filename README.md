@@ -65,6 +65,24 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
 - The Meta key lives only on the backend. The app never holds it. Re-analyzing a picture you already
   opened is served from the backend's cache, not paid for twice.
 
+## Studying, not just exploring
+
+Everything below is computed on the phone from the masks and boxes — no extra model calls, so it
+works even when the network does not:
+
+- **Map in words.** Three-finger hold reads the overview plus a three-band spoken map
+  ("Top: cloud on the left, sun on the right. Middle: mountain…"), so the layout can be learned,
+  not just visited.
+- **What's around it.** A quick tap on a part also names its neighbours ("Around it: cloud to the
+  left, mountain below"), which is how a mental picture gets its edges.
+- **Guide me there.** Hold and ask *"Where is the sun?"* and guide mode points you as you drag:
+  rest and it says the direction and whether you are close or far, and celebrates when your finger
+  lands on the mask.
+- **Practise missed.** The quiz remembers the questions you missed, skipped or had revealed, and
+  the end of the quiz offers a second round with only those.
+- **Study notes.** A plain-text screen (overview, map in words, every part with its size and
+  neighbours) that a screen reader can read top to bottom — revision without re-analyzing.
+
 ## Gestures
 
 Carried over from the earlier app, plus finger exploration:
@@ -73,15 +91,15 @@ Carried over from the earlier app, plus finger exploration:
 | --- | --- | --- |
 | Centre | Touch or drag one finger | Explore: hear and feel the part under it |
 | Centre | Move, then rest | Hear the part's description |
-| Centre | Quick tap | Hear its name and description now |
-| Centre | Hold still 0.5 s, speak, lift | Ask a question about the picture (follow-ups remember the conversation) |
+| Centre | Quick tap | Hear its name and description now, and what is around it |
+| Centre | Hold still 0.5 s, speak, lift | Ask a question about the picture, or ask "Where is the …?" to be guided to it |
 | Explore screen | Lesson / Quiz me buttons | Guided lesson, or a quiz: touch the part it names, answer questions out loud |
 | Lesson / Quiz | Left-edge swipe, buttons below | Next / previous step or question; hold right edge to go back to exploring |
 | Left edge | Tap / double tap | Stop and resume talking / repeat |
 | Left edge | Swipe (finger down = next) | Step through the parts without dragging |
 | Right edge | Hold, then drag up or down | Speech faster or slower |
 | Right edge | Hold without dragging | Back |
-| Anywhere | Three-finger tap / hold | Repeat last / hear the overview |
+| Anywhere | Three-finger tap / hold | Repeat last / hear the overview and the map in words |
 
 ## Architecture
 
@@ -89,7 +107,7 @@ Carried over from the earlier app, plus finger exploration:
 lib/
   core/            speech, haptics, sound behind interfaces; theme; the animated braille logo
   features/touch/
-    domain/        Region, Analysis, hit-testing           (pure Dart)
+    domain/        Region, Analysis, hit-testing, spatial words (map, neighbours)  (pure Dart)
     gestures/      the gesture engine: touches -> gestures (pure Dart, no clock, no timers)
     application/   TouchSession: gestures -> speech/touch/sound  (pure Dart) + Riverpod controller
     data/          the backend client

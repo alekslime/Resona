@@ -106,6 +106,29 @@ void main() {
       expect(r.log.where('say').last.contains('Quiz finished. You got 1 of 2.'), isTrue);
     });
 
+    test('practise missed: only the missed questions come back', () async {
+      final r = Rig(heard: 'it holds water');
+      await r.quiz();
+      // Miss the find-it (revealed), get the say-it right.
+      r.session.handle(const ExploreStart(cloud.$1, cloud.$2));
+      r.session.handle(const ExploreEnd());
+      r.session.handle(const ExploreStart(cloud.$1, cloud.$2));
+      r.session.handle(const LongPress(Zone.center));
+      await settle();
+      r.session.handle(const LongPressEnd(Zone.center));
+      await settle();
+      expect(r.log.where('say').last.contains('You got 1 of 2.'), isTrue);
+      expect(r.lastView!.learnDone, isTrue);
+      expect(r.lastView!.missedCount, 1);
+      // Retry: one question, the find-it, and this time the score is a clean sweep.
+      r.log.events.clear();
+      r.session.retryMissed();
+      expect(r.log.where('say').single.contains('Practising the ones to work on. 1 questions.'), isTrue);
+      r.session.handle(const ExploreStart(sun.$1, sun.$2));
+      expect(r.log.where('say').last.contains('You got 1 of 1.'), isTrue);
+      expect(r.lastView!.missedCount, 0);
+    });
+
     test('say-it: a wrong spoken answer is corrected without shame', () async {
       final r = Rig(heard: 'it holds fire');
       await r.quiz();

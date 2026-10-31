@@ -59,7 +59,34 @@ class LearnSession {
     listening: _listening,
     thinking: _thinking,
     caption: _caption,
+    learnDone: kind == LearnKind.quiz && _done,
+    missedCount: _missed.length,
   );
+
+  final List<QuizQuestion> _missed = [];
+
+  void _miss(QuizQuestion q) {
+    if (!_missed.any((m) => m.regionId == q.regionId && m.kind == q.kind)) _missed.add(q);
+  }
+
+  /// A second round with only the questions that were missed, skipped or revealed.
+  void retryMissed() {
+    if (_missed.isEmpty || _analysis == null) {
+      _repeat();
+      return;
+    }
+    final again = Quiz(List.of(_missed));
+    _missed.clear();
+    kind = LearnKind.quiz;
+    _quiz = again;
+    _index = 0;
+    _score = 0;
+    _attempts = 0;
+    _done = false;
+    _focusId = null;
+    _highlight = null;
+    _say('Practising the ones to work on. ${again.questions.length} questions. Question 1. ${again.questions.first.question}');
+  }
 
   Region? _region(String? id) {
     for (final r in _analysis?.regions ?? const <Region>[]) {
@@ -108,7 +135,11 @@ class LearnSession {
       case Swipe(zone: Zone.leftEdge, direction: SwipeDirection.down):
         if (kind == LearnKind.lesson) _stepLesson(-1);
       case Tap(zone: Zone.center):
-        _repeat();
+        if (kind == LearnKind.quiz && _done && _missed.isNotEmpty) {
+          retryMissed();
+        } else {
+          _repeat();
+        }
       case Tap(zone: Zone.leftEdge):
         speech.isSpeaking ? speech.stop() : _repeat();
       case DoubleTap(zone: Zone.leftEdge):
@@ -191,6 +222,7 @@ class LearnSession {
       haptics.play(HapticPattern.incorrect);
       cues.play(HapticPattern.incorrect);
       if (_attempts >= 2) {
+        _miss(q);
         _advance('That is the ${hit.label}. The answer was the ${target.label}. ${target.detail}');
       } else {
         _say('That is the ${hit.label}. Try again. ${q.question}');
@@ -200,7 +232,9 @@ class LearnSession {
   }
 
   void _skip() {
-    if (_question == null) return;
+    final q = _question;
+    if (q == null) return;
+    _miss(q);
     _advance('Skipped.');
   }
 
@@ -216,6 +250,7 @@ class LearnSession {
       cues.play(HapticPattern.sectionChange);
       _say(
         '$feedback Quiz finished. You got $_score of ${quiz.questions.length}. '
+        '${_missed.isEmpty ? '' : 'Tap the picture to practise the ${_missed.length} to work on. '}'
         'Hold the right edge to go back to exploring.',
       );
     } else {
@@ -276,6 +311,7 @@ class LearnSession {
         haptics.play(HapticPattern.correct);
         cues.play(HapticPattern.correct);
       } else {
+        _miss(q);
         haptics.play(HapticPattern.incorrect);
         cues.play(HapticPattern.incorrect);
       }

@@ -140,13 +140,23 @@ void main() {
       expect(r.log.where('say').single, 'say: Edge of the picture.');
     });
 
-    test('a tap after lifting describes the part just touched', () {
+    test('a tap after lifting describes the part just touched, and what is around it', () {
       final r = Rig();
       r.touch(sun);
       r.lift();
       r.log.events.clear();
       r.session.handle(const Tap(Zone.center));
-      expect(r.log.where('say').single, 'say: sun. The sun, top right.');
+      final said = r.log.where('say').single;
+      expect(said.startsWith('say: sun. The sun, top right.'), isTrue);
+      expect(said.contains('Around it: cloud to the left, mountain below.'), isTrue);
+    });
+
+    test('three-finger hold adds the map in words to the overview', () {
+      final r = Rig();
+      r.session.handle(const ThreeFingerHold());
+      final said = r.log.where('say').single;
+      expect(said.contains('Map in words.'), isTrue);
+      expect(said.contains('Top: cloud on the left, sun on the right.'), isTrue);
     });
   });
 
@@ -254,6 +264,26 @@ void main() {
       await settle();
       expect(r.log.where('say').last, 'say: The microphone is not available.');
       expect(r.lastView?.listening ?? false, isFalse);
+    });
+
+    test('"where is the sun?" starts guide mode instead of asking the tutor', () async {
+      final r = Rig(heard: 'where is the sun?');
+      r.touch(sky);
+      r.session.handle(const LongPress(Zone.center));
+      await settle();
+      r.session.handle(const LongPressEnd(Zone.center));
+      await settle();
+      expect(r.log.where('ask').isEmpty, isTrue);
+      expect(r.log.where('say').last.contains('Guide mode.'), isTrue);
+      // Resting points the way, from where the finger is.
+      r.session.handle(const ExploreRest(60, 60));
+      expect(r.log.where('say').last.contains('The sun is to the right, far.'), isTrue);
+      // Landing on it ends guide mode with a celebration, not just a name.
+      r.log.events.clear();
+      r.touch(sun);
+      await settle();
+      expect(r.log.where('haptic:correct').length, 1);
+      expect(r.log.where('say').single.startsWith('say: You found the sun.'), isTrue);
     });
 
     test('a failed question speaks the plain error and buzzes', () async {

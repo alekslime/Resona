@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import '../../../core/services/haptics.dart';
 import '../../../core/services/sound.dart';
@@ -6,6 +7,7 @@ import '../../../core/services/speech.dart';
 import '../data/touch_repository.dart';
 import '../domain/hit_tester.dart';
 import '../domain/region.dart';
+import '../domain/spatial.dart';
 import '../gestures/gesture_types.dart';
 
 /// Where the picture sits on the screen, so touches can be turned into picture pixels.
@@ -26,11 +28,17 @@ class TouchView {
     this.listening = false,
     this.thinking = false,
     this.caption = '',
+    this.learnDone = false,
+    this.missedCount = 0,
   });
   final Region? highlight;
   final bool listening;
   final bool thinking;
   final String caption;
+
+  /// Learn mode only: the quiz is finished, and how many questions were missed.
+  final bool learnDone;
+  final int missedCount;
 }
 
 /// Turns gestures into speech, vibration and sound for one picture.
@@ -68,6 +76,7 @@ class TouchSession {
   Region? _highlight; // outlined on screen
   Region? _focus; // under the finger right now
   Region? _endedOn; // where the finger was when it lifted (for taps)
+  Region? _guide; // "guide me there": the part the student is hunting for
   double _lastPx = 0, _lastPy = 0;
   bool _wasInside = false;
   bool _listening = false;
@@ -90,6 +99,7 @@ class TouchSession {
     _picture = picture;
     _history.clear();
     _highlight = _focus = _endedOn = null;
+    _guide = null;
     _wasInside = _listening = _thinking = false;
     _lastSpoken = '';
     final note = analysis.synthetic
@@ -145,7 +155,8 @@ class TouchSession {
         _repeat();
       case ThreeFingerHold():
         haptics.play(HapticPattern.confirm);
-        _say('${_analysis!.title}. ${_analysis!.overview}');
+        final a = _analysis!;
+        _say('${a.title}. ${a.overview} Map in words. ${mapInWords(regions, a.width.toDouble(), a.height.toDouble())}');
       default:
         break; // gestures this screen does not use are ignored, like Resonant's dead zones
     }
@@ -185,8 +196,16 @@ class TouchSession {
       haptics.pulse(hapticMsFor(r));
       final a = _analysis!;
       cues.position(x01: px / a.width, y01: py / a.height);
-      // A short pause so a finger sweeping across several parts does not stutter the voice.
-      _labelTimer = Timer(labelDelay, () => _say(r.label));
+      if (_guide?.id == r.id) {
+        // Found it: celebrate instead of just naming it, and leave guide mode.
+        _guide = null;
+        haptics.play(HapticPattern.correct);
+        cues.play(HapticPattern.correct);
+        _labelTimer = Timer(labelDelay, () => _say('You found the ${r.label}. ${r.spoken}'));
+      } else {
+        // A short pause so a finger sweeping across several parts does not stutter the voice.
+        _labelTimer = Timer(labelDelay, () => _say(r.label));
+      }
     } else {
       if (left != null) haptics.pulse(10);
       speech.stop();
@@ -196,6 +215,20 @@ class TouchSession {
   }
 
   void _rest() {
+    final guide = _guide;
+    if (guide != null) {
+      final a = _analysis!;
+      final dx = guide.centerX - _lastPx;
+      final dy = guide.centerY - _lastPy;
+      final dist = math.sqrt(dx * dx + dy * dy);
+      final on = _focus;
+      final prefix = on != null && on.id != guide.id ? 'That is the ${on.label}. ' : '';
+      _say(
+        '${prefix}The ${guide.label} is ${directionWords(dx, dy)}, ${distanceWords(dist, a.width.toDouble())}.',
+        queue: on != null,
+      );
+      return;
+    }
     final f = _focus;
     if (f != null) {
       _say(f.spoken, queue: true);
@@ -208,7 +241,7 @@ class TouchSession {
   void _describeTouched() {
     final r = _endedOn;
     if (r != null) {
-      _say('${r.label}. ${r.spoken}');
+      _say('${r.label}. ${r.spoken}${aroundWords(r, regions)}');
     } else {
       final near = nearestRegion(regions, _lastPx, _lastPy);
       if (near != null) _say('Nothing here. ${near.region.label} is ${near.words}.');
@@ -271,6 +304,24 @@ class TouchSession {
       _say('I did not catch that.');
       return;
     }
+    // "Where is the sun?" / "Find the sea" is not a tutor question: it starts guide mode.
+    final target = _guideTargetFor(heard);
+    if (target != null) {
+      _thinking = false;
+      _guide = target;
+      haptics.play(HapticPattern.confirm);
+      cues.play(HapticPattern.confirm);
+      final a = _analysis!;
+      final dx = target.centerX - _lastPx;
+      final dy = target.centerY - _lastPy;
+      _say(
+        'Guide mode. Drag your finger slowly, then rest and I will point you. '
+        'The ${target.label} is ${directionWords(dx, dy)} from where you last touched, '
+        '${distanceWords(math.sqrt(dx * dx + dy * dy), a.width.toDouble())}.',
+      );
+      _emit();
+      return;
+    }
     _thinking = true;
     _caption = heard;
     _emit();
@@ -296,6 +347,27 @@ class TouchSession {
       haptics.play(HapticPattern.error);
       _say('Something went wrong. Try again.');
     }
+  }
+
+  /// The part named in a "find / where is" request, or null if this is a normal question.
+  Region? _guideTargetFor(String heard) {
+    final text = ' ${heard.toLowerCase().replaceAll(RegExp(r"[^a-z' ]"), ' ')} ';
+    final wantsGuide =
+        text.contains(' find ') ||
+        text.contains(' where is ') ||
+        text.contains(' where\'s ') ||
+        text.contains(' guide me ');
+    if (!wantsGuide) return null;
+    for (final r in readingOrder(regions)) {
+      if (text.contains(' ${r.label.toLowerCase()} ')) return r;
+    }
+    // Partial names: "where is the lung?" should still match "left lung".
+    for (final r in readingOrder(regions)) {
+      for (final word in r.label.toLowerCase().split(RegExp(r'[^a-z]+'))) {
+        if (word.length >= 3 && text.contains(' $word ')) return r;
+      }
+    }
+    return null;
   }
 
   // ---- speaking ----

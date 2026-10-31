@@ -194,6 +194,9 @@ class TouchController extends Notifier<TouchState> {
   /// The on-screen Answer button for say-it questions (hold-to-talk does the same job).
   void toggleAnswer() => _learn?.toggleAnswer();
 
+  /// The on-screen Practise-missed button at the end of a quiz.
+  void retryMissed() => _learn?.retryMissed();
+
   bool get _inLearn => state.mode != ExploreMode.explore && _learn != null;
 
   void setLayout(PictureLayout layout) {

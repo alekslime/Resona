@@ -13,6 +13,7 @@ import '../domain/region.dart';
 import '../gestures/gesture_types.dart';
 import 'gesture_surface.dart';
 import 'picture_painter.dart';
+import 'study_notes_screen.dart';
 
 /// The explore screen. Layout, top to bottom: a title pill, the stage (picture with a gesture margin
 /// on each side, like Resonant's edge zones), the spoken caption, and buttons that do the same jobs
@@ -193,6 +194,14 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                       child: const Text('Lesson'),
                     ),
                     FilledButton(onPressed: controller.startQuiz, child: const Text('Quiz me')),
+                    FilledButton(
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => StudyNotesScreen(analysis: analysis),
+                        ),
+                      ),
+                      child: const Text('Study notes'),
+                    ),
                   ],
                 )
               else if (state.mode == ExploreMode.lesson)
@@ -240,6 +249,11 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                           controller.onGesture(const Swipe(Zone.leftEdge, SwipeDirection.up)),
                       child: const Text('Skip'),
                     ),
+                    if (state.view.learnDone && state.view.missedCount > 0)
+                      FilledButton(
+                        onPressed: controller.retryMissed,
+                        child: Text('Practise missed (${state.view.missedCount})'),
+                      ),
                     FilledButton(
                       onPressed: () => controller.onGesture(const LongPress(Zone.rightEdge)),
                       child: const Text('Back to exploring'),
