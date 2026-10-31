@@ -1,0 +1,3 @@
+# Downloaded at runtime by agent.py (Piper voice, ~63 MB) — never commit.
+voices/
+__pycache__/
