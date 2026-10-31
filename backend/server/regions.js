@@ -18,6 +18,19 @@ export function downsample(raster, w, h, maxSide = 96) {
   return { w: nw, h: nh, bits };
 }
 
+/**
+ * True when the centre of a SAM match lies inside the rough box Muse Spark gave for the part
+ * ([left, top, right, bottom] as fractions of the picture), plus some slack. No box means no filter.
+ * Spark's boxes drift a little low on tall pages, so there is more slack below than above.
+ */
+export function insideWhere(bounds, where, imgW, imgH, slack = {}) {
+  if (!where) return true;
+  const { x = 0.05, top = 0.03, bottom = 0.08 } = slack;
+  const [l, t, r, b] = where;
+  const cx = (bounds.left + bounds.right) / 2 / imgW;
+  const cy = (bounds.top + bounds.bottom) / 2 / imgH;
+  return cx >= l - x && cx <= r + x && cy >= t - top && cy <= b + bottom;
+}
 function slug(text) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "part";
 }
@@ -34,6 +47,7 @@ export function buildRegions({ part, partIndex, records, imgW, imgH, maxInstance
     let area = 0;
     for (let i = 0; i < raster.length; i++) area += raster[i];
     if (area / (imgW * imgH) < minAreaFrac) continue; // specks are noise, not parts
+    if (!insideWhere(rec.bounds, part.where, imgW, imgH)) continue; // not where Spark put this part
     found.push({ rec, raster, area });
   }
   // Most confident (or largest) first, keep a few, then number them left to right.
