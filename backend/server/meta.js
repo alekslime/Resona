@@ -8,7 +8,7 @@ import { extractJson } from "./json.js";
 const PARTS_PROMPT = `You are helping a blind student explore a picture by touch. List the distinct parts of this picture that the student would want to find with a finger and hear about.
 
 Return only JSON in this shape:
-{"title": "...", "kind": "chart | diagram | photo | map | other", "overview": "...", "parts": [{"label": "...", "spoken": "...", "detail": "..."}]}
+{"title": "...", "kind": "chart | diagram | photo | map | other", "overview": "...", "parts": [{"label": "...", "where": [0.0, 0.0, 1.0, 1.0], "spoken": "...", "detail": "..."}]}
 
 Rules:
 - overview: two or three plain sentences saying what the picture is and how it is laid out (what is at the top, bottom, left and right).
@@ -16,7 +16,8 @@ Rules:
 - label: a short, concrete noun phrase of 1 to 4 words naming something you can see, such as "red bar" or "left lung". It is sent to an image segmentation model, so describe what the thing looks like. No verbs, questions, lists or abstract ideas. One thing per label. If several things look alike, separate them with a visible attribute or position in the label.
 - spoken: one short sentence read aloud the moment a finger rests on the part.
 - detail: two to four sentences: what it is, why it matters, and any numbers or words printed on or beside it. Plain words.
-- Never invent text or numbers that are not in the picture.`;
+- Never invent text or numbers that are not in the picture.
+- where: a rough box around the part as fractions of the whole picture, [left, top, right, bottom], each from 0 to 1, with 0,0 at the top left corner. It only needs to be roughly right.`;
 
 export function textOf(response) {
   if (typeof response?.output_text === "string" && response.output_text) return response.output_text;
@@ -58,6 +59,13 @@ export async function mapLimit(items, limit, fn) {
   return out;
 }
 
+export function normBox(v) {
+  if (!Array.isArray(v) || v.length !== 4) return null;
+  const n = v.map(Number);
+  if (n.some((x) => !Number.isFinite(x) || x < 0 || x > 1)) return null;
+  const [l, t, r, b] = n;
+  return r > l && b > t ? [l, t, r, b] : null;
+}
 export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkModel = "muse-spark-1.3", samModel = "sam-3.1", effort = "low" }) {
   const client = new OpenAI({ apiKey, baseURL });
 
@@ -101,6 +109,7 @@ export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkMo
           label: p.label.trim(),
           spoken: String(p.spoken ?? p.label).trim(),
           detail: String(p.detail ?? p.spoken ?? p.label).trim(),
+          where: normBox(p.where),
         }));
       if (!parts.length) throw new Error("The model found no parts in this picture.");
       return {
