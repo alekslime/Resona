@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { imageSize } from "image-size";
 import { createMeta, mapLimit } from "./meta.js";
 import { buildRegions } from "./regions.js";
+import { orientedSize } from "./orient.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sampleDir = path.join(here, "..", "sample");
@@ -28,7 +29,7 @@ function parseImage(dataUrl) {
   if (!size.width || !size.height || size.width < 64 || size.height < 64 || Math.max(size.width, size.height) > 4096) {
     throw httpError(400, "The picture must be between 64 and 4096 pixels on its longest side.");
   }
-  return { width: size.width, height: size.height };
+  return orientedSize(size);
 }
 
 function httpError(status, message) {
