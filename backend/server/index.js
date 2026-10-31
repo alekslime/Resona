@@ -9,6 +9,7 @@ import { createMeta, mapLimit } from "./meta.js";
 import { buildRegions, conceptVariants, dedupeRegions } from "./regions.js";
 import { orientedSize } from "./orient.js";
 import { cleanRegions } from "./learn.js";
+import { liveKitConfig, liveKitSession } from "./livekit.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sampleDir = path.join(here, "..", "sample");
@@ -92,7 +93,7 @@ export function createApp(meta) {
   app.use(express.static(webDir)); // no-op until `flutter build web` has been run
 
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, metaConfigured: Boolean(meta), sparkModel: meta?.sparkModel ?? null, samModel: meta?.samModel ?? null });
+    res.json({ ok: true, metaConfigured: Boolean(meta), sparkModel: meta?.sparkModel ?? null, samModel: meta?.samModel ?? null, liveKitConfigured: Boolean(liveKitConfig()) });
   });
 
   app.post("/api/analyze", limiter(6, 60_000), async (req, res, next) => {
@@ -212,6 +213,18 @@ export function createApp(meta) {
         history,
       });
       res.json({ answer });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/livekit-token", limiter(10, 60_000), async (req, res, next) => {
+    try {
+      const cfg = liveKitConfig();
+      if (!cfg) {
+        throw httpError(503, "Live voice is not set up on this server. Add LIVEKIT_URL, LIVEKIT_API_KEY and LIVEKIT_API_SECRET to .env.");
+      }
+      res.json(liveKitSession(cfg, req.body ?? {}));
     } catch (err) {
       next(err);
     }
