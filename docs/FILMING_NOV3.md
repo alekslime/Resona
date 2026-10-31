@@ -1,10 +1,11 @@
-# Filming day — Nov 2 (interview + demo)
+# Filming day — Nov 3 (interview + demo)
 
 Two videos, one day. Shoot the **demo first** (it needs the working app and a quiet room),
 then the interview while the demos are still fresh in your head.
+Submissions close **Nov 4, 9:00 PM ET** — filming Nov 3 leaves Nov 4 for editing and submitting.
 
-## Before Nov 2 (Oct 31 – Nov 1)
-- [ ] `cd backend && npm test` and `flutter test` both green.
+## Before Nov 3 (Nov 1–2)
+- [x] `cd backend && npm test` and `flutter test` both green (38 + 71, Nov 1).
 - [ ] `npm run check:api`, then run **one real picture end-to-end on the phone you will film with**:
       analyze → explore → Lesson (2 steps) → Quiz (1 find-it wrong-then-right, 1 say-it) →
       hold-to-ask with one follow-up ("and why?"). This is the exact demo path — rehearse it twice.
@@ -34,8 +35,8 @@ then the interview while the demos are still fresh in your head.
 - [ ] B-roll while you're set up: finger exploring with headphones on, lesson stepping, quiz buzz,
       the backend terminal answering. 10 s each, no talking.
 
-## After filming (Nov 2 evening)
+## After filming (Nov 3 evening – Nov 4)
 - [ ] Back up raw files in two places before editing anything.
-- [ ] Nov 3: edit, captions on everything (your audience includes deaf-blind-adjacent judges —
-      captions are on-brand), README screenshots from the hero picture.
-- [ ] Nov 4: fresh-clone check + submit by afternoon ET (see DAY_PLAN.md).
+- [ ] Nov 3 evening / Nov 4 morning: edit, captions on everything (your audience includes
+      deaf-blind-adjacent judges — captions are on-brand), README screenshots from the hero picture.
+- [ ] Nov 4: fresh-clone check + **submit by afternoon ET** (deadline 9:00 PM ET, see HACKATHON.md).

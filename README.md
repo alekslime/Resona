@@ -42,6 +42,42 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
 | Quiz / check-me: correct–incorrect haptic and sound feedback, score | `lib/features/learn/`, `POST /api/quiz`, `POST /api/grade` |
 | Voice tutor chat (the old LiveKit agent, as hold-to-talk multi-turn chat) | `TouchSession` history + `POST /api/chat` |
 
+## Status — what is in the app, and what is not (1 Nov)
+
+**Working today, on a real phone:**
+
+- **Pick a picture** (gallery, camera, or the built-in sample), get it back as touchable parts in
+  about half a minute. Analysis is cached on the backend, so re-opening the same picture is free.
+- **Explore by touch**: each part speaks, buzzes (bigger parts buzz longer), and plays a tone whose
+  pitch is its height and whose stereo position is left–right. Rest to hear the description; tap to
+  hear what is around it; drag off a part and it tells you which way to go.
+- **Map in words** (three-finger hold) and **Guide me there** ("Where is the sun?" by voice, then
+  spoken direction + distance as you drag, with a celebration when you land on it).
+- **Lesson mode**: Muse Spark writes a guided walk through the parts (with a built-from-the-parts
+  fallback lesson, so it can never fail to start); swipe or tap through the steps.
+- **Quiz me**: "find-it" questions graded on the phone against the SAM mask (instant, free), and
+  "say-it" questions graded by Muse Spark. Correct/incorrect buzzes, one gentle retry, then the
+  answer — and a **Practise missed** round with only the questions you got wrong.
+- **Voice tutor**: hold, ask, lift — then follow up ("and why?"). The tutor remembers the
+  conversation and knows which part your finger is on.
+- **Study notes**: the whole picture as plain text (overview, map, every part) for revision with a
+  screen reader.
+- Screen-reader buttons for every gesture, four themes, 71 Flutter tests + 38 backend tests, all green.
+
+**Not built yet (deliberately — see `docs/HACKATHON.md`):**
+
+- No public hosted link: for now the backend runs on your own computer and the phone talks to it
+  over the same Wi-Fi. (A Modal hosting spike is planned; Baseten credits are held in reserve and
+  untouched, because on-device speech works.)
+- No real-time voice agent: the tutor is hold-to-talk, not a live conversation. The old LiveKit
+  agent was not revived.
+- Nothing is saved: one picture at a time, no library, no accounts, no progress between sessions.
+  Practise-missed lasts for the quiz you are in.
+- New pictures need the backend, a Meta API key and internet. Once a picture is analysed, exploring,
+  the map and guiding work on the phone alone.
+- SAM is honest but imperfect: a part it cannot outline stays touchable as an approximate rectangle,
+  and the app says so out loud.
+
 ## How it works
 
 ```
@@ -148,8 +184,8 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, hit-testing, the session, sound synthesis
-cd backend && npm test  # the Meta pipeline, mask handling, the API
+flutter test            # gestures, hit-testing, sessions, spatial words, sound (71 tests)
+cd backend && npm test  # the Meta pipeline, mask handling, lesson/quiz/chat API (38 tests)
 ```
 
 ## Known limits
