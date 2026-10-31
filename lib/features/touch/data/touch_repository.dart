@@ -19,6 +19,13 @@ class TouchApiException implements Exception {
   String toString() => message;
 }
 
+/// Where and how to join the live-voice room (see agent/). The token is
+/// short-lived and scoped to one room; the LiveKit secret never reaches the app.
+class LiveVoiceConnection {
+  const LiveVoiceConnection({required this.url, required this.token, required this.room});
+  final String url, token, room;
+}
+
 abstract class TouchRepository {
   /// Muse Spark names the parts, SAM 3.1 outlines them (see backend/).
   Future<Analysis> analyze(PictureBytes picture);
@@ -46,6 +53,15 @@ abstract class TouchRepository {
   Future<Quiz> quiz(Analysis analysis);
 
   Future<Grade> grade({required String question, required String expected, required String answer});
+
+  /// Join details for a live, interruptible voice conversation about a picture.
+  Future<LiveVoiceConnection> liveVoice({
+    required String title,
+    String overview = '',
+    String regionLabel = '',
+    String regionSpoken = '',
+    String regionDetail = '',
+  });
 
   /// The bundled sample, whose outlines are hand-authored, not model output.
   Future<(Analysis, PictureBytes)> sample();

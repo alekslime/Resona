@@ -17,6 +17,7 @@ dependencies:
   audioplayers: ^6.0.0
   image_picker: ^1.1.0
   speech_to_text: ^7.0.0
+  livekit_client: ^2.13.2
 
 dev_dependencies:
   flutter_test:
