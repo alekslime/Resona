@@ -33,6 +33,15 @@ left-right-to-stereo sound mapping; hold-to-ask questions about the part under y
 through parts from the edge; the Flutter app and its architecture, for Android, iPhone and web; and all
 the tests.
 
+**Ported from Resonant-AI during the hackathon, rewritten in Dart/JS** (behaviour and wording only,
+no old code copied; inventoried in `docs/HACKATHON.md`):
+
+| Ported feature | Where it lives here |
+| --- | --- |
+| Lesson mode: guided steps through content, swipes navigate | `lib/features/learn/`, `POST /api/lesson` |
+| Quiz / check-me: correct–incorrect haptic and sound feedback, score | `lib/features/learn/`, `POST /api/quiz`, `POST /api/grade` |
+| Voice tutor chat (the old LiveKit agent, as hold-to-talk multi-turn chat) | `TouchSession` history + `POST /api/chat` |
+
 ## How it works
 
 ```
@@ -46,11 +55,15 @@ the tests.
 ```
 
 - **Muse Spark** (`muse-spark-1.3`) reads the picture and decides what its parts are, in reading
-  order. It also answers spoken questions, using the part you last touched as context.
+  order. It also writes the guided lesson and the quiz from those parts (text-only calls, so they
+  cost a fraction of an analysis), grades spoken answers, and answers spoken questions as a
+  multi-turn tutor, using the part you last touched and the conversation so far as context.
 - **SAM 3.1** (`sam-3.1`) turns each part name into pixel-accurate masks. The mask is what lets a finger
-  land on a river or a lung, not just a rectangle.
+  land on a river or a lung, not just a rectangle. It is also what grades "find-it" quiz questions:
+  the app hit-tests your finger against the mask, on the phone, for free.
 - The two chain the way Meta's docs suggest: Muse Spark decides what to segment, SAM returns the geometry.
-- The Meta key lives only on the backend. The app never holds it.
+- The Meta key lives only on the backend. The app never holds it. Re-analyzing a picture you already
+  opened is served from the backend's cache, not paid for twice.
 
 ## Gestures
 
@@ -61,7 +74,9 @@ Carried over from the earlier app, plus finger exploration:
 | Centre | Touch or drag one finger | Explore: hear and feel the part under it |
 | Centre | Move, then rest | Hear the part's description |
 | Centre | Quick tap | Hear its name and description now |
-| Centre | Hold still 0.5 s, speak, lift | Ask a question about the picture |
+| Centre | Hold still 0.5 s, speak, lift | Ask a question about the picture (follow-ups remember the conversation) |
+| Explore screen | Lesson / Quiz me buttons | Guided lesson, or a quiz: touch the part it names, answer questions out loud |
+| Lesson / Quiz | Left-edge swipe, buttons below | Next / previous step or question; hold right edge to go back to exploring |
 | Left edge | Tap / double tap | Stop and resume talking / repeat |
 | Left edge | Swipe (finger down = next) | Step through the parts without dragging |
 | Right edge | Hold, then drag up or down | Speech faster or slower |
@@ -79,7 +94,10 @@ lib/
     application/   TouchSession: gestures -> speech/touch/sound  (pure Dart) + Riverpod controller
     data/          the backend client
     presentation/  screens, the gesture surface, the picture painter
-backend/           Node: Muse Spark + SAM 3.1 -> regions
+  features/learn/
+    domain/        Lesson, Quiz, Grade                     (pure Dart)
+    application/   LearnSession: lesson steps + quiz grading (pure Dart)
+backend/           Node: Muse Spark + SAM 3.1 -> regions; Spark -> lesson, quiz, tutor chat
 ```
 
 Every effect (voice, vibration, tones, microphone, network) sits behind an interface, so the whole

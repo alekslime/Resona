@@ -62,6 +62,9 @@ class TouchSession {
   PictureBytes? _picture;
   PictureLayout? layout;
 
+  /// The voice-tutor conversation for this picture, oldest first.
+  final List<({String q, String a})> _history = [];
+
   Region? _highlight; // outlined on screen
   Region? _focus; // under the finger right now
   Region? _endedOn; // where the finger was when it lifted (for taps)
@@ -85,6 +88,7 @@ class TouchSession {
   void load(Analysis analysis, PictureBytes picture) {
     _analysis = analysis;
     _picture = picture;
+    _history.clear();
     _highlight = _focus = _endedOn = null;
     _wasInside = _listening = _thinking = false;
     _lastSpoken = '';
@@ -272,12 +276,14 @@ class TouchSession {
     _emit();
     haptics.play(HapticPattern.confirm);
     try {
-      final answer = await repository.ask(
+      final answer = await repository.chat(
         _picture!,
         question: heard,
         title: _analysis!.title,
         regionLabel: _highlight?.label ?? '',
+        history: List.of(_history),
       );
+      _history.add((q: heard, a: answer));
       _thinking = false;
       _say(answer);
     } on TouchApiException catch (e) {

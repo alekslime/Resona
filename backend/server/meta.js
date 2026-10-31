@@ -4,6 +4,7 @@
 import OpenAI from "openai";
 import { parseImageStream } from "@meta-sam/parser";
 import { extractJson } from "./json.js";
+import { fallbackLesson, fallbackQuiz, gradePrompt, lessonPrompt, parseGrade, parseLesson, parseQuiz, quizPrompt } from "./learn.js";
 
 const PARTS_PROMPT = `You are helping a blind student explore a picture by touch. List the distinct parts of this picture that the student would want to find with a finger and hear about.
 
@@ -155,6 +156,58 @@ export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkMo
       const prompt = `A blind student is exploring this picture by touch${title ? ` (it is titled "${title}")` : ""}. ${where}
 Answer their question in at most three short sentences, in plain words that sound natural read aloud. No lists, no markdown. If the picture does not show the answer, say so.
 Question: ${question}`;
+      return (
+        await spark(
+          [
+            { type: "input_text", text: prompt },
+            { type: "input_image", image_url: dataUrl },
+          ],
+          3000,
+        )
+      ).trim();
+    },
+
+    /** Text-only Spark call: lesson/quiz work is built from region text, never a second image read. */
+    async generate(prompt, maxTokens = 3000) {
+      return spark([{ type: "input_text", text: prompt }], maxTokens);
+    },
+
+    /** Guided lesson steps. Falls back to a template lesson so it can never hard-fail. */
+    async lesson(ctx) {
+      try {
+        return parseLesson(await this.generate(lessonPrompt(ctx), 4000), ctx.regions);
+      } catch (err) {
+        console.error("lesson generation failed, using fallback:", err?.message ?? err);
+        return fallbackLesson(ctx);
+      }
+    },
+
+    /** Quiz questions (find-it + say-it). Falls back to find-it questions from the regions. */
+    async quiz(ctx) {
+      try {
+        return parseQuiz(await this.generate(quizPrompt(ctx), 3000), ctx.regions);
+      } catch (err) {
+        console.error("quiz generation failed, using fallback:", err?.message ?? err);
+        return fallbackQuiz(ctx);
+      }
+    },
+
+    async grade({ question, expected, answer }) {
+      return parseGrade(await this.generate(gradePrompt({ question, expected, answer }), 800));
+    },
+
+    /** Multi-turn voice tutor: like ask(), but the conversation so far travels with the question. */
+    async chat(dataUrl, question, { title, regionLabel, history = [] }) {
+      const where = regionLabel
+        ? `The student's finger is on "${regionLabel}".`
+        : "The student's finger is not on a named part right now.";
+      const past = history
+        .slice(-6)
+        .map((h) => `Student: ${h.q}\nTutor: ${h.a}`)
+        .join("\n");
+      const prompt = `You are a patient tutor helping a blind student explore this picture by touch${title ? ` (it is titled "${title}")` : ""}. ${where}
+${past ? `Conversation so far:\n${past}\n` : ""}Answer the new question in at most three short sentences, in plain words that sound natural read aloud. No lists, no markdown. Build on what was already discussed. If the picture does not show the answer, say so.
+New question: ${question}`;
       return (
         await spark(
           [

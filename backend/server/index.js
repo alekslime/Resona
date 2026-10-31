@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import crypto from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -7,6 +8,7 @@ import { imageSize } from "image-size";
 import { createMeta, mapLimit } from "./meta.js";
 import { buildRegions } from "./regions.js";
 import { orientedSize } from "./orient.js";
+import { cleanRegions } from "./learn.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sampleDir = path.join(here, "..", "sample");
@@ -54,6 +56,27 @@ function limiter(max, windowMs) {
 
 export function createApp(meta) {
   const app = express();
+  // One analyze costs 1 Spark + up to 8 SAM calls. Cache by picture so lesson,
+  // quiz and chat demos re-opening the same picture never pay for it twice.
+  const analyzeCache = new Map();
+  const cacheGet = (image) => analyzeCache.get(crypto.createHash("sha256").update(image).digest("hex"));
+  const cachePut = (image, value) => {
+    const key = crypto.createHash("sha256").update(image).digest("hex");
+    if (analyzeCache.size >= 20) analyzeCache.delete(analyzeCache.keys().next().value);
+    analyzeCache.set(key, value);
+  };
+  const requireMeta = () => {
+    if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env.");
+  };
+  const learnCtx = (body) => {
+    const regions = cleanRegions(body?.regions);
+    if (!regions.length) throw httpError(400, "Explore a picture first, then start this.");
+    return {
+      title: String(body?.title ?? "Picture").slice(0, 200),
+      overview: String(body?.overview ?? "").slice(0, 1000),
+      regions,
+    };
+  };
   app.use(express.json({ limit: "12mb" }));
   // The mobile app and a separately hosted web build call this API from other origins.
   app.use((req, res, next) => {
@@ -77,6 +100,8 @@ export function createApp(meta) {
       if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env, or try the sample picture.");
       const { width, height } = parseImage(req.body?.image);
       const dataUrl = req.body.image;
+      const cached = cacheGet(dataUrl);
+      if (cached) return res.json(cached);
 
       // 1. Muse Spark reads the picture and names its parts.
       const described = await meta.describeParts(dataUrl);
@@ -97,7 +122,7 @@ export function createApp(meta) {
       if (!regions.length) {
         throw httpError(422, "No parts could be outlined in this picture. Try a clearer picture with distinct shapes.");
       }
-      res.json({
+      const payload = {
         width,
         height,
         title: described.title,
@@ -105,7 +130,9 @@ export function createApp(meta) {
         overview: described.overview,
         regions,
         skipped: results.filter((r) => !r.records.length).map((r) => r.part.label),
-      });
+      };
+      cachePut(dataUrl, payload);
+      res.json(payload);
     } catch (err) {
       next(err);
     }
@@ -120,6 +147,58 @@ export function createApp(meta) {
       const answer = await meta.ask(req.body.image, question, {
         title: String(req.body?.title ?? "").slice(0, 200),
         regionLabel: String(req.body?.regionLabel ?? "").slice(0, 200),
+      });
+      res.json({ answer });
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/lesson", limiter(10, 60_000), async (req, res, next) => {
+    try {
+      requireMeta();
+      res.json(await meta.lesson(learnCtx(req.body)));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/quiz", limiter(10, 60_000), async (req, res, next) => {
+    try {
+      requireMeta();
+      res.json(await meta.quiz(learnCtx(req.body)));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/grade", limiter(20, 60_000), async (req, res, next) => {
+    try {
+      requireMeta();
+      const question = String(req.body?.question ?? "").trim().slice(0, 500);
+      const expected = String(req.body?.expected ?? "").trim().slice(0, 900);
+      const answer = String(req.body?.answer ?? "").trim().slice(0, 500);
+      if (!question || !expected || !answer) throw httpError(400, "Say your answer first.");
+      res.json(await meta.grade({ question, expected, answer }));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/chat", limiter(20, 60_000), async (req, res, next) => {
+    try {
+      requireMeta();
+      parseImage(req.body?.image);
+      const question = String(req.body?.question ?? "").trim().slice(0, 500);
+      if (!question) throw httpError(400, "Say or type a question first.");
+      const history = (Array.isArray(req.body?.history) ? req.body.history : [])
+        .filter((h) => h && typeof h.q === "string" && typeof h.a === "string")
+        .slice(-6)
+        .map((h) => ({ q: h.q.slice(0, 500), a: h.a.slice(0, 1000) }));
+      const answer = await meta.chat(req.body.image, question, {
+        title: String(req.body?.title ?? "").slice(0, 200),
+        regionLabel: String(req.body?.regionLabel ?? "").slice(0, 200),
+        history,
       });
       res.json({ answer });
     } catch (err) {

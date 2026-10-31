@@ -14,8 +14,11 @@ Choose a real picture. While it loads, say what is happening: "Muse Spark names 
 **1:50 to 2:20, ask and edge gestures**
 Hold a finger still, ask a question about the part. Swipe the left edge to step through the parts. Drag the right edge to change speech speed. "The same gestures as my earlier app, now with a picture under the finger."
 
-**2:20 to 2:45, how Meta's models are used**
-Show the pipeline from the README. "Muse Spark decides what the parts are. SAM 3.1 returns pixel-accurate masks. The mask is what lets a finger land on a river or a lung, not a rectangle."
+**2:20 to 2:50, lesson, quiz, tutor (the Resonant-AI port)**
+Tap **Lesson**: swipe the left edge through two spoken steps while each part outlines itself. Tap **Quiz me**: "Find the sun" — touch the wrong part first (low buzz, "That is the cloud. Try again."), then the right one (rising chime). Answer one question out loud. Then hold and ask a question, and a follow-up — "and why?" — to show the tutor remembers. Say: "Lessons, quizzes and a voice tutor from my earlier app, rebuilt on top of the picture."
 
-**2:45 to 3:00, close**
+**2:50 to 3:05, how Meta's models are used**
+Show the pipeline from the README. "Muse Spark decides what the parts are, writes the lesson and the quiz, and tutors. SAM 3.1 returns pixel-accurate masks. The mask is what lets a finger land on a river or a lung, not a rectangle — and it is what grades the quiz."
+
+**3:05 to 3:15, close**
 "Open source, public repo, link below, and it runs on an iPhone from a link. Next: charts that read their values as you slide along them."

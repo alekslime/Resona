@@ -168,27 +168,84 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                alignment: WrapAlignment.center,
-                children: [
-                  FilledButton(
-                    onPressed: () => controller.onGesture(const ThreeFingerHold()),
-                    child: const Text('Overview'),
-                  ),
-                  FilledButton(
-                    onPressed: () =>
-                        controller.onGesture(const Swipe(Zone.leftEdge, SwipeDirection.down)),
-                    child: const Text('Previous part'),
-                  ),
-                  FilledButton(
-                    onPressed: () =>
-                        controller.onGesture(const Swipe(Zone.leftEdge, SwipeDirection.up)),
-                    child: const Text('Next part'),
-                  ),
-                ],
-              ),
+              if (state.mode == ExploreMode.explore)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    FilledButton(
+                      onPressed: () => controller.onGesture(const ThreeFingerHold()),
+                      child: const Text('Overview'),
+                    ),
+                    FilledButton(
+                      onPressed: () =>
+                          controller.onGesture(const Swipe(Zone.leftEdge, SwipeDirection.down)),
+                      child: const Text('Previous part'),
+                    ),
+                    FilledButton(
+                      onPressed: () =>
+                          controller.onGesture(const Swipe(Zone.leftEdge, SwipeDirection.up)),
+                      child: const Text('Next part'),
+                    ),
+                    FilledButton(
+                      onPressed: controller.startLesson,
+                      child: const Text('Lesson'),
+                    ),
+                    FilledButton(onPressed: controller.startQuiz, child: const Text('Quiz me')),
+                  ],
+                )
+              else if (state.mode == ExploreMode.lesson)
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    FilledButton(
+                      onPressed: () =>
+                          controller.onGesture(const Swipe(Zone.leftEdge, SwipeDirection.down)),
+                      child: const Text('Previous step'),
+                    ),
+                    FilledButton(
+                      onPressed: () =>
+                          controller.onGesture(const Swipe(Zone.leftEdge, SwipeDirection.up)),
+                      child: const Text('Next step'),
+                    ),
+                    FilledButton(
+                      onPressed: () => controller.onGesture(const ThreeFingerTap()),
+                      child: const Text('Repeat'),
+                    ),
+                    FilledButton(
+                      onPressed: () => controller.onGesture(const LongPress(Zone.rightEdge)),
+                      child: const Text('Back to exploring'),
+                    ),
+                  ],
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    FilledButton(
+                      onPressed: controller.toggleAnswer,
+                      child: const Text('Answer by voice'),
+                    ),
+                    FilledButton(
+                      onPressed: () => controller.onGesture(const ThreeFingerTap()),
+                      child: const Text('Repeat question'),
+                    ),
+                    FilledButton(
+                      onPressed: () =>
+                          controller.onGesture(const Swipe(Zone.leftEdge, SwipeDirection.up)),
+                      child: const Text('Skip'),
+                    ),
+                    FilledButton(
+                      onPressed: () => controller.onGesture(const LongPress(Zone.rightEdge)),
+                      child: const Text('Back to exploring'),
+                    ),
+                  ],
+                ),
             ],
           ),
         ),

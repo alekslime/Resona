@@ -230,7 +230,7 @@ void main() {
           'mic:start',
           'mic:stop',
           'haptic:confirm',
-          'ask:what is this?|sun',
+          'ask:what is this?|sun|past:0',
           'say: It is the sun.',
         ]);
         expect(r.lastView!.listening, isFalse);
