@@ -306,4 +306,51 @@ void main() {
       expect(r.log.where('say').last, 'say: Something went wrong. Try again.');
     });
   });
+
+  group('charts', () {
+    TouchSession chartSession(Log log) =>
+        TouchSession(
+            speech: FakeSpeech(log),
+            haptics: FakeHaptics(log),
+            cues: FakeCues(log),
+            input: FakeInput(log),
+            repository: FakeRepository(log),
+            labelDelay: const Duration(milliseconds: 5),
+          )
+          ..layout = const PictureLayout(left: 0, top: 0, scale: 1)
+          ..load(loadChart(), tinyPicture);
+
+    test('loading a chart announces its tallest and shortest bars', () {
+      final log = Log();
+      chartSession(log);
+      final said = log.where('say').single;
+      expect(said.contains('Spring rainfall. 5 parts found.'), isTrue);
+      expect(said.contains('Tallest: April bar, 80 millimetres'), isTrue);
+    });
+
+    test('stepping through a chart announces each rank', () {
+      final log = Log();
+      final s = chartSession(log);
+      log.events.clear();
+      s.handle(const Swipe(Zone.leftEdge, SwipeDirection.up)); // January, first in reading order
+      expect(log.where('say').single.contains('Bar 5 of 5, about 40 percent of the tallest.'), isTrue);
+    });
+
+    test('tapping a bar announces its rank', () async {
+      final log = Log();
+      final s = chartSession(log);
+      log.events.clear();
+      s.handle(const ExploreStart(660, 300)); // May bar
+      await settle();
+      s.handle(const ExploreEnd());
+      s.handle(const Tap(Zone.center));
+      expect(log.where('say').last.contains('Bar 2 of 5, about 80 percent of the tallest.'), isTrue);
+    });
+
+    test('non-charts never mention bars or ranks', () {
+      final r = Rig();
+      r.session.handle(const Swipe(Zone.leftEdge, SwipeDirection.up));
+      expect(r.log.where('say').single.contains('Bar '), isFalse);
+    });
+  });
 }

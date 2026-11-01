@@ -157,4 +157,11 @@ Analysis loadSample() {
   return Analysis.fromJson(json);
 }
 
+/// The bundled bar chart: 800x600, five rainfall bars, January to May.
+Analysis loadChart() {
+  final json =
+      jsonDecode(File('assets/sample/chart.json').readAsStringSync()) as Map<String, dynamic>;
+  return Analysis.fromJson(json);
+}
+
 final tinyPicture = PictureBytes(Uint8List.fromList([1, 2, 3]), 'image/png');

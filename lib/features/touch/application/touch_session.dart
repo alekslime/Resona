@@ -5,6 +5,7 @@ import '../../../core/services/haptics.dart';
 import '../../../core/services/sound.dart';
 import '../../../core/services/speech.dart';
 import '../data/touch_repository.dart';
+import '../domain/chart.dart';
 import '../domain/hit_tester.dart';
 import '../domain/region.dart';
 import '../domain/spatial.dart';
@@ -109,7 +110,10 @@ class TouchSession {
     final roughNote = rough == 0
         ? ''
         : ' $rough ${rough == 1 ? 'part is' : 'parts are'} a rough rectangle, not an exact outline.';
-    _say('${analysis.title}. ${regions.length} parts found. Drag a finger over the picture.$note$roughNote');
+    final summary = isChart(analysis) ? chartSummary(analysis) : '';
+    _say(
+      '${analysis.title}. ${regions.length} parts found. Drag a finger over the picture.$note$roughNote${summary.isEmpty ? '' : ' $summary'}',
+    );
   }
 
   void dispose() => _labelTimer?.cancel();
@@ -245,7 +249,8 @@ class TouchSession {
   void _describeTouched() {
     final r = _endedOn;
     if (r != null) {
-      _say('${r.label}. ${r.spoken}${aroundWords(r, regions)}');
+      final rank = isChart(_analysis!) ? barRankWords(r, regions) : '';
+      _say('${r.label}. ${r.spoken}${aroundWords(r, regions)}${rank.isEmpty ? '' : ' $rank'}');
     } else {
       final near = nearestRegion(regions, _lastPx, _lastPy);
       if (near != null) _say('Nothing here. ${near.region.label} is ${near.words}.');
@@ -269,7 +274,8 @@ class TouchSession {
     _highlight = r;
     haptics.play(delta > 0 ? HapticPattern.next : HapticPattern.previous);
     cues.play(delta > 0 ? HapticPattern.next : HapticPattern.previous);
-    _say('${r.label}. ${r.spoken}');
+    final rank = isChart(_analysis!) ? barRankWords(r, regions) : '';
+    _say('${r.label}. ${r.spoken}${rank.isEmpty ? '' : ' $rank'}');
     _emit();
   }
 
