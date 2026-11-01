@@ -21,7 +21,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(speechProvider).speak('Resonant. Choose a picture to explore by touch.');
+      ref
+          .read(speechProvider)
+          .speak('Resonant. Choose a picture to explore by touch.');
     });
   }
 
@@ -34,9 +36,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
     if (file == null) return;
     final bytes = await file.readAsBytes();
-    final mime =
-        file.mimeType ?? (file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
-    await ref.read(touchControllerProvider.notifier).analyze(PictureBytes(bytes, mime));
+    final mime = file.mimeType ??
+        (file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
+    await ref
+        .read(touchControllerProvider.notifier)
+        .analyze(PictureBytes(bytes, mime));
   }
 
   @override
@@ -69,7 +73,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    busy ? 'Reading the picture.' : 'Learn by sound and touch. Drag a finger across a picture and feel its parts.',
+                    busy
+                        ? 'Reading the picture.'
+                        : 'Learn by sound and touch. Drag a finger across a picture and feel its parts.',
                     style: TextStyle(
                       fontSize: 22,
                       height: 1.3,
@@ -98,10 +104,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: () => ref.read(touchControllerProvider.notifier).openSample(),
+                        onPressed: () => ref
+                            .read(touchControllerProvider.notifier)
+                            .openSample(),
                         child: const Text('Try the sample'),
                       ),
                     ),
+                    if (state.recents.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'Recent pictures',
+                        style: TextStyle(
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          color: palette.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      for (final r in state.recents)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton(
+                              onPressed: () => ref
+                                  .read(touchControllerProvider.notifier)
+                                  .openRecent(r),
+                              child: Text(
+                                '${r.analysis.title} (${r.analysis.regions.length} parts)',
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                     const SizedBox(height: 20),
                     // The gesture grammar at a glance, for sighted helpers and
                     // anyone with some vision. The app itself is eyes-free.
@@ -113,7 +148,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         borderRadius: BorderRadius.circular(palette.cardRadius),
                         border: palette.outline == null
                             ? null
-                            : Border.all(color: palette.outline!, width: palette.outlineWidth),
+                            : Border.all(
+                                color: palette.outline!,
+                                width: palette.outlineWidth),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,7 +168,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             'Drag a finger over the picture: each part speaks, buzzes '
                             'and plays a tone. Rest to hear more. Hold and ask a '
                             'question. Hold three fingers for the map in words.',
-                            style: TextStyle(fontSize: 17, height: 1.35, color: palette.ink),
+                            style: TextStyle(
+                                fontSize: 17, height: 1.35, color: palette.ink),
                           ),
                         ],
                       ),

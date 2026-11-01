@@ -9,7 +9,10 @@ import '../../learn/domain/learn.dart';
 import '../data/touch_repository.dart';
 import '../domain/region.dart';
 import '../gestures/gesture_types.dart';
+import 'recents.dart';
 import 'touch_session.dart';
+
+export 'recents.dart' show RecentPicture;
 
 enum Phase { start, busy, explore }
 
@@ -23,6 +26,7 @@ class TouchState {
     this.picture,
     this.message = '',
     this.mode = ExploreMode.explore,
+    this.recents = const [],
   });
   final Phase phase;
   final TouchView view;
@@ -33,7 +37,14 @@ class TouchState {
   final String message;
   final ExploreMode mode;
 
-  TouchState copyWith({Phase? phase, TouchView? view, String? message, ExploreMode? mode}) =>
+  /// Pictures opened before, newest first — reopening one is instant.
+  final List<RecentPicture> recents;
+
+  TouchState copyWith(
+          {Phase? phase,
+          TouchView? view,
+          String? message,
+          ExploreMode? mode}) =>
       TouchState(
         phase: phase ?? this.phase,
         view: view ?? this.view,
@@ -41,6 +52,7 @@ class TouchState {
         picture: picture,
         message: message ?? this.message,
         mode: mode ?? this.mode,
+        recents: recents,
       );
 }
 
@@ -52,6 +64,7 @@ class TouchController extends Notifier<TouchState> {
   Quiz? _pendingQuiz;
   bool _learnBusy = false;
   Timer? _keepAlive;
+  final _recents = RecentsStore();
 
   @override
   TouchState build() {
@@ -95,14 +108,19 @@ class TouchController extends Notifier<TouchState> {
   void _fail(String message) {
     ref.read(hapticsProvider).play(HapticPattern.error);
     ref.read(speechProvider).speak(message);
-    state = TouchState(message: message);
+    state = TouchState(message: message, recents: _recents.items);
   }
+
+  /// Reopen a picture from the recents shelf: instant, no model calls.
+  void openRecent(RecentPicture recent) =>
+      _open(recent.analysis, recent.picture);
 
   void _open(Analysis analysis, PictureBytes picture) {
     _session?.dispose();
     _learn = null;
     _pendingLesson = null;
     _pendingQuiz = null;
+    _recents.add(analysis, picture);
     late final TouchSession session;
     session = TouchSession(
       speech: ref.read(speechProvider),
@@ -118,7 +136,12 @@ class TouchController extends Notifier<TouchState> {
       onBack: leave,
     );
     _session = session;
-    state = TouchState(phase: Phase.explore, analysis: analysis, picture: picture);
+    state = TouchState(
+      phase: Phase.explore,
+      analysis: analysis,
+      picture: picture,
+      recents: _recents.items,
+    );
     session.load(analysis, picture);
   }
 
@@ -188,7 +211,9 @@ class TouchController extends Notifier<TouchState> {
     _learn = null;
     ref.read(speechProvider).stop();
     state = state.copyWith(mode: ExploreMode.explore);
-    ref.read(speechProvider).speak('Back to exploring. Drag a finger over the picture.');
+    ref
+        .read(speechProvider)
+        .speak('Back to exploring. Drag a finger over the picture.');
   }
 
   /// The on-screen Answer button for say-it questions (hold-to-talk does the same job).
@@ -220,8 +245,9 @@ class TouchController extends Notifier<TouchState> {
     _learn = null;
     _pendingLesson = null;
     _pendingQuiz = null;
-    state = const TouchState();
+    state = TouchState(recents: _recents.items);
   }
 }
 
-final touchControllerProvider = NotifierProvider<TouchController, TouchState>(TouchController.new);
+final touchControllerProvider =
+    NotifierProvider<TouchController, TouchState>(TouchController.new);
