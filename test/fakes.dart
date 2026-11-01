@@ -12,7 +12,8 @@ import 'package:resonant/features/touch/domain/region.dart';
 /// Records everything the session does, in order.
 class Log {
   final events = <String>[];
-  List<String> where(String prefix) => events.where((e) => e.startsWith(prefix)).toList();
+  List<String> where(String prefix) =>
+      events.where((e) => e.startsWith(prefix)).toList();
 }
 
 class FakeSpeech implements SpeechOutput {
@@ -40,7 +41,8 @@ class FakeHaptics implements Haptics {
   FakeHaptics(this.log);
   final Log log;
   @override
-  Future<void> play(HapticPattern pattern) async => log.events.add('haptic:${pattern.name}');
+  Future<void> play(HapticPattern pattern) async =>
+      log.events.add('haptic:${pattern.name}');
   @override
   Future<void> pulse(int ms) async => log.events.add('pulse:$ms');
 }
@@ -49,10 +51,12 @@ class FakeCues implements Cues {
   FakeCues(this.log);
   final Log log;
   @override
-  Future<void> play(HapticPattern pattern) async => log.events.add('cue:${pattern.name}');
+  Future<void> play(HapticPattern pattern) async =>
+      log.events.add('cue:${pattern.name}');
   @override
   Future<void> position({required double x01, required double y01}) async =>
-      log.events.add('tone:${x01.toStringAsFixed(2)},${y01.toStringAsFixed(2)}');
+      log.events
+          .add('tone:${x01.toStringAsFixed(2)},${y01.toStringAsFixed(2)}');
 }
 
 class FakeInput implements SpeechInput {
@@ -79,14 +83,19 @@ class FakeRepository implements TouchRepository {
   String answer;
   Object? fail;
   @override
-  Future<Analysis> analyze(PictureBytes picture) => throw UnimplementedError();
+  Future<Analysis> analyze(
+    PictureBytes picture, {
+    void Function(AnalyzeProgress progress)? onProgress,
+  }) =>
+      throw UnimplementedError();
   @override
   Future<String> ask(
     PictureBytes picture, {
     required String question,
     required String title,
     String regionLabel = '',
-  }) async => chat(picture, question: question, title: title, regionLabel: regionLabel);
+  }) async =>
+      chat(picture, question: question, title: title, regionLabel: regionLabel);
 
   @override
   Future<String> chat(
@@ -104,10 +113,12 @@ class FakeRepository implements TouchRepository {
   @override
   Future<Lesson> lesson(Analysis analysis) async {
     log.events.add('lesson');
-    final order = [...analysis.regions]..sort((a, b) => a.order.compareTo(b.order));
+    final order = [...analysis.regions]
+      ..sort((a, b) => a.order.compareTo(b.order));
     return Lesson([
       const LessonStep(say: 'Welcome to the lesson.'),
-      for (final r in order) LessonStep(regionId: r.id, say: '${r.label}. ${r.detail}'),
+      for (final r in order)
+        LessonStep(regionId: r.id, say: '${r.label}. ${r.detail}'),
       const LessonStep(say: 'That is the whole picture.'),
     ]);
   }
@@ -115,9 +126,13 @@ class FakeRepository implements TouchRepository {
   @override
   Future<Quiz> quiz(Analysis analysis) async {
     log.events.add('quiz');
-    final order = [...analysis.regions]..sort((a, b) => a.order.compareTo(b.order));
+    final order = [...analysis.regions]
+      ..sort((a, b) => a.order.compareTo(b.order));
     return Quiz([
-      QuizQuestion(kind: QuizKind.find, regionId: order.first.id, question: 'Find the ${order.first.label}.'),
+      QuizQuestion(
+          kind: QuizKind.find,
+          regionId: order.first.id,
+          question: 'Find the ${order.first.label}.'),
       QuizQuestion(
         kind: QuizKind.say,
         regionId: order.last.id,
@@ -128,10 +143,14 @@ class FakeRepository implements TouchRepository {
   }
 
   @override
-  Future<Grade> grade({required String question, required String expected, required String answer}) async {
+  Future<Grade> grade(
+      {required String question,
+      required String expected,
+      required String answer}) async {
     log.events.add('grade:$answer');
     final ok = answer.toLowerCase().contains(expected.toLowerCase());
-    return Grade(ok, ok ? 'Correct. Well done.' : 'Not quite. The answer is $expected.');
+    return Grade(
+        ok, ok ? 'Correct. Well done.' : 'Not quite. The answer is $expected.');
   }
 
   @override
@@ -143,24 +162,33 @@ class FakeRepository implements TouchRepository {
     String regionDetail = '',
   }) async {
     log.events.add('live:$title|$regionLabel');
-    return const LiveVoiceConnection(url: 'wss://fake', token: 'fake-token', room: 'resonant-fake');
+    return const LiveVoiceConnection(
+        url: 'wss://fake', token: 'fake-token', room: 'resonant-fake');
   }
 
   @override
-  Future<(Analysis, PictureBytes)> sample() => throw UnimplementedError();
+  Future<(Analysis, PictureBytes)> sample({String id = 'sample'}) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<GallerySample>> gallery() async => bundledSamples;
+
+  @override
+  Future<(Analysis, PictureBytes)> openGallery(GallerySample entry) =>
+      throw UnimplementedError();
 }
 
 /// The bundled sample: 800x600, with sun, cloud, mountain and sea.
 Analysis loadSample() {
-  final json =
-      jsonDecode(File('assets/sample/sample.json').readAsStringSync()) as Map<String, dynamic>;
+  final json = jsonDecode(File('assets/sample/sample.json').readAsStringSync())
+      as Map<String, dynamic>;
   return Analysis.fromJson(json);
 }
 
 /// The bundled bar chart: 800x600, five rainfall bars, January to May.
 Analysis loadChart() {
-  final json =
-      jsonDecode(File('assets/sample/chart.json').readAsStringSync()) as Map<String, dynamic>;
+  final json = jsonDecode(File('assets/sample/chart.json').readAsStringSync())
+      as Map<String, dynamic>;
   return Analysis.fromJson(json);
 }
 

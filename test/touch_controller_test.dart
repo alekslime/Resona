@@ -11,7 +11,7 @@ class StubRepo extends FakeRepository {
   StubRepo(super.log);
   int samples = 0;
   @override
-  Future<(Analysis, PictureBytes)> sample() async {
+  Future<(Analysis, PictureBytes)> sample({String id = 'sample'}) async {
     samples++;
     return (loadChart(), tinyPicture);
   }
