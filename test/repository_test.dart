@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -105,8 +104,9 @@ void main() {
       final paths = <String>[];
       final client = MockClient((req) async {
         paths.add(req.url.path);
-        if (req.url.path == '/api/analyze-stream')
+        if (req.url.path == '/api/analyze-stream') {
           return http.Response('nope', 404);
+        }
         return http.Response(sampleJson, 200);
       });
       final seen = <AnalyzeProgress>[];
@@ -215,8 +215,9 @@ void main() {
 
     test('opening a remote entry downloads its outlines and picture', () async {
       final client = MockClient((req) async {
-        if (req.url.path.endsWith('.json'))
+        if (req.url.path.endsWith('.json')) {
           return http.Response(sampleJson, 200);
+        }
         return http.Response.bytes([1, 2, 3], 200);
       });
       final (analysis, picture) = await repo(client).openGallery(

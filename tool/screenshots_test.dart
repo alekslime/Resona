@@ -26,7 +26,7 @@ class ShotRepo extends FakeRepository {
   ShotRepo(super.log);
   final _http = HttpTouchRepository(baseUrl: 'http://unused');
   @override
-  Future<(Analysis, PictureBytes)> sample() => _http.sample();
+  Future<(Analysis, PictureBytes)> sample({String id = 'sample'}) => _http.sample(id: id);
 }
 
 void main() {

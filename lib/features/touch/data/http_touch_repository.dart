@@ -147,10 +147,12 @@ class HttpTouchRepository implements TouchRepository {
     } on TimeoutException {
       throw TouchApiException('That took too long. Try again.');
     }
-    if (buf.trim().isNotEmpty) feed(buf);
-    if (done == null)
-      throw TouchApiException(
-          'The server sent something unexpected. Try again.');
+    if (buf.trim().isNotEmpty) {
+      feed(buf);
+    }
+    if (done == null) {
+      throw TouchApiException('The server sent something unexpected. Try again.');
+    }
     return done!;
   }
 
