@@ -2,6 +2,35 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import 'speech.dart';
 
+/// The nicest English voice the phone already has, when one is installed:
+/// platform neural voices ("…-network" on Android, "Enhanced/Premium" voices
+/// on iOS) sound like a person; the default compact voice is the robot
+/// everyone knows. Returns null when nothing clearly beats the default.
+Map<String, String>? preferredVoice(List<dynamic> voices) {
+  Map<String, String>? best;
+  var bestScore = 0;
+  for (final v in voices) {
+    if (v is! Map) continue;
+    final name = '${v['name'] ?? ''}';
+    final locale = '${v['locale'] ?? ''}';
+    if (name.isEmpty || !locale.toLowerCase().startsWith('en')) continue;
+    final n = name.toLowerCase();
+    var score = 0;
+    for (final good in const ['network', 'neural', 'wavenet', 'natural']) {
+      if (n.contains(good)) score += 3;
+    }
+    for (final good in const ['enhanced', 'premium']) {
+      if (n.contains(good)) score += 2;
+    }
+    if (n.contains('compact')) score -= 2;
+    if (score > bestScore) {
+      bestScore = score;
+      best = {'name': name, 'locale': locale};
+    }
+  }
+  return best;
+}
+
 /// Speech output through the phone's own voices (works offline; the same call works on
 /// Android, iOS and web).
 class FlutterTtsSpeech implements SpeechOutput {
@@ -16,6 +45,7 @@ class FlutterTtsSpeech implements SpeechOutput {
 
   final _tts = FlutterTts();
   bool _speaking = false;
+  bool _voiceTried = false;
   double _rate = 1.0;
 
   @override
@@ -31,9 +61,26 @@ class FlutterTtsSpeech implements SpeechOutput {
     _tts.setSpeechRate((value * 0.5).clamp(0.1, 1.0));
   }
 
+  /// One-time, best-effort: swap the default voice for a neural one if the
+  /// phone has it. Never allowed to break or delay speech meaningfully.
+  Future<void> _pickVoiceOnce() async {
+    if (_voiceTried) return;
+    _voiceTried = true;
+    try {
+      final voices = await _tts.getVoices;
+      if (voices is List) {
+        final pick = preferredVoice(voices);
+        if (pick != null) await _tts.setVoice(pick);
+      }
+    } catch (_) {
+      // A garnish, not a dependency: stay on the default voice.
+    }
+  }
+
   @override
   Future<void> speak(String text, {bool queue = false}) async {
     if (text.trim().isEmpty) return;
+    await _pickVoiceOnce();
     _speaking = true;
     try {
       if (queue) {
