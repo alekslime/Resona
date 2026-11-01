@@ -11,12 +11,23 @@ import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/theme/resonant_theme.dart';
 import 'package:resonant/features/touch/application/touch_controller.dart';
 import 'package:resonant/features/touch/data/http_touch_repository.dart';
+import 'package:resonant/features/touch/data/touch_repository.dart';
+import 'package:resonant/features/touch/domain/region.dart';
 import 'package:resonant/features/touch/gestures/gesture_types.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/study_notes_screen.dart';
 import 'package:resonant/features/touch/presentation/touch_screen.dart';
 
 import '../test/fakes.dart';
+
+/// Serves the real bundled sample, but builds lessons and quizzes from the
+/// regions locally (the fake), so no network or backend is involved.
+class ShotRepo extends FakeRepository {
+  ShotRepo(super.log);
+  final _http = HttpTouchRepository(baseUrl: 'http://unused');
+  @override
+  Future<(Analysis, PictureBytes)> sample() => _http.sample();
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -50,7 +61,7 @@ void main() {
       hapticsProvider.overrideWithValue(FakeHaptics(log)),
       cuesProvider.overrideWithValue(FakeCues(log)),
       speechInputProvider.overrideWithValue(FakeInput(log)),
-      repositoryProvider.overrideWithValue(HttpTouchRepository(baseUrl: 'http://unused')),
+      repositoryProvider.overrideWithValue(ShotRepo(log)),
     ];
   }
 
@@ -101,6 +112,44 @@ void main() {
     await expectLater(
       find.byType(StudyNotesScreen),
       matchesGoldenFile('../docs/screenshots/03-study-notes.png'),
+    );
+  });
+
+  Future<ProviderContainer> openExplore(WidgetTester tester) async {
+    final container = await pumpApp(tester);
+    await tester.runAsync(() async {
+      await container.read(touchControllerProvider.notifier).openSample();
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+    });
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 600)));
+    await tester.pump(const Duration(milliseconds: 300));
+    return container;
+  }
+
+  testWidgets('lesson screenshot', (tester) async {
+    final container = await openExplore(tester);
+    await container.read(touchControllerProvider.notifier).startLesson();
+    await tester.pump(const Duration(milliseconds: 300));
+    await expectLater(find.byType(TouchScreen), matchesGoldenFile('../docs/screenshots/04-lesson.png'));
+  });
+
+  testWidgets('quiz screenshot', (tester) async {
+    final container = await openExplore(tester);
+    await container.read(touchControllerProvider.notifier).startQuiz();
+    await tester.pump(const Duration(milliseconds: 300));
+    await expectLater(find.byType(TouchScreen), matchesGoldenFile('../docs/screenshots/05-quiz.png'));
+  });
+
+  testWidgets('low vision theme screenshot', (tester) async {
+    final container = await pumpApp(tester);
+    container.read(paletteProvider.notifier).next(); // Resonant native -> Low vision
+    // MaterialApp lerps to the new theme over 200 ms; let it finish.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    await expectLater(
+      find.byType(HomeScreen),
+      matchesGoldenFile('../docs/screenshots/06-theme-low-vision.png'),
     );
   });
 }
