@@ -1,6 +1,7 @@
 import "dotenv/config";
 import express from "express";
 import crypto from "node:crypto";
+import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -94,6 +95,37 @@ export function createApp(meta) {
 
   app.get("/api/health", (_req, res) => {
     res.json({ ok: true, metaConfigured: Boolean(meta), sparkModel: meta?.sparkModel ?? null, samModel: meta?.samModel ?? null, liveKitConfigured: Boolean(liveKitConfig()) });
+  });
+
+  // Instant demo pictures: every *.json in sample/ with a matching *.png beside it.
+  // Works with no API key, so judges can always try the touch interface.
+  app.get("/api/samples", (_req, res) => {
+    const samples = [];
+    let files = [];
+    try {
+      files = fs.readdirSync(sampleDir);
+    } catch {
+      return res.json({ samples });
+    }
+    for (const f of files) {
+      if (!f.endsWith(".json")) continue;
+      try {
+        const j = JSON.parse(fs.readFileSync(path.join(sampleDir, f), "utf8"));
+        const id = path.basename(f, ".json");
+        samples.push({
+          id,
+          title: String(j.title ?? id),
+          kind: String(j.kind ?? "other"),
+          regions: Array.isArray(j.regions) ? j.regions.length : 0,
+          json: `/sample/${id}.json`,
+          image: fs.existsSync(path.join(sampleDir, `${id}.png`)) ? `/sample/${id}.png` : null,
+        });
+      } catch {
+        // skip unreadable entries; one bad file must not hide the rest
+      }
+    }
+    samples.sort((a, b) => a.id.localeCompare(b.id));
+    res.json({ samples });
   });
 
   app.post("/api/analyze", limiter(6, 60_000), async (req, res, next) => {

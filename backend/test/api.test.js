@@ -147,6 +147,23 @@ test("analyze is cached: the same picture is only segmented once", async () => {
   });
 });
 
+test("samples gallery lists the bundled pictures with their outlines", async () => {
+  await withServer(fakeMeta, async (base) => {
+    const res = await fetch(base + "/api/samples");
+    assert.equal(res.status, 200);
+    const ids = (await res.json()).samples.map((s) => s.id).sort();
+    assert.deepEqual(ids, ["chart", "sample"]);
+    const chart = (await (await fetch(base + "/api/samples")).json()).samples.find((s) => s.id === "chart");
+    assert.equal(chart.kind, "chart");
+    assert.equal(chart.regions, 5);
+    const json = await (await fetch(base + chart.json)).json();
+    assert.equal(json.synthetic, true);
+    assert.equal(json.regions.length, 5);
+    const png = await fetch(base + chart.image);
+    assert.equal(png.status, 200);
+  });
+});
+
 test("a failing model never leaks details to the browser", async () => {
   const broken = { ...fakeMeta, describeParts: async () => { throw new Error("secret-internal-detail"); } };
   const quiet = console.error;
