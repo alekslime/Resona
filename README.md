@@ -7,7 +7,7 @@
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3%20%2B%20SAM%203.1-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-79%20Flutter%20%2B%2041%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-111%20Flutter%20%2B%2044%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -82,8 +82,9 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
 
 **Working today, on a real phone:**
 
-- **Pick a picture** (gallery, camera, or the built-in sample), get it back as touchable parts in
-  about half a minute. Analysis is cached on the backend, so re-opening the same picture is free.
+- **Pick a picture** (gallery, camera, or two built-in samples), get it back as touchable parts in
+  about half a minute, with spoken progress as each part lands. Analysis is cached on the backend,
+  and the recents shelf reopens the session's pictures instantly.
 - **Explore by touch**: each part speaks, buzzes (bigger parts buzz longer), and plays a tone whose
   pitch is its height and whose stereo position is left–right. Rest to hear the description; tap to
   hear what is around it; drag off a part and it tells you which way to go.
@@ -98,7 +99,8 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
   conversation and knows which part your finger is on.
 - **Study notes**: the whole picture as plain text (overview, map, every part with its clock-face
   position) for revision with a screen reader — and **Copy notes to share** pastes them anywhere.
-- Screen-reader buttons for every gesture, twelve themes, 79 Flutter tests + 41 backend tests, all green.
+- Screen-reader buttons for every gesture, twelve themes, a show-all-outlines view for sighted helpers,
+  chart value readout with bar ranks, 111 Flutter tests + 44 backend tests, all green.
 
 **Built, one step from proven:**
 
@@ -112,8 +114,8 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
 - No public hosted link: for now the backend runs on your own computer and the phone talks to it
   over the same Wi-Fi. (A Modal hosting spike is planned; Baseten credits are held in reserve and
   untouched, because on-device speech works.)
-- Nothing is saved: one picture at a time, no library, no accounts, no progress between sessions.
-  Practise-missed lasts for the quiz you are in.
+- Nothing is saved between launches: the recents shelf holds the last five pictures for the
+  session, with no accounts and no progress carried over. Practise-missed lasts for the quiz you are in.
 - New pictures need the backend, a Meta API key and internet. Once a picture is analysed, exploring,
   the map and guiding work on the phone alone.
 - SAM is honest but imperfect: a part it cannot outline stays touchable as an approximate rectangle,
@@ -253,8 +255,10 @@ flutter test
 flutter run --dart-define=API_BASE=http://<your-computer's-ip>:3000
 ```
 
-**Try the sample** works with no key: its outlines are hand-authored by `backend/scripts/make-sample.py`,
-not model output, and the app says so out loud.
+**Try a sample** works with no key: both bundled outlines (the water cycle by
+`backend/scripts/make-sample.py`, the rainfall chart by `backend/scripts/make-chart-sample.py`) are
+hand-authored, not model output, and the app says so out loud. Extra samples served from the
+backend's `sample/` folder appear in the same gallery via `GET /api/samples`.
 
 ### iPhone
 
@@ -264,13 +268,15 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, hit-testing, sessions, spatial words, notes, theme contrast, voice picking, sound (79 tests)
-cd backend && npm test  # the Meta pipeline, mask handling, lesson/quiz/chat API, LiveKit tokens (41 tests)
+flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound (111 tests)
+cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (44 tests)
 ```
 
 ## Known limits
 
-- One picture at a time; analysis takes roughly half a minute because every part is its own SAM request.
+- Analysis takes roughly half a minute because every part is its own SAM request (five run at a
+  time, with spoken progress; raise `SAM_CONCURRENCY` for more). The recents shelf keeps the session's
+  pictures so going back is instant.
 - SAM 3.1 matches one concept per request, so a vaguely phrased label can match nothing. The backend retries with simpler concepts; if it still finds nothing but Muse Spark gave a rough box, the part stays touchable as an approximate rectangle (the app says so), and many tiny matches in one photo (every tooth in a close-up) are merged into one region.
 - Vibration is timed on Android. On iPhone it is a series of taps, and none at all in the browser.
 - With TalkBack or VoiceOver on, the screen reader takes over one-finger touch, so use the buttons under the picture.
