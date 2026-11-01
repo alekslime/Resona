@@ -13,7 +13,8 @@
     "dev": "node --watch server/index.js",
     "test": "node --test \"test/*.test.js\"",
     "check:api": "node scripts/check-api.js",
-    "sample": "python3 scripts/make-sample.py"
+    "sample": "python3 scripts/make-sample.py",
+    "sample:add": "node scripts/add-sample.js"
   },
   "dependencies": {
     "@meta-sam/parser": "0.1.0",
