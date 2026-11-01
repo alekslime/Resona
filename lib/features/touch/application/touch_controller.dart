@@ -27,6 +27,7 @@ class TouchState {
     this.message = '',
     this.mode = ExploreMode.explore,
     this.recents = const [],
+    this.progress = '',
   });
   final Phase phase;
   final TouchView view;
@@ -40,11 +41,16 @@ class TouchState {
   /// Pictures opened before, newest first — reopening one is instant.
   final List<RecentPicture> recents;
 
-  TouchState copyWith(
-          {Phase? phase,
-          TouchView? view,
-          String? message,
-          ExploreMode? mode}) =>
+  /// While busy: which part is being outlined ("Outlining part 2 of 6: sun.").
+  final String progress;
+
+  TouchState copyWith({
+    Phase? phase,
+    TouchView? view,
+    String? message,
+    ExploreMode? mode,
+    String? progress,
+  }) =>
       TouchState(
         phase: phase ?? this.phase,
         view: view ?? this.view,
@@ -53,6 +59,7 @@ class TouchState {
         message: message ?? this.message,
         mode: mode ?? this.mode,
         recents: recents,
+        progress: progress ?? this.progress,
       );
 }
 
@@ -85,7 +92,18 @@ class TouchController extends Notifier<TouchState> {
       speech.speak('Still working.', queue: true);
     });
     try {
-      final analysis = await ref.read(repositoryProvider).analyze(picture);
+      final analysis = await ref.read(repositoryProvider).analyze(
+        picture,
+        onProgress: (p) {
+          if (state.phase != Phase.busy) return;
+          state = state.copyWith(
+              progress: 'Outlining part ${p.done} of ${p.total}: ${p.label}.');
+          ref.read(hapticsProvider).pulse(20);
+          if (p.done == 1 || p.done == p.total || p.done % 3 == 0) {
+            speech.speak('${p.done} of ${p.total}.', queue: true);
+          }
+        },
+      );
       _open(analysis, picture);
     } on TouchApiException catch (e) {
       _fail(e.message);
@@ -99,6 +117,16 @@ class TouchController extends Notifier<TouchState> {
   Future<void> openSample() async {
     try {
       final (analysis, picture) = await ref.read(repositoryProvider).sample();
+      _open(analysis, picture);
+    } catch (_) {
+      _fail('The sample picture could not be loaded.');
+    }
+  }
+
+  Future<void> openGallery(GallerySample entry) async {
+    try {
+      final (analysis, picture) =
+          await ref.read(repositoryProvider).openGallery(entry);
       _open(analysis, picture);
     } catch (_) {
       _fail('The sample picture could not be loaded.');

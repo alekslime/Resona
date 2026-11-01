@@ -17,6 +17,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  List<GallerySample>? _gallery;
+
   @override
   void initState() {
     super.initState();
@@ -25,6 +27,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           .read(speechProvider)
           .speak('Resonant. Choose a picture to explore by touch.');
     });
+    _loadGallery();
+  }
+
+  Future<void> _loadGallery() async {
+    // Never throws: offline, the repository answers with the bundled pictures.
+    final entries = await ref.read(repositoryProvider).gallery();
+    if (mounted) setState(() => _gallery = entries);
   }
 
   Future<void> _pick(ImageSource source) async {
@@ -74,7 +83,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(height: 12),
                   Text(
                     busy
-                        ? 'Reading the picture.'
+                        ? (state.progress.isEmpty
+                            ? 'Reading the picture.'
+                            : state.progress)
                         : 'Learn by sound and touch. Drag a finger across a picture and feel its parts.',
                     style: TextStyle(
                       fontSize: 22,
@@ -101,15 +112,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => ref
-                            .read(touchControllerProvider.notifier)
-                            .openSample(),
-                        child: const Text('Try the sample'),
+                    Text(
+                      'Try a sample',
+                      style: TextStyle(
+                        fontSize: 19,
+                        fontWeight: FontWeight.w800,
+                        color: palette.ink,
                       ),
                     ),
+                    const SizedBox(height: 8),
+                    for (final entry in (_gallery ?? bundledSamples))
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: FilledButton(
+                            onPressed: () => ref
+                                .read(touchControllerProvider.notifier)
+                                .openGallery(entry),
+                            child: Text(
+                              '${entry.title} (${entry.regions} parts)',
+                            ),
+                          ),
+                        ),
+                      ),
                     if (state.recents.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       Text(
