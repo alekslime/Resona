@@ -249,4 +249,36 @@ void main() {
       expect((await r.sample(id: 'chart')).$1.title, 'Spring rainfall');
     });
   });
+
+  group('health', () {
+    test('a live backend reports whether it can analyze', () async {
+      final client = MockClient(
+        (_) async => http.Response(
+          '{"ok":true,"metaConfigured":true}',
+          200,
+        ),
+      );
+      final h = await repo(client).health();
+      expect((h.reachable, h.metaConfigured), (true, true));
+    });
+
+    test('a keyless backend is reachable but cannot analyze', () async {
+      final client = MockClient(
+        (_) async => http.Response('{"ok":true,"metaConfigured":false}', 200),
+      );
+      final h = await repo(client).health();
+      expect((h.reachable, h.metaConfigured), (true, false));
+    });
+
+    test('a dead server is data, not an error', () async {
+      final down =
+          repo(MockClient((_) async => throw const SocketException('down')));
+      expect((await down.health()).reachable, isFalse);
+      final sick = repo(MockClient((_) async => http.Response('bad', 500)));
+      expect((await sick.health()).reachable, isFalse);
+      final junk =
+          repo(MockClient((_) async => http.Response('not json', 200)));
+      expect((await junk.health()).reachable, isFalse);
+    });
+  });
 }

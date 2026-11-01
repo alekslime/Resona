@@ -176,6 +176,10 @@ class FakeRepository implements TouchRepository {
   @override
   Future<(Analysis, PictureBytes)> openGallery(GallerySample entry) =>
       throw UnimplementedError();
+
+  @override
+  Future<ServerHealth> health() async =>
+      const ServerHealth(reachable: true, metaConfigured: true);
 }
 
 /// The bundled sample: 800x600, with sun, cloud, mountain and sea.

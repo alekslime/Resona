@@ -67,6 +67,13 @@ class AnalyzeProgress {
   final String label;
 }
 
+/// What GET /api/health says: is the server there, and can it analyze?
+class ServerHealth {
+  const ServerHealth({required this.reachable, required this.metaConfigured});
+  final bool reachable;
+  final bool metaConfigured;
+}
+
 abstract class TouchRepository {
   /// Muse Spark names the parts, SAM 3.1 outlines them (see backend/).
   /// [onProgress] fires after every part is outlined, so the phone can speak
@@ -121,4 +128,8 @@ abstract class TouchRepository {
   /// Open one gallery entry: bundled entries load on the phone, backend
   /// extras download their outlines and picture.
   Future<(Analysis, PictureBytes)> openGallery(GallerySample entry);
+
+  /// Is the backend reachable, and does it hold a Meta API key? Never throws:
+  /// unreachable means the samples still work, so the answer is data, not an error.
+  Future<ServerHealth> health();
 }

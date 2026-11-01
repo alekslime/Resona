@@ -151,7 +151,8 @@ class HttpTouchRepository implements TouchRepository {
       feed(buf);
     }
     if (done == null) {
-      throw TouchApiException('The server sent something unexpected. Try again.');
+      throw TouchApiException(
+          'The server sent something unexpected. Try again.');
     }
     return done!;
   }
@@ -358,6 +359,25 @@ class HttpTouchRepository implements TouchRepository {
     } catch (_) {
       throw TouchApiException(
           'Cannot reach the server. Check your connection.');
+    }
+  }
+
+  @override
+  Future<ServerHealth> health() async {
+    try {
+      final res = await _http
+          .get(Uri.parse('$baseUrl/api/health'))
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode != 200) {
+        return const ServerHealth(reachable: false, metaConfigured: false);
+      }
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      return ServerHealth(
+        reachable: true,
+        metaConfigured: json['metaConfigured'] == true,
+      );
+    } catch (_) {
+      return const ServerHealth(reachable: false, metaConfigured: false);
     }
   }
 }
