@@ -285,7 +285,8 @@ Resonant stands on a lot of generous work. Each of these keeps its own license.
 | [LiveKit](https://livekit.io) + LiveKit Agents | Carrying live voice between the phone and the PC agent (free tier) | Apache-2.0 |
 | [Silero VAD](https://github.com/snakers4/silero-vad) | Hearing when you start and stop talking | MIT |
 | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | Writing down what you said, on your own PC | MIT |
-| [Piper](https://github.com/rhasspy/piper) | The tutor's spoken voice, on your own PC | MIT |
+| [Kokoro](https://github.com/hexgrad/kokoro) via [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) | The tutor's spoken voice, on your own PC (Piper is the fallback) | Apache-2.0 (model), MIT |
+| [Piper](https://github.com/rhasspy/piper) | Fallback spoken voice, on your own PC | MIT |
 | Flutter, Riverpod | The app itself, Android / iOS / web | BSD-3-Clause, MIT |
 | [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) | Body typeface, made for low vision | SIL OFL 1.1 |
 | Metropolis | Display typeface and the wordmark | SIL OFL 1.1 |

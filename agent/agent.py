@@ -1,7 +1,7 @@
 # Resonant live tutor: interruptible voice conversation about a picture.
 #   ears  : Silero VAD + local faster-whisper (free, on this laptop)
 #   brain : Muse Spark via the Meta Responses API (Meta credits)
-#   voice : local Piper TTS (free)
+#   voice : local Kokoro TTS (free, natural; Piper if it cannot load)
 #   room  : LiveKit Cloud free tier; the backend mints the student's token and
 #           hides the picture context inside it as participant metadata.
 # Interruptions are the point: when the student starts talking, the framework
@@ -184,6 +184,78 @@ class _PiperStream(tts.ChunkedStream):
         output_emitter.flush()
 
 
+# -------------------------------------------------------------------- Kokoro
+KOKORO_BASE = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0"
+KOKORO_VOICE = os.environ.get("KOKORO_VOICE", "af_heart")
+KOKORO_SPEED = float(os.environ.get("KOKORO_SPEED", "1.0"))
+
+
+def ensure_kokoro():
+    VOICE_DIR.mkdir(exist_ok=True)
+    for name in ("kokoro-v1.0.onnx", "voices-v1.0.bin"):
+        target = VOICE_DIR / name
+        if not target.exists():
+            print(f"Downloading Kokoro {name} (first run only)…")
+            urllib.request.urlretrieve(f"{KOKORO_BASE}/{name}", target)
+    return VOICE_DIR / "kokoro-v1.0.onnx", VOICE_DIR / "voices-v1.0.bin"
+
+
+class KokoroTTS(tts.TTS):
+    """Kokoro: a small local model that sounds like a person reading aloud,
+    not a robot spelling. Warmed up at construction so any load problem
+    (missing espeak, bad download) is found before the call starts."""
+
+    def __init__(self):
+        super().__init__(
+            capabilities=tts.TTSCapabilities(streaming=False, aligned_transcript=False),
+            sample_rate=24000,
+            num_channels=1,
+        )
+        from kokoro_onnx import Kokoro
+
+        model, voices = ensure_kokoro()
+        self._kokoro = Kokoro(str(model), str(voices))
+        self._kokoro.create("Hello.", voice=KOKORO_VOICE, speed=KOKORO_SPEED, lang="en-us")
+
+    def synthesize(self, text, *, conn_options=APIConnectOptions()):
+        return _KokoroStream(tts=self, input_text=text, conn_options=conn_options, kokoro=self._kokoro)
+
+
+class _KokoroStream(tts.ChunkedStream):
+    def __init__(self, *, tts, input_text, conn_options, kokoro):
+        super().__init__(tts=tts, input_text=input_text, conn_options=conn_options)
+        self._kokoro = kokoro
+
+    async def _run(self, output_emitter):
+        def synth():
+            import numpy as np
+
+            samples, rate = self._kokoro.create(
+                self._input_text, voice=KOKORO_VOICE, speed=KOKORO_SPEED, lang="en-us"
+            )
+            return (np.clip(samples, -1.0, 1.0) * 32767).astype(np.int16).tobytes(), rate
+
+        pcm, rate = await asyncio.get_running_loop().run_in_executor(None, synth)
+        output_emitter.initialize(
+            request_id=uuid.uuid4().hex, sample_rate=rate, num_channels=1, mime_type="audio/pcm"
+        )
+        output_emitter.push(pcm)
+        output_emitter.flush()
+
+
+def make_tts():
+    """Kokoro first; Piper if Kokoro cannot load. AGENT_TTS=piper forces Piper."""
+    if os.environ.get("AGENT_TTS", "kokoro").lower() != "piper":
+        try:
+            tts_impl = KokoroTTS()
+            print(f"Voice: Kokoro ({KOKORO_VOICE})")
+            return tts_impl
+        except Exception as e:  # noqa: BLE001 - any load failure must not kill the call
+            print(f"Kokoro unavailable ({e}); falling back to Piper.")
+    print("Voice: Piper")
+    return PiperTTS()
+
+
 # --------------------------------------------------------------------- Agent
 def instructions_for(meta):
     lines = [
@@ -205,6 +277,9 @@ def instructions_for(meta):
 
 
 async def entrypoint(ctx: JobContext):
+    # Start loading the voice at once: it takes seconds, and it can warm up
+    # while the room connects instead of after the student is already waiting.
+    voice_task = asyncio.get_running_loop().run_in_executor(None, make_tts)
     await ctx.connect()
     student = await ctx.wait_for_participant()
     raw_meta = student.metadata
@@ -222,7 +297,7 @@ async def entrypoint(ctx: JobContext):
         vad=silero.VAD.load(),
         stt=ears,
         llm=SparkLLM(),
-        tts=PiperTTS(),
+        tts=await voice_task,
         allow_interruptions=True,
         min_interruption_duration=0.35,
         preemptive_generation=True,
