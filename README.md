@@ -104,7 +104,8 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
 
 - **Talk live**: a real-time voice conversation with the tutor that you can interrupt mid-sentence.
   The backend token endpoint, the PC agent and the app screen are built and unit-tested; the first
-  call on a real phone is still to be made. Until then the proven tutor is hold-to-talk, above.
+  call on a real phone is still to be made. Until then the proven tutor is hold-to-talk, above, and
+  the Talk live button stays hidden unless the app is built with `--dart-define=LIVE_VOICE=true`.
 
 **Not built yet (deliberately — see `docs/HACKATHON.md`):**
 

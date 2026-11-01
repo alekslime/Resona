@@ -10,4 +10,10 @@ abstract final class Env {
     if (fromBuild.isNotEmpty) return fromBuild;
     return kIsWeb ? Uri.base.origin : 'http://10.0.2.2:3000';
   }
+
+  /// Talk live is built end to end but its first on-phone call is still to be
+  /// made. Until then the button stays hidden unless explicitly enabled:
+  ///   flutter run --dart-define=LIVE_VOICE=true
+  static const liveVoiceEnabled =
+      bool.fromEnvironment('LIVE_VOICE', defaultValue: false);
 }
