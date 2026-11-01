@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/providers.dart';
 import '../../../core/theme/resonant_theme.dart';
 import '../domain/hit_tester.dart';
+import '../domain/notes.dart';
 import '../domain/region.dart';
 import '../domain/spatial.dart';
 
@@ -47,6 +49,14 @@ class StudyNotesScreen extends ConsumerWidget {
             const SizedBox(height: 8),
             Text(analysis.title, style: head(24)),
             const SizedBox(height: 12),
+            FilledButton(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: studyNotesText(analysis)));
+                ref.read(speechProvider).speak('Notes copied. Paste them anywhere to share.');
+              },
+              child: const Text('Copy notes to share'),
+            ),
+            const SizedBox(height: 12),
             Text(analysis.overview, style: TextStyle(fontSize: 19, color: p.ink, height: 1.4)),
             const SizedBox(height: 20),
             Text('The map in words', style: head(21)),
@@ -66,7 +76,8 @@ class StudyNotesScreen extends ConsumerWidget {
               Text(r.detail, style: TextStyle(fontSize: 18, color: p.ink, height: 1.4)),
               const SizedBox(height: 4),
               Text(
-                'Covers about ${(r.areaFrac * 100).round()} percent of the picture.'
+                'Covers about ${(r.areaFrac * 100).round()} percent of the picture, '
+                '${clockWords(r, analysis.width.toDouble(), analysis.height.toDouble())}.'
                 '${aroundWords(r, parts)}',
                 style: TextStyle(fontSize: 17, color: p.ink, height: 1.4),
               ),

@@ -50,6 +50,21 @@ String aroundWords(Region r, List<Region> regions) {
   return ' Around it: ${named.join(', ')}.';
 }
 
+/// Where a part sits, as a clock face laid over the picture: "at 1 o'clock" for the
+/// top right, "at 6 o'clock" for the bottom centre. Clock positions are how blind
+/// students are usually taught to share locations, so the notes use them alongside
+/// the plainer words. Near the middle it just says so.
+String clockWords(Region r, double width, double height) {
+  final dx = (r.centerX - width / 2) / (width / 2);
+  final dy = (r.centerY - height / 2) / (height / 2);
+  if (dx.abs() < 0.18 && dy.abs() < 0.18) return 'in the centre';
+  // Angle clockwise from straight up, in screen coordinates (y grows downwards).
+  final degrees = math.atan2(dx, -dy) * 180 / math.pi;
+  var hour = (degrees / 30).round() % 12;
+  if (hour <= 0) hour += 12;
+  return 'at $hour o\'clock';
+}
+
 /// How far a point is from a region, in words a student can act on.
 String distanceWords(double dist, double pictureWidth) {
   final f = dist / pictureWidth;
