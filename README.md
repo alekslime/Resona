@@ -7,7 +7,7 @@
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3%20%2B%20SAM%203.1-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-76%20Flutter%20%2B%2041%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-79%20Flutter%20%2B%2041%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -98,7 +98,7 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
   conversation and knows which part your finger is on.
 - **Study notes**: the whole picture as plain text (overview, map, every part with its clock-face
   position) for revision with a screen reader — and **Copy notes to share** pastes them anywhere.
-- Screen-reader buttons for every gesture, twelve themes, 76 Flutter tests + 41 backend tests, all green.
+- Screen-reader buttons for every gesture, twelve themes, 79 Flutter tests + 41 backend tests, all green.
 
 **Built, one step from proven:**
 
@@ -263,7 +263,7 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, hit-testing, sessions, spatial words, notes, theme contrast, sound (76 tests)
+flutter test            # gestures, hit-testing, sessions, spatial words, notes, theme contrast, voice picking, sound (79 tests)
 cd backend && npm test  # the Meta pipeline, mask handling, lesson/quiz/chat API, LiveKit tokens (41 tests)
 ```
 
