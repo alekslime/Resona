@@ -103,8 +103,14 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                       children: [
                         const _EdgeZone(label: 'stop · repeat\nswipe: parts'),
                         Expanded(
-                          child: Container(
-                            key: _pictureKey,
+                          // The card hugs the picture's own shape, centred in the stage,
+                          // so the picture is as big as the stage allows instead of
+                          // floating in a tall white box.
+                          child: Center(
+                            child: AspectRatio(
+                              aspectRatio: analysis.width / analysis.height,
+                              child: Container(
+                                key: _pictureKey,
                             margin: const EdgeInsets.symmetric(vertical: 4),
                             decoration: BoxDecoration(
                               color: palette.card,
@@ -135,6 +141,8 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                                       ),
                                     ),
                                   ),
+                              ),
+                            ),
                           ),
                         ),
                         const _EdgeZone(label: 'speed: hold + drag\nhold: back'),

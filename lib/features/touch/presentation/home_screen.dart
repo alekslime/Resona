@@ -59,7 +59,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 children: [
                   ResonantDots(
                     state: busy ? DotsState.thinking : DotsState.idle,
-                    size: 200,
+                    size: 140,
                     color: palette.ink,
                   ),
                   const SizedBox(height: 12),
@@ -79,19 +79,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   ),
                   const SizedBox(height: 28),
                   if (!busy) ...[
-                    FilledButton(
-                      onPressed: () => _pick(ImageSource.gallery),
-                      child: const Text('Choose a picture'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => _pick(ImageSource.gallery),
+                        child: const Text('Choose a picture'),
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () => _pick(ImageSource.camera),
-                      child: const Text('Take a photo'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => _pick(ImageSource.camera),
+                        child: const Text('Take a photo'),
+                      ),
                     ),
                     const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () => ref.read(touchControllerProvider.notifier).openSample(),
-                      child: const Text('Try the sample'),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        onPressed: () => ref.read(touchControllerProvider.notifier).openSample(),
+                        child: const Text('Try the sample'),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // The gesture grammar at a glance, for sighted helpers and
+                    // anyone with some vision. The app itself is eyes-free.
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: palette.card,
+                        borderRadius: BorderRadius.circular(palette.cardRadius),
+                        border: palette.outline == null
+                            ? null
+                            : Border.all(color: palette.outline!, width: palette.outlineWidth),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'How exploring works',
+                            style: TextStyle(
+                              fontSize: 19,
+                              fontWeight: FontWeight.w800,
+                              color: palette.ink,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Drag a finger over the picture: each part speaks, buzzes '
+                            'and plays a tone. Rest to hear more. Hold and ask a '
+                            'question. Hold three fingers for the map in words.',
+                            style: TextStyle(fontSize: 17, height: 1.35, color: palette.ink),
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 12),
                     TextButton(
