@@ -164,6 +164,50 @@ test("samples gallery lists the bundled pictures with their outlines", async () 
   });
 });
 
+test("analyze-stream emits progress per part, then the full payload", async () => {
+  await withServer(fakeMeta, async (base) => {
+    const res = await post(base, "/api/analyze-stream", { image });
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get("content-type"), /text\/event-stream/);
+    const events = [];
+    for (const chunk of (await res.text()).split("\n\n")) {
+      const m = /event: (\w+)\ndata: (.*)/s.exec(chunk.trim());
+      if (m) events.push([m[1], JSON.parse(m[2])]);
+    }
+    const progress = events.filter(([e]) => e === "progress");
+    assert.equal(progress.length, 2);
+    assert.deepEqual(progress[0][1].total, 2);
+    assert.deepEqual(
+      progress.map(([, p]) => p.done).sort(),
+      [1, 2],
+    );
+    const done = events.find(([e]) => e === "done");
+    assert.equal(done[1].title, "Test picture");
+    assert.equal(done[1].regions.length, 2);
+    assert.ok(!events.some(([e]) => e === "error"));
+  });
+});
+
+test("parts are segmented in parallel, not one by one", async () => {
+  let active = 0;
+  let maxActive = 0;
+  const slow = {
+    ...fakeMeta,
+    segment: async (...a) => {
+      active++;
+      maxActive = Math.max(maxActive, active);
+      await new Promise((r) => setTimeout(r, 20));
+      active--;
+      return fakeMeta.segment(...a);
+    },
+  };
+  await withServer(slow, async (base) => {
+    const res = await post(base, "/api/analyze", { image });
+    assert.equal(res.status, 200);
+    assert.ok(maxActive >= 2, `expected parallel SAM calls, saw max ${maxActive} at once`);
+  });
+});
+
 test("a failing model never leaks details to the browser", async () => {
   const broken = { ...fakeMeta, describeParts: async () => { throw new Error("secret-internal-detail"); } };
   const quiet = console.error;

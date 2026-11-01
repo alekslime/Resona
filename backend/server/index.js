@@ -128,6 +128,54 @@ export function createApp(meta) {
     res.json({ samples });
   });
 
+  // The full pipeline: Spark names the parts, SAM outlines each one in parallel.
+  // onPart fires after every part finishes, so callers can stream progress.
+  const analyzeImage = async (dataUrl, width, height, onPart) => {
+    // 1. Muse Spark reads the picture and names its parts.
+    const described = await meta.describeParts(dataUrl);
+
+    // 2. SAM 3.1 finds the exact pixels of each part (one request per concept).
+    //    Labels SAM cannot ground ("orthodontic braces row") get retried with
+    //    simpler concepts ("braces") before we give up on the mask.
+    const segmentPart = async (part) => {
+      for (const variant of conceptVariants(part.label)) {
+        try {
+          const records = (await meta.segment(dataUrl, variant)).records;
+          if (records.length) return records;
+        } catch (err) {
+          console.error(`segment "${variant}" failed:`, err?.message ?? err);
+        }
+      }
+      return [];
+    };
+    const limit = Math.min(8, Math.max(1, Number.parseInt(process.env.SAM_CONCURRENCY ?? "5", 10) || 5));
+    let done = 0;
+    const results = await mapLimit(described.parts, limit, async (part) => {
+      const records = await segmentPart(part);
+      done += 1;
+      onPart?.({ done, total: described.parts.length, label: part.label });
+      return { part, records };
+    });
+
+    const perPart = results.map(({ part, records }, partIndex) => ({
+      part,
+      regions: buildRegions({ part, partIndex, records, imgW: width, imgH: height }),
+    }));
+    const regions = dedupeRegions(perPart.flatMap((p) => p.regions));
+    if (!regions.length) {
+      throw httpError(422, "No parts could be outlined in this picture. Try a clearer picture with distinct shapes.");
+    }
+    return {
+      width,
+      height,
+      title: described.title,
+      kind: described.kind,
+      overview: described.overview,
+      regions,
+      skipped: perPart.filter((p) => !p.regions.length).map((p) => p.part.label),
+    };
+  };
+
   app.post("/api/analyze", limiter(6, 60_000), async (req, res, next) => {
     try {
       if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env, or try the sample picture.");
@@ -135,48 +183,40 @@ export function createApp(meta) {
       const dataUrl = req.body.image;
       const cached = cacheGet(dataUrl);
       if (cached) return res.json(cached);
-
-      // 1. Muse Spark reads the picture and names its parts.
-      const described = await meta.describeParts(dataUrl);
-
-      // 2. SAM 3.1 finds the exact pixels of each part (one request per concept).
-      //    Labels SAM cannot ground ("orthodontic braces row") get retried with
-      //    simpler concepts ("braces") before we give up on the mask.
-      const segmentPart = async (part) => {
-        for (const variant of conceptVariants(part.label)) {
-          try {
-            const records = (await meta.segment(dataUrl, variant)).records;
-            if (records.length) return records;
-          } catch (err) {
-            console.error(`segment "${variant}" failed:`, err?.message ?? err);
-          }
-        }
-        return [];
-      };
-      const results = await mapLimit(described.parts, 3, async (part) => ({
-        part,
-        records: await segmentPart(part),
-      }));
-
-      const perPart = results.map(({ part, records }, partIndex) => ({
-        part,
-        regions: buildRegions({ part, partIndex, records, imgW: width, imgH: height }),
-      }));
-      const regions = dedupeRegions(perPart.flatMap((p) => p.regions));
-      if (!regions.length) {
-        throw httpError(422, "No parts could be outlined in this picture. Try a clearer picture with distinct shapes.");
-      }
-      const payload = {
-        width,
-        height,
-        title: described.title,
-        kind: described.kind,
-        overview: described.overview,
-        regions,
-        skipped: perPart.filter((p) => !p.regions.length).map((p) => p.part.label),
-      };
+      const payload = await analyzeImage(dataUrl, width, height);
       cachePut(dataUrl, payload);
       res.json(payload);
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  // Same pipeline as /api/analyze, as server-sent events: one "progress" event
+  // per outlined part ({done, total, label}), then "done" with the full payload
+  // or "error" with {error}. The phone speaks the progress, so a 30-second
+  // analysis feels alive instead of frozen.
+  app.post("/api/analyze-stream", limiter(6, 60_000), async (req, res, next) => {
+    try {
+      if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env, or try the sample picture.");
+      const { width, height } = parseImage(req.body?.image);
+      const dataUrl = req.body.image;
+      const cached = cacheGet(dataUrl);
+      res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+      res.flushHeaders?.();
+      const send = (event, obj) => res.write(`event: ${event}\ndata: ${JSON.stringify(obj)}\n\n`);
+      if (cached) {
+        send("done", cached);
+        return res.end();
+      }
+      try {
+        const payload = await analyzeImage(dataUrl, width, height, (p) => send("progress", p));
+        cachePut(dataUrl, payload);
+        send("done", payload);
+      } catch (err) {
+        send("error", { error: err?.expose ? err.message : "The Meta model request failed. Try again in a moment." });
+        if (!err?.expose) console.error(err);
+      }
+      res.end();
     } catch (err) {
       next(err);
     }
