@@ -6,7 +6,8 @@ import '../domain/region.dart';
 
 /// Where a [w] x [h] picture sits when fitted ("contain") inside [box], and its scale.
 ({Rect rect, double scale}) fitPicture(Size box, int w, int h) {
-  final scale = (box.width / w) < (box.height / h) ? box.width / w : box.height / h;
+  final scale =
+      (box.width / w) < (box.height / h) ? box.width / w : box.height / h;
   final size = Size(w * scale, h * scale);
   return (
     rect: Rect.fromLTWH(
@@ -48,6 +49,11 @@ Path regionPath(Region r) {
   return path;
 }
 
+/// One outline path per region, keyed by region id. The explore screen caches
+/// these so showing every outline at once costs no extra mask work.
+Map<String, Path> allRegionPaths(List<Region> regions) =>
+    {for (final r in regions) r.id: regionPath(r)};
+
 class PicturePainter extends CustomPainter {
   PicturePainter({
     required this.image,
@@ -55,6 +61,8 @@ class PicturePainter extends CustomPainter {
     required this.height,
     this.highlight,
     this.highlightPath,
+    this.allPaths,
+    this.showAll = false,
     required this.tint,
   });
 
@@ -62,6 +70,11 @@ class PicturePainter extends CustomPainter {
   final int width, height;
   final Region? highlight;
   final Path? highlightPath;
+
+  /// Every region's outline (see [allRegionPaths]), drawn faintly underneath
+  /// the highlight when [showAll] is on — for sighted judges and helpers.
+  final Map<String, Path>? allPaths;
+  final bool showAll;
   final Color tint;
 
   @override
@@ -74,13 +87,36 @@ class PicturePainter extends CustomPainter {
       fit: BoxFit.fill,
       filterQuality: FilterQuality.medium,
     );
+    final s = fit.scale;
+    if (showAll && allPaths != null) {
+      canvas
+        ..save()
+        ..translate(fit.rect.left, fit.rect.top)
+        ..scale(fit.scale);
+      for (final path in allPaths!.values) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 5 / s
+            ..strokeJoin = StrokeJoin.round
+            ..color = const Color(0xFFFFFFFF),
+        );
+        canvas.drawPath(
+          path,
+          Paint()
+            ..style = PaintingStyle.fill
+            ..color = tint.withValues(alpha: 0.18),
+        );
+      }
+      canvas.restore();
+    }
     final path = highlightPath;
     if (highlight == null || path == null) return;
     canvas
       ..save()
       ..translate(fit.rect.left, fit.rect.top)
       ..scale(fit.scale);
-    final s = fit.scale;
     // Two-tone halo (dark, then white) so the outline reads on any picture, then a tint inside.
     canvas.drawPath(
       path,
@@ -109,5 +145,9 @@ class PicturePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(PicturePainter old) =>
-      old.highlight?.id != highlight?.id || old.image != image || old.tint != tint;
+      old.highlight?.id != highlight?.id ||
+      old.image != image ||
+      old.tint != tint ||
+      old.showAll != showAll ||
+      old.allPaths?.length != allPaths?.length;
 }

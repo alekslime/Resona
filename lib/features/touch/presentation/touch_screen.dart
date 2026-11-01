@@ -34,6 +34,7 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
   final _paths = <String, Path>{};
   ui.Image? _image;
   Object? _decodedFor;
+  var _showAll = false;
 
   Future<void> _decode(Uint8List bytes) async {
     final codec = await ui.instantiateImageCodec(bytes);
@@ -47,8 +48,9 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
           _pictureKey.currentContext?.findRenderObject() as RenderBox?;
       final surfaceBox =
           _surfaceKey.currentContext?.findRenderObject() as RenderBox?;
-      if (pictureBox == null || surfaceBox == null || !pictureBox.hasSize)
+      if (pictureBox == null || surfaceBox == null || !pictureBox.hasSize) {
         return;
+      }
       final origin =
           pictureBox.localToGlobal(Offset.zero, ancestor: surfaceBox);
       final fit = fitPicture(pictureBox.size, a.width, a.height);
@@ -75,6 +77,7 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
       _decodedFor = picture;
       _image = null;
       _paths.clear();
+      _showAll = false;
       _decode(picture.bytes);
     }
     _syncLayout(analysis);
@@ -83,6 +86,12 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
     final path = highlight == null
         ? null
         : _paths.putIfAbsent(highlight.id, () => regionPath(highlight));
+    final allPaths = _showAll
+        ? {
+            for (final r in analysis.regions)
+              r.id: _paths.putIfAbsent(r.id, () => regionPath(r)),
+          }
+        : null;
     final dotsState = state.view.listening
         ? DotsState.listening
         : state.view.thinking
@@ -141,6 +150,8 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                                             height: analysis.height,
                                             highlight: highlight,
                                             highlightPath: path,
+                                            showAll: _showAll,
+                                            allPaths: allPaths,
                                             tint: palette.signal,
                                           ),
                                         ),
@@ -250,6 +261,17 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                         ),
                       ),
                       child: const Text('Study notes'),
+                    ),
+                    FilledButton(
+                      onPressed: () {
+                        setState(() => _showAll = !_showAll);
+                        ref.read(speechProvider).speak(
+                              _showAll
+                                  ? 'All outlines shown.'
+                                  : 'Outlines hidden.',
+                            );
+                      },
+                      child: Text(_showAll ? 'Hide outlines' : 'Show outlines'),
                     ),
                   ],
                 )
