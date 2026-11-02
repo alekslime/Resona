@@ -7,6 +7,7 @@ import '../../../core/services/haptics.dart';
 import '../../learn/application/learn_session.dart';
 import '../../learn/domain/learn.dart';
 import '../data/touch_repository.dart';
+import '../domain/guide_help.dart';
 import '../domain/region.dart';
 import '../gestures/gesture_types.dart';
 import 'recents.dart';
@@ -72,6 +73,9 @@ class TouchController extends Notifier<TouchState> {
   bool _learnBusy = false;
   Timer? _keepAlive;
   final _recents = RecentsStore();
+
+  /// Fading-help levels by picture title, shelved with the recents.
+  final _helpMemory = <String, Map<String, GuideHelp>>{};
 
   @override
   TouchState build() {
@@ -144,6 +148,7 @@ class TouchController extends Notifier<TouchState> {
       _open(recent.analysis, recent.picture);
 
   void _open(Analysis analysis, PictureBytes picture) {
+    _shelveHelp();
     _session?.dispose();
     _learn = null;
     _pendingLesson = null;
@@ -171,6 +176,14 @@ class TouchController extends Notifier<TouchState> {
       recents: _recents.items,
     );
     session.load(analysis, picture);
+    final saved = _helpMemory[analysis.title];
+    if (saved != null) session.restoreHelpLevels(saved);
+  }
+
+  /// Keep the outgoing picture's help levels on the shelf.
+  void _shelveHelp() {
+    final s = _session;
+    if (s?.analysis != null) _helpMemory[s!.analysis!.title] = s.helpLevels;
   }
 
   // ---- lesson & quiz ----
@@ -267,6 +280,7 @@ class TouchController extends Notifier<TouchState> {
   }
 
   void leave() {
+    _shelveHelp();
     ref.read(speechProvider).stop();
     _session?.dispose();
     _session = null;
