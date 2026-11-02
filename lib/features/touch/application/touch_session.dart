@@ -100,6 +100,8 @@ class TouchSession {
   Region? _pendingFirst;
   Region? _pendingSecond;
   Region? _offeredNext;
+  Region? _trace;
+  int? _lastTraceMs;
   Map<String, List<(double, double)>> _guideCache = const {};
   int? _guideSectorLast;
   int? _guideBucketLast;
@@ -146,6 +148,8 @@ class TouchSession {
     _guideHelped = _guideNudgeSaid = false;
     _pendingFirst = _pendingSecond = null;
     _offeredNext = null;
+    _trace = null;
+    _lastTraceMs = null;
     _guideCache = buildGuideCache(analysis.regions);
     _guideSectorLast = _guideBucketLast = null;
     _guideSpokenMs = 0;
@@ -182,12 +186,19 @@ class TouchSession {
         _focus = null;
         _wasInside = false;
         _labelTimer?.cancel();
+        if (_trace != null) {
+          _trace = null;
+          haptics.play(HapticPattern.confirm);
+          cues.play(HapticPattern.confirm);
+        }
       case Tap(zone: Zone.center):
         _describeTouched();
       case Tap(zone: Zone.leftEdge):
         speech.isSpeaking ? speech.stop() : _repeat();
       case DoubleTap(zone: Zone.leftEdge):
         _repeat();
+      case DoubleTap(zone: Zone.center):
+        _startTrace();
       case Swipe(zone: Zone.leftEdge, direction: SwipeDirection.up):
         _step(1);
       case Swipe(zone: Zone.leftEdge, direction: SwipeDirection.down):
@@ -241,8 +252,46 @@ class TouchSession {
       return;
     }
     _wasInside = true;
+    if (_trace != null) {
+      _traceMove(px, py);
+      return;
+    }
     _setFocus(hitRegion(regions, px, py, tolerance: a.width * 0.006), px, py);
     _guideLive();
+  }
+
+  /// Minimum gap between trace buzzes while riding an edge.
+  static const int _minTraceGapMs = 120;
+
+  /// Double-tap a part to feel its shape: drag and the edge buzzes under
+  /// the finger (with the usual position tone); lift to stop. Tracing
+  /// pauses labels and guidance until the finger lifts.
+  void _startTrace() {
+    final r = _endedOn;
+    if (r == null) {
+      _say('Touch a part first, then double-tap to trace its outline.');
+      return;
+    }
+    _trace = r;
+    _highlight = r;
+    _lastTraceMs = null;
+    _say('Tracing the ${r.label}. Follow the buzz around its edge. Lift to stop.');
+  }
+
+  /// One trace sample: buzz only near the traced part's edge.
+  void _traceMove(double px, double py) {
+    final trace = _trace;
+    if (trace == null) return;
+    final a = _analysis!;
+    final pts = _guideCache[trace.id];
+    if (pts == null || pts.isEmpty) return;
+    final dist = nearestGuidePoint(pts, px, py).$3;
+    if (dist > math.max(6.0, a.width * 0.012)) return;
+    final now = nowMs();
+    if (_lastTraceMs != null && now - _lastTraceMs! < _minTraceGapMs) return;
+    _lastTraceMs = now;
+    haptics.pulse(20);
+    cues.position(x01: px / a.width, y01: py / a.height);
   }
 
   /// Short live cues while the finger moves in guide mode, throttled so they
@@ -586,6 +635,7 @@ class TouchSession {
     _thinking = false;
     _guide = target;
     _offeredNext = null;
+    _trace = null;
     _currentHelp = _helpById[target.id] ?? GuideHelp.full;
     _guideStartedMs = nowMs();
     _guideWrong = 0;
