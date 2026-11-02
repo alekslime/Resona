@@ -457,11 +457,8 @@ class TouchSession {
       _say('Did you mean ${match.first.label} or ${match.second.label}?');
       return;
     }
-    if (match is GuideNotFound) {
-      _thinking = false;
-      _say('I could not find that part in this picture.');
-      return;
-    }
+    // GuideNotFound falls through to the tutor: the model may still know
+    // the answer even when no part matched by name. The guide keeps running.
     if (match is GuideFound) {
       final target = match.region;
       if (target.id == _guide?.id) {
