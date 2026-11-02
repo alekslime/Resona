@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -18,8 +20,13 @@ class _SeedRepo extends FakeRepository {
   _SeedRepo(super.log);
 
   @override
-  Future<(Analysis, PictureBytes)> openGallery(GallerySample entry) async =>
-      (loadSample(), tinyPicture);
+  Future<(Analysis, PictureBytes)> openGallery(GallerySample entry) async => (
+        loadSample(),
+        PictureBytes(
+          File('assets/sample/sample.png').readAsBytesSync(),
+          'image/png',
+        ),
+      );
 }
 
 Future<ProviderContainer> riggedContainer(Log log) async {
@@ -51,6 +58,12 @@ Widget harnessedHome(ProviderContainer container) =>
       child: const MaterialApp(home: HomeScreen()),
     );
 
+/// Pushed routes build a frame late in the test harness: flush twice.
+Future<void> flushNav(WidgetTester tester) async {
+  await tester.pump(const Duration(milliseconds: 500));
+  await tester.pump(const Duration(milliseconds: 500));
+}
+
 void main() {
   group('talk connection', () {
     test('opens a room about the picture', () async {
@@ -80,7 +93,7 @@ void main() {
       final container = await riggedContainer(log);
       await tester.pumpWidget(harnessedHome(container));
       await tester.tap(find.text('Pictures'));
-      await tester.pump(const Duration(milliseconds: 500));
+      await flushNav(tester);
       expect(find.byType(PicturesScreen), findsOneWidget);
       expect(log.events, contains('haptic:select'));
       expect(log.events, contains('say: Opening Pictures.'));
@@ -91,7 +104,7 @@ void main() {
       final container = await riggedContainer(log);
       await tester.pumpWidget(harnessedHome(container));
       await tester.tap(find.text('Talk'));
-      await tester.pump(const Duration(milliseconds: 500));
+      await flushNav(tester);
       expect(find.byType(PicturesScreen), findsOneWidget);
       expect(
         log.events,
@@ -104,7 +117,7 @@ void main() {
       final container = await seededContainer(log);
       await tester.pumpWidget(harnessedHome(container));
       await tester.tap(find.text('Notes'));
-      await tester.pump(const Duration(milliseconds: 500));
+      await flushNav(tester);
       expect(find.byType(StudyNotesScreen), findsOneWidget);
       expect(log.events, contains('say: Opening Notes.'));
     });
@@ -114,8 +127,8 @@ void main() {
       final container = await seededContainer(log);
       await tester.pumpWidget(harnessedHome(container));
       await tester.tap(find.text('Lessons'));
-      await tester.pump(const Duration(milliseconds: 500));
-      await tester.pump(const Duration(milliseconds: 500));
+      await flushNav(tester);
+      await flushNav(tester);
       expect(find.byType(TouchScreen), findsOneWidget);
       expect(
         container.read(touchControllerProvider).mode,
@@ -149,18 +162,21 @@ void main() {
       final log = Log();
       final container = await riggedContainer(log);
       final semantics = tester.ensureSemantics();
-      addTearDown(semantics.dispose);
-      await tester.pumpWidget(harnessedHome(container));
-      await tester.pumpAndSettle();
-      await tester.fling(find.text('Talk'), const Offset(0, -300), 800);
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(find.bySemanticsLabel('Pictures, focused'), findsOneWidget);
-      expect(log.events, contains('say: Pictures'));
-      expect(log.events, contains('haptic:next'));
-      await tester.fling(find.text('Pictures'), const Offset(0, 300), 800);
-      await tester.pump(const Duration(milliseconds: 500));
-      expect(find.bySemanticsLabel('Talk, focused'), findsOneWidget);
-      expect(log.events, contains('haptic:previous'));
+      try {
+        await tester.pumpWidget(harnessedHome(container));
+        await tester.pumpAndSettle();
+        await tester.fling(find.text('Talk'), const Offset(0, -300), 800);
+        await flushNav(tester);
+        expect(find.bySemanticsLabel('Pictures, focused'), findsOneWidget);
+        expect(log.events, contains('say: Pictures'));
+        expect(log.events, contains('haptic:next'));
+        await tester.fling(find.text('Pictures'), const Offset(0, 300), 800);
+        await flushNav(tester);
+        expect(find.bySemanticsLabel('Talk, focused'), findsOneWidget);
+        expect(log.events, contains('haptic:previous'));
+      } finally {
+        semantics.dispose();
+      }
     });
 
     testWidgets('a swipe past the end does nothing', (tester) async {
@@ -170,7 +186,7 @@ void main() {
       await tester.pumpAndSettle();
       log.events.clear();
       await tester.fling(find.text('Talk'), const Offset(0, 300), 800);
-      await tester.pump(const Duration(milliseconds: 500));
+      await flushNav(tester);
       expect(log.events.where((e) => e.startsWith('say:')), isEmpty);
       expect(log.events.where((e) => e.startsWith('haptic:')), isEmpty);
     });
@@ -181,13 +197,13 @@ void main() {
       final container = await riggedContainer(Log());
       await tester.pumpWidget(harnessedHome(container));
       await tester.tap(find.text('Pictures'));
-      await tester.pump(const Duration(milliseconds: 500));
+      await flushNav(tester);
       expect(find.byType(PicturesScreen), findsOneWidget);
       await goBack(
         tester.element(find.byType(PicturesScreen)),
         home: const HomeScreen(),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await flushNav(tester);
       expect(find.byType(HomeScreen), findsOneWidget);
       expect(find.byType(PicturesScreen), findsNothing);
     });
@@ -199,7 +215,7 @@ void main() {
         tester.element(find.byType(HomeScreen)),
         home: const Text('fresh home'),
       );
-      await tester.pump(const Duration(milliseconds: 500));
+      await flushNav(tester);
       expect(find.text('fresh home'), findsOneWidget);
     });
   });
