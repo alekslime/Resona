@@ -80,6 +80,7 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
     if (state.phase == Phase.explore) return const TouchScreen();
 
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final busy = state.phase == Phase.busy;
     paintSystemBars(palette.background);
     return Container(
@@ -120,6 +121,7 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
                             : state.progress)
                         : 'Learn by sound and touch. Drag a finger across a picture and feel its parts.',
                     style: TextStyle(
+                      fontFamily: font.family,
                       fontSize: 22,
                       height: 1.3,
                       fontWeight: FontWeight.w600,
@@ -195,6 +197,7 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
                               'and plays a tone. Rest to hear more. Hold and ask a '
                               'question. Hold three fingers for the map in words.',
                               style: TextStyle(
+                                fontFamily: font.family,
                                   fontSize: 17,
                                   height: 1.35,
                                   color: palette.ink),
@@ -223,6 +226,7 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
                       child: Text(
                         state.message,
                         style: TextStyle(
+                          fontFamily: font.family,
                           fontSize: 18,
                           color: palette.ink,
                           fontWeight: FontWeight.w600,
@@ -241,21 +245,25 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
   }
 }
 
-class _SectionHead extends StatelessWidget {
+class _SectionHead extends ConsumerWidget {
   const _SectionHead(this.text, this.color);
 
   final String text;
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Text(
-        text,
-        style: TextStyle(
-          fontSize: 19,
-          fontWeight: FontWeight.w800,
-          color: color,
-        ),
-      );
+  Widget build(BuildContext context, WidgetRef ref) {
+    final font = ref.watch(fontProvider);
+    return Text(
+      text,
+      style: TextStyle(
+        fontFamily: font.family,
+        fontSize: 19,
+        fontWeight: FontWeight.w800,
+        color: color,
+      ),
+    );
+  }
 }
 
 /// One picture as a lesson card: a fitted title and an "explore" row styled
@@ -356,6 +364,7 @@ class _ServerDot extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final (Color color, String words) = switch (health) {
       null => (const Color(0xFF8B949E), 'Checking server.'),
       ServerHealth(reachable: false) => (
@@ -385,6 +394,7 @@ class _ServerDot extends ConsumerWidget {
             child: Text(
               words,
               style: TextStyle(
+                fontFamily: font.family,
                 fontSize: 16,
                 color: palette.ink,
                 fontWeight: FontWeight.w600,

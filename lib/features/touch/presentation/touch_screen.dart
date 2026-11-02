@@ -366,6 +366,7 @@ class _EdgeZone extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final p = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     return ExcludeSemantics(
       child: SizedBox(
         width: edgeZoneWidth,
@@ -376,6 +377,7 @@ class _EdgeZone extends ConsumerWidget {
               label,
               textAlign: TextAlign.center,
               style: TextStyle(
+                  fontFamily: font.family,
                   fontSize: 12,
                   color: p.ink.withValues(alpha: 0.7),
                   height: 1.3),

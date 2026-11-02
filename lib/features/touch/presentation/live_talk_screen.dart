@@ -34,6 +34,7 @@ class UserLine extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ink = ref.watch(paletteProvider).ink;
+    final font = ref.watch(fontProvider);
     return Semantics(
       label: 'You: $text',
       child: Text(
@@ -42,6 +43,7 @@ class UserLine extends ConsumerWidget {
         style: TextStyle(
           fontSize: 19,
           fontWeight: FontWeight.w600,
+          fontFamily: font.family,
           color: ink,
         ),
       ),
@@ -149,6 +151,7 @@ class _LiveTalkScreenState extends ConsumerState<LiveTalkScreen> {
   @override
   Widget build(BuildContext context) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final dots = talkDotsState(
       connecting: _connecting,
       agentSpeaking: _agentSpeaking,
@@ -231,6 +234,7 @@ class _LiveTalkScreenState extends ConsumerState<LiveTalkScreen> {
                               child: Text(
                                 line.text,
                                 style: TextStyle(
+                                  fontFamily: font.family,
                                   fontSize: 22,
                                   fontWeight: FontWeight.w600,
                                   color: palette.ink,
@@ -246,7 +250,8 @@ class _LiveTalkScreenState extends ConsumerState<LiveTalkScreen> {
               const SizedBox(height: 8),
               Text(
                 'Tip: just start talking to interrupt the tutor.',
-                style: TextStyle(fontSize: 16, color: palette.ink),
+                style: TextStyle(
+                    fontFamily: font.family, fontSize: 16, color: palette.ink),
               ),
             ],
           ],

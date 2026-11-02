@@ -30,9 +30,11 @@ class StudyNotesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final spacing = ref.watch(textSpacingProvider);
     final parts = readingOrder(analysis.regions);
     TextStyle body(double size) => TextStyle(
+          fontFamily: font.family,
           fontSize: size,
           fontWeight: FontWeight.w600,
           color: palette.ink,
