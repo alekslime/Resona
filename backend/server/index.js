@@ -201,9 +201,25 @@ export function createApp(meta) {
       const cached = cacheGet(dataUrl);
       res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
       res.flushHeaders?.();
-      const send = (event, obj) => res.write(`event: ${event}\ndata: ${JSON.stringify(obj)}\n\n`);
+      // A phone that locks mid-analysis drops the stream: stop writing
+      // instead of throwing into finished work. The analysis is still
+      // cached below, so the paid work is never wasted.
+      let alive = true;
+      let finished = false;
+      res.on("close", () => {
+        if (!finished) alive = false;
+      });
+      const send = (event, obj) => {
+        if (!alive || res.writableEnded) return;
+        try {
+          res.write(`event: ${event}\ndata: ${JSON.stringify(obj)}\n\n`);
+        } catch {
+          alive = false;
+        }
+      };
       if (cached) {
         send("done", cached);
+        finished = true;
         return res.end();
       }
       try {
@@ -214,6 +230,7 @@ export function createApp(meta) {
         send("error", { error: err?.expose ? err.message : "The Meta model request failed. Try again in a moment." });
         if (!err?.expose) console.error(err);
       }
+      finished = true;
       res.end();
     } catch (err) {
       next(err);
