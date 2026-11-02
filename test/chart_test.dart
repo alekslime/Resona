@@ -59,5 +59,16 @@ void main() {
       final a = loadChart();
       expect(barRankWords(loadSample().regions.first, a.regions), '');
     });
+
+    test('sliding onto a bar says its label with its value', () {
+      final a = loadChart();
+      Region bar(String label) => a.regions.firstWhere((r) => r.label == label);
+      expect(barSlideWords(bar('May bar')), 'May bar, 65 millimetres.');
+      expect(barSlideWords(bar('January bar')), 'January bar, 30 millimetres.');
+    });
+
+    test('a bar with no number slides as its bare label', () {
+      expect(barSlideWords(loadSample().regions.first), 'sun');
+    });
   });
 }
