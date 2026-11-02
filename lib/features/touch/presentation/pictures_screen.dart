@@ -1,14 +1,28 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/nav/resonant_nav.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/resonant_theme.dart';
+import '../../../core/theme/motion.dart';
+import '../../../core/theme/shapes.dart';
+import '../../../core/ui/enter.dart';
+import '../../../core/ui/icons.dart';
+import '../../../core/ui/press.dart';
+import '../../../core/ui/resonant_controls.dart';
 import '../../../core/ui/resonant_dots.dart';
+import '../../../core/ui/system_bars.dart';
+import '../../../core/ui/top_bar.dart';
 import '../application/touch_controller.dart';
 import '../data/touch_repository.dart';
+import 'home_screen.dart';
 import 'touch_screen.dart';
 
+/// The picture picker, restyled after Resonant's LessonsScreen: the same
+/// back pill, the same card list, the same "open" rows. Every word and
+/// every behavior is unchanged; only the clothes are old.
 class PicturesScreen extends ConsumerStatefulWidget {
   const PicturesScreen({super.key});
 
@@ -67,28 +81,36 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
 
     final palette = ref.watch(paletteProvider);
     final busy = state.phase == Phase.busy;
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ResonantDots(
-                    state: busy ? DotsState.thinking : DotsState.idle,
-                    size: 140,
-                    color: palette.ink,
-                  ),
-                  const SizedBox(height: 12),
-                  Semantics(
-                    header: true,
-                    child: Text('Resonant', style: brandStyle(64, palette.ink)),
-                  ),
-                  const SizedBox(height: 4),
+    paintSystemBars(palette.background);
+    return Container(
+      color: palette.background,
+      child: SafeArea(
+        child: Column(
+          children: [
+            LessonsTopBar(
+              title: 'Pictures',
+              onBack: () {
+                unawaited(goBack(context, home: const HomeScreen()));
+              },
+              showSettings: false,
+            ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                  if (busy)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Center(
+                        child: ResonantDots(
+                          state: DotsState.thinking,
+                          size: 96,
+                          color: palette.ink,
+                        ),
+                      ),
+                    ),
                   _ServerDot(health: _health),
                   const SizedBox(height: 12),
                   Text(
@@ -106,124 +128,92 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
                   ),
                   const SizedBox(height: 28),
                   if (!busy) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => _pick(ImageSource.gallery),
-                        child: const Text('Choose a picture'),
-                      ),
+                    ResonantButton(
+                      text: 'Choose a picture',
+                      onPressed: () => _pick(ImageSource.gallery),
                     ),
                     const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => _pick(ImageSource.camera),
-                        child: const Text('Take a photo'),
-                      ),
+                    ResonantButton(
+                      text: 'Take a photo',
+                      onPressed: () => _pick(ImageSource.camera),
                     ),
                     const SizedBox(height: 12),
-                    Text(
-                      'Try a sample',
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        color: palette.ink,
-                      ),
-                    ),
+                    _SectionHead('Try a sample', palette.ink),
                     const SizedBox(height: 8),
-                    for (final entry in (_gallery ?? bundledSamples))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: () => ref
-                                .read(touchControllerProvider.notifier)
-                                .openGallery(entry),
-                            child: Text(
-                              '${entry.title} (${entry.regions} parts)',
-                            ),
-                          ),
-                        ),
+                    for (var i = 0;
+                        i < (_gallery ?? bundledSamples).length;
+                        i++)
+                      _PictureCard(
+                        title:
+                            '${(_gallery ?? bundledSamples)[i].title} (${(_gallery ?? bundledSamples)[i].regions} parts)',
+                        index: i,
+                        onOpen: () => ref
+                            .read(touchControllerProvider.notifier)
+                            .openGallery(
+                                (_gallery ?? bundledSamples)[i]),
                       ),
                     if (state.recents.isNotEmpty) ...[
                       const SizedBox(height: 20),
-                      Text(
-                        'Recent pictures',
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                          color: palette.ink,
-                        ),
-                      ),
+                      _SectionHead('Recent pictures', palette.ink),
                       const SizedBox(height: 8),
-                      for (final r in state.recents)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton(
-                              onPressed: () => ref
-                                  .read(touchControllerProvider.notifier)
-                                  .openRecent(r),
-                              child: Text(
-                                '${r.analysis.title} (${r.analysis.regions.length} parts)',
-                              ),
-                            ),
-                          ),
+                      for (var i = 0; i < state.recents.length; i++)
+                        _PictureCard(
+                          title:
+                              '${state.recents[i].analysis.title} (${state.recents[i].analysis.regions.length} parts)',
+                          index: i,
+                          onOpen: () => ref
+                              .read(touchControllerProvider.notifier)
+                              .openRecent(state.recents[i]),
                         ),
                     ],
                     const SizedBox(height: 20),
                     // The gesture grammar at a glance, for sighted helpers and
                     // anyone with some vision. The app itself is eyes-free.
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: palette.card,
-                        borderRadius: BorderRadius.circular(palette.cardRadius),
-                        border: palette.cardOutline == null
-                            ? null
-                            : Border.all(
-                                color: palette.cardOutline!,
-                                width: palette.outlineWidth),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'How exploring works',
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w800,
-                              color: palette.ink,
+                    ClipRRect(
+                      borderRadius: cardShape(palette),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 18,
+                        ),
+                        decoration: BoxDecoration(
+                          color: palette.card,
+                          border: cardBorder(palette),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const FittedTitle(
+                              'How exploring works',
+                              maxSp: 50,
+                              lineRatio: 1.2,
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Drag a finger over the picture: each part speaks, buzzes '
-                            'and plays a tone. Rest to hear more. Hold and ask a '
-                            'question. Hold three fingers for the map in words.',
-                            style: TextStyle(
-                                fontSize: 17, height: 1.35, color: palette.ink),
-                          ),
-                        ],
+                            const SizedBox(height: 6),
+                            Text(
+                              'Drag a finger over the picture: each part speaks, buzzes '
+                              'and plays a tone. Rest to hear more. Hold and ask a '
+                              'question. Hold three fingers for the map in words.',
+                              style: TextStyle(
+                                  fontSize: 17,
+                                  height: 1.35,
+                                  color: palette.ink),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextButton(
+                    ResonantButton(
+                      text: 'Theme: ${palette.label}',
+                      filled: false,
                       onPressed: () {
-                        final next = ref.read(paletteProvider.notifier).next();
-                        ref.read(speechProvider).speak('${next.label} theme.');
+                        final next =
+                            ref.read(paletteProvider.notifier).next();
+                        ref
+                            .read(speechProvider)
+                            .speak('${next.label} theme.');
                       },
-                      child: Text(
-                        'Theme: ${palette.label}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: palette.ink,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                     ),
                   ],
                   if (state.message.isNotEmpty) ...[
@@ -240,7 +230,112 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
                       ),
                     ),
                   ],
-                ],
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionHead extends StatelessWidget {
+  const _SectionHead(this.text, this.color);
+
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Text(
+        text,
+        style: TextStyle(
+          fontSize: 19,
+          fontWeight: FontWeight.w800,
+          color: color,
+        ),
+      );
+}
+
+/// One picture as a lesson card: a fitted title and an "explore" row styled
+/// like the old "continue lesson" row.
+class _PictureCard extends ConsumerWidget {
+  const _PictureCard({
+    required this.title,
+    required this.index,
+    required this.onOpen,
+  });
+
+  final String title;
+  final int index;
+  final VoidCallback onOpen;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = ref.watch(paletteProvider);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: EnterStagger(
+        index: index,
+        child: PressScale(
+          themeFloor: MotionProfiles.forTheme(palette.id).minDamping,
+          child: ClipRRect(
+            borderRadius: cardShape(palette),
+            child: Container(
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: palette.card,
+                border: cardBorder(palette),
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onOpen,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        FittedTitle(title, color: palette.ink),
+                        const SizedBox(height: 24),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: palette.button,
+                            borderRadius: controlShape(palette),
+                            border: controlBorder(palette),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Explore picture',
+                                style: TextStyle(
+                                  fontFamily: 'Metropolis',
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 22,
+                                  color: palette.onButton,
+                                ),
+                              ),
+                              ArrowIcon(
+                                pointRight: true,
+                                tint: palette.onButton,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ),
           ),

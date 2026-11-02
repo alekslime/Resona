@@ -4,6 +4,8 @@
 /// (Font hardcodes Metropolis for now; the chosen font arrives with Settings.)
 library;
 
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -123,6 +125,70 @@ class LessonsTopBar extends ConsumerWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// A card title that shrinks until its longest word fits on one line, so
+/// narrow screens and long words (Photosynthesis) never break the card.
+/// Only ever shrinks from [maxSp], and stops at [minSp].
+class FittedTitle extends ConsumerWidget {
+  const FittedTitle(
+    this.title, {
+    super.key,
+    this.maxSp = 56,
+    this.lineRatio = 72 / 56,
+    this.minSp = 26,
+    this.textAlign = TextAlign.start,
+    this.color,
+  });
+
+  final String title;
+  final double maxSp;
+  final double lineRatio;
+  final double minSp;
+  final TextAlign textAlign;
+  final Color? color;
+
+  double _widestWord(
+      BuildContext context, TextStyle style, double size, double maxWidth) {
+    var widest = 0.0;
+    for (final word in title.split(' ')) {
+      final painter = TextPainter(
+        text: TextSpan(text: word, style: style.copyWith(fontSize: size)),
+        textDirection: Directionality.of(context),
+      )..layout();
+      widest = math.max(widest, painter.width);
+      painter.dispose();
+      if (widest > maxWidth) break;
+    }
+    return widest;
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ink = color ?? ref.watch(paletteProvider).ink;
+    final style = TextStyle(
+      fontFamily: 'Metropolis',
+      fontWeight: FontWeight.w600,
+      color: ink,
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        var size = maxSp;
+        final maxWidth = constraints.maxWidth;
+        if (maxWidth.isFinite && title.trim().isNotEmpty) {
+          while (size > minSp &&
+              _widestWord(context, style, size, maxWidth) > maxWidth) {
+            size -= 2;
+          }
+        }
+        return Text(
+          title,
+          textAlign: textAlign,
+          style: style.copyWith(fontSize: size, height: lineRatio),
+        );
+      },
     );
   }
 }
