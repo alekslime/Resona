@@ -186,6 +186,20 @@ class FakeRepository implements TouchRepository {
 }
 
 /// The bundled sample: 800x600, with sun, cloud, mountain and sea.
+/// Serves the real bundled sample picture for widget tests.
+class SeedRepo extends FakeRepository {
+  SeedRepo(super.log);
+
+  @override
+  Future<(Analysis, PictureBytes)> openGallery(GallerySample entry) async => (
+        loadSample(),
+        PictureBytes(
+          File('assets/sample/sample.png').readAsBytesSync(),
+          'image/png',
+        ),
+      );
+}
+
 Analysis loadSample() {
   final json = jsonDecode(File('assets/sample/sample.json').readAsStringSync())
       as Map<String, dynamic>;

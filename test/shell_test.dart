@@ -230,4 +230,38 @@ void main() {
       expect(find.textContaining('Voice is unavailable'), findsNothing);
     });
   });
+
+  group('fitted title', () {
+    testWidgets('short titles stay full size', (tester) async {
+      await tester.pumpWidget(shellHarness(
+        Log(),
+        const SizedBox(width: 400, child: FittedTitle('Cat')),
+      ));
+      final style = tester.widget<Text>(find.text('Cat')).style!;
+      expect(style.fontSize, 56);
+      expect(style.height, closeTo(72 / 56, 1e-9));
+      expect(style.fontWeight, FontWeight.w600);
+    });
+
+    testWidgets('a long word shrinks the whole title', (tester) async {
+      await tester.pumpWidget(shellHarness(
+        Log(),
+        const SizedBox(width: 200, child: FittedTitle('Photosynthesis')),
+      ));
+      final size =
+          tester.widget<Text>(find.text('Photosynthesis')).style!.fontSize!;
+      expect(size, lessThan(56));
+      expect(size, greaterThanOrEqualTo(26));
+    });
+
+    testWidgets('shrinking stops at the floor', (tester) async {
+      await tester.pumpWidget(shellHarness(
+        Log(),
+        const SizedBox(width: 50, child: FittedTitle('Photosynthesis')),
+      ));
+      final size =
+          tester.widget<Text>(find.text('Photosynthesis')).style!.fontSize!;
+      expect(size, 26);
+    });
+  });
 }

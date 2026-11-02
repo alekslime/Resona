@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,26 +6,12 @@ import 'package:resonant/core/nav/resonant_nav.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/features/touch/application/touch_controller.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
-import 'package:resonant/features/touch/domain/region.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/pictures_screen.dart';
 import 'package:resonant/features/touch/presentation/study_notes_screen.dart';
 import 'package:resonant/features/touch/presentation/touch_screen.dart';
 
 import 'fakes.dart';
-
-class _SeedRepo extends FakeRepository {
-  _SeedRepo(super.log);
-
-  @override
-  Future<(Analysis, PictureBytes)> openGallery(GallerySample entry) async => (
-        loadSample(),
-        PictureBytes(
-          File('assets/sample/sample.png').readAsBytesSync(),
-          'image/png',
-        ),
-      );
-}
 
 Future<ProviderContainer> riggedContainer(Log log) async {
   final container = ProviderContainer(
@@ -36,7 +20,7 @@ Future<ProviderContainer> riggedContainer(Log log) async {
       hapticsProvider.overrideWithValue(FakeHaptics(log)),
       speechInputProvider.overrideWithValue(FakeInput(log)),
       cuesProvider.overrideWithValue(FakeCues(log)),
-      repositoryProvider.overrideWithValue(_SeedRepo(log)),
+      repositoryProvider.overrideWithValue(SeedRepo(log)),
     ],
   );
   addTearDown(container.dispose);
