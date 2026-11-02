@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,7 +7,6 @@ import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/ui/icons.dart';
 import 'package:resonant/core/ui/resonant_dots.dart';
 import 'package:resonant/features/learn/domain/library.dart';
-import 'package:resonant/features/touch/application/recents.dart';
 import 'package:resonant/features/touch/application/touch_controller.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
 import 'package:resonant/features/touch/presentation/chat_screen.dart';
@@ -38,10 +39,28 @@ RecentPicture sunRecent() => RecentPicture(
       openedAt: DateTime(2026),
     );
 
+/// The handoff lands on the touch screen, which decodes the bytes: a real
+/// picture, not the tiny stand-in.
+RecentPicture drawableRecent() => RecentPicture(
+      analysis: loadSample(),
+      picture: PictureBytes(
+        File('assets/sample/sample.png').readAsBytesSync(),
+        'image/png',
+      ),
+      openedAt: DateTime(2026),
+    );
+
 Widget harnessedChat(ProviderContainer container, RecentPicture? recent) =>
     UncontrolledProviderScope(
       container: container,
-      child: MaterialApp(home: ChatScreen(recent: recent)),
+      // The transparent Material the real app wraps every screen in: the
+      // pill's text field needs one to sit on.
+      child: MaterialApp(
+        home: Material(
+          type: MaterialType.transparency,
+          child: ChatScreen(recent: recent),
+        ),
+      ),
     );
 
 Future<void> settle(WidgetTester tester) async {
@@ -129,7 +148,7 @@ void main() {
       final log = Log();
       final container =
           await chatContainer(log, heard: 'where is the sun');
-      await tester.pumpWidget(harnessedChat(container, sunRecent()));
+      await tester.pumpWidget(harnessedChat(container, drawableRecent()));
       await tester.pump();
       await tester.tap(find.byType(MicIcon));
       await settle(tester);
