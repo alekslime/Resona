@@ -6,6 +6,7 @@ import '../../../core/services/sound.dart';
 import '../../../core/services/speech.dart';
 import '../data/touch_repository.dart';
 import '../domain/chart.dart';
+import '../domain/guide_match.dart';
 import '../domain/hit_tester.dart';
 import '../domain/region.dart';
 import '../domain/spatial.dart';
@@ -315,8 +316,19 @@ class TouchSession {
       return;
     }
     // "Where is the sun?" / "Find the sea" is not a tutor question: it starts guide mode.
-    final target = _guideTargetFor(heard);
-    if (target != null) {
+    final match = matchGuideTarget(regions, heard);
+    if (match is GuideAmbiguous) {
+      _thinking = false;
+      _say('Did you mean ${match.first.label} or ${match.second.label}?');
+      return;
+    }
+    if (match is GuideNotFound) {
+      _thinking = false;
+      _say('I could not find that part in this picture.');
+      return;
+    }
+    if (match is GuideFound) {
+      final target = match.region;
       _thinking = false;
       _guide = target;
       haptics.play(HapticPattern.confirm);
@@ -357,27 +369,6 @@ class TouchSession {
       haptics.play(HapticPattern.error);
       _say('Something went wrong. Try again.');
     }
-  }
-
-  /// The part named in a "find / where is" request, or null if this is a normal question.
-  Region? _guideTargetFor(String heard) {
-    final text = ' ${heard.toLowerCase().replaceAll(RegExp(r"[^a-z' ]"), ' ')} ';
-    final wantsGuide =
-        text.contains(' find ') ||
-        text.contains(' where is ') ||
-        text.contains(' where\'s ') ||
-        text.contains(' guide me ');
-    if (!wantsGuide) return null;
-    for (final r in readingOrder(regions)) {
-      if (text.contains(' ${r.label.toLowerCase()} ')) return r;
-    }
-    // Partial names: "where is the lung?" should still match "left lung".
-    for (final r in readingOrder(regions)) {
-      for (final word in r.label.toLowerCase().split(RegExp(r'[^a-z]+'))) {
-        if (word.length >= 3 && text.contains(' $word ')) return r;
-      }
-    }
-    return null;
   }
 
   // ---- speaking ----
