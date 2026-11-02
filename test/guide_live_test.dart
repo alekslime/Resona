@@ -156,7 +156,7 @@ void main() {
       expect(r.log.where('prox').length, 1); // but the tone still tracks
       r.session.handle(const ExploreMove(60, 300)); // sector changes
       expect(r.log.where('say').single, 'say: right and a little up');
-      expect(r.log.where('prox').length, 2);
+      expect(r.log.where('prox').length, 1); // same closeness step: tone held
       r.now += 500;
       r.session.handle(const ExploreMove(65, 305)); // same sector, too soon
       expect(r.log.where('say').length, 1);
@@ -171,6 +171,7 @@ void main() {
       await r.askGuide();
       r.log.events.clear();
       r.session.handle(const ExploreMove(100, 60));
+      r.now += 200; // past the minimum gap between tones
       r.session.handle(const ExploreMove(400, 120));
       final tones = r.log.where('prox').map((e) => double.parse(e.split(':')[1])).toList();
       expect(tones.length, 2);
