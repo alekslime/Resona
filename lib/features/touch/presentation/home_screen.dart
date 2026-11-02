@@ -31,7 +31,9 @@ import '../../../core/ui/enter.dart';
 import '../../../core/ui/focus_fade.dart';
 import '../../../core/ui/system_bars.dart';
 import '../application/touch_controller.dart';
+import '../gestures/gesture_types.dart';
 import 'chat_screen.dart';
+import 'gesture_surface.dart';
 import 'lessons_screen.dart';
 import 'pictures_screen.dart';
 import 'profile_screen.dart';
@@ -64,50 +66,30 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-/// The old focus gesture: one finger scrolls the menu, a two-finger
-/// vertical swipe moves focus. Raw pointer tracking, so it never fights
-/// the scrollable for the gesture the way a drag recognizer would.
-class _TwoFingerSwipe {
-  _TwoFingerSwipe(this.onSwipe);
-
-  final void Function(int delta) onSwipe;
-  final _dy = <int, double>{};
-  bool _fired = false;
-
-  void down(PointerDownEvent e) {
-    _dy[e.pointer] = 0;
-    if (_dy.length < 2) _fired = false;
-  }
-
-  void move(PointerMoveEvent e) {
-    if (!_dy.containsKey(e.pointer) || _fired) return;
-    _dy[e.pointer] = _dy[e.pointer]! + e.delta.dy;
-    if (_dy.length < 2) return;
-    if (_dy.values.where((dy) => dy < -64).length >= 2) {
-      _fired = true;
-      onSwipe(1);
-    } else if (_dy.values.where((dy) => dy > 64).length >= 2) {
-      _fired = true;
-      onSwipe(-1);
-    }
-  }
-
-  void up(PointerEvent e) {
-    _dy.remove(e.pointer);
-    if (_dy.length < 2) _fired = false;
-  }
-}
-
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _focus = MenuFocus(count: _items.length);
-  late final _swipe = _TwoFingerSwipe(_move);
+  final _scroll = ScrollController();
+  late final List<GlobalKey> _keys = [
+    for (var i = 0; i < _items.length; i++) GlobalKey()
+  ];
   Timer? _exitTimer;
 
   @override
   void dispose() {
     _exitTimer?.cancel();
+    _scroll.dispose();
     super.dispose();
   }
+
+  /// A tap the menu lines took themselves: the surface drops its echo.
+  bool _onItem(Offset position) => _keys.any((k) {
+        final box = k.currentContext?.findRenderObject() as RenderBox?;
+        if (box == null || !box.attached) return false;
+        return Rect.fromPoints(
+          box.localToGlobal(Offset.zero),
+          box.localToGlobal(box.size.bottomRight(Offset.zero)),
+        ).contains(position);
+      });
 
   bool get _reduce => MediaQuery.of(context).disableAnimations;
 
@@ -165,9 +147,79 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final moved = delta > 0 ? _focus.next() : _focus.previous();
     if (!moved) return;
     setState(() {});
+    final target = _keys[_focus.index].currentContext;
+    if (target != null) {
+      unawaited(Scrollable.ensureVisible(
+        target,
+        duration: MediaQuery.of(context).disableAnimations
+            ? Duration.zero
+            : const Duration(milliseconds: 250),
+      ));
+    }
     ref.read(speechProvider).speak(_items[_focus.index].label);
-    ref.read(hapticsProvider).play(
-        delta > 0 ? HapticPattern.next : HapticPattern.previous);
+    _buzz(delta > 0 ? HapticPattern.next : HapticPattern.previous);
+  }
+
+  void _buzz(HapticPattern pattern) {
+    ref.read(hapticsProvider).play(pattern);
+    ref.read(cuesProvider).play(pattern);
+  }
+
+  void _repeat() {
+    ref.read(speechProvider).speak(_items[_focus.index].label);
+  }
+
+  /// A hold that started on a menu line: the surface drops holds on
+  /// rows, so the row reports it. A right-edge hold says you are
+  /// already home; anywhere else the hold just swallows the tap.
+  void _rowHold(Offset position) {
+    final width = MediaQuery.of(context).size.width;
+    if (position.dx > width - 64) {
+      _buzz(HapticPattern.back);
+      ref
+          .read(speechProvider)
+          .speak('You are already on the Home screen.');
+    }
+  }
+
+  void _speed(double delta) {
+    final speech = ref.read(speechProvider);
+    speech.rate = (speech.rate + delta).clamp(0.5, 2.0);
+    speech.speak(delta > 0 ? 'Faster.' : 'Slower.');
+  }
+
+  void _onGesture(Gesture gesture) {
+    switch (gesture) {
+      case Swipe(zone: Zone.center, direction: SwipeDirection.up):
+        _move(1);
+      case Swipe(zone: Zone.center, direction: SwipeDirection.down):
+        _move(-1);
+      case Tap(zone: Zone.center):
+        _open(_focus.index);
+      case Tap(zone: Zone.leftEdge):
+        ref.read(speechProvider).stop();
+        _buzz(HapticPattern.confirm);
+      case DoubleTap(zone: Zone.leftEdge):
+        _repeat();
+      case LongPress(zone: Zone.rightEdge):
+        _buzz(HapticPattern.back);
+        ref
+            .read(speechProvider)
+            .speak('You are already on the Home screen.');
+      case ThreeFingerTap():
+        _repeat();
+      case ThreeFingerHold():
+        ref.read(speechProvider).speak(
+            'You are on the Home screen. Currently focused: ${_items[_focus.index].label}.');
+      case HoldSpeedUp():
+        _speed(0.1);
+        _buzz(HapticPattern.speedUp);
+      case HoldSpeedDown():
+        _speed(-0.1);
+        _buzz(HapticPattern.speedDown);
+      default:
+        break;
+    }
   }
 
   @override
@@ -177,11 +229,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Container(
       color: palette.background,
       child: SafeArea(
-        child: Listener(
-          onPointerDown: _swipe.down,
-          onPointerMove: _swipe.move,
-          onPointerUp: _swipe.up,
-          onPointerCancel: _swipe.up,
+        child: GestureSurface(
+          exploreEnabled: false,
+          twoFingerSwipe: true,
+          ignoreChildGestureAt: _onItem,
+          onGesture: _onGesture,
           child: Semantics(
             customSemanticsActions: {
               const CustomSemanticsAction(label: 'Next'): () => _move(1),
@@ -189,6 +241,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
             child: LayoutBuilder(
               builder: (context, constraints) => SingleChildScrollView(
+                controller: _scroll,
                 // Eight lines at this size do not fit every phone: one finger
                 // scrolls when they overflow, and a two-finger swipe moves
                 // focus whether they fit or not.
@@ -203,6 +256,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       children: [
                         for (var i = 0; i < _items.length; i++)
                           _MenuItem(
+                            key: _keys[i],
                             label: _items[i].label,
                             focused: i == _focus.index,
                             index: i,
@@ -210,6 +264,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               setState(() => _focus.jumpTo(i));
                               _open(i);
                             },
+                            onHold: _rowHold,
                           ),
                       ],
                     ),
@@ -226,16 +281,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 class _MenuItem extends ConsumerWidget {
   const _MenuItem({
+    super.key,
     required this.label,
     required this.focused,
     required this.index,
     required this.onTap,
+    required this.onHold,
   });
 
   final String label;
   final bool focused;
   final int index;
   final VoidCallback onTap;
+  final void Function(Offset position) onHold;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -256,6 +314,7 @@ class _MenuItem extends ConsumerWidget {
             child: ExcludeSemantics(
               child: GestureDetector(
                 onTap: onTap,
+                onLongPressStart: (d) => onHold(d.globalPosition),
                 child: Text(
                   label,
                   textAlign: TextAlign.center,

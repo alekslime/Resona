@@ -37,6 +37,11 @@ class PaletteNotifier extends Notifier<ResonantPalette> {
     state = Palettes.all[(i + 1) % Palettes.all.length];
     return state;
   }
+
+  /// Show a theme without stepping, for the settings preview.
+  void set(ResonantPalette palette) {
+    state = palette;
+  }
 }
 
 final paletteProvider = NotifierProvider<PaletteNotifier, ResonantPalette>(PaletteNotifier.new);
@@ -52,6 +57,11 @@ class FontNotifier extends Notifier<AppFont> {
     state = AppFonts.next(state);
     return state;
   }
+
+  /// Show a font without stepping, for the settings preview.
+  void set(AppFont font) {
+    state = font;
+  }
 }
 
 final fontProvider = NotifierProvider<FontNotifier, AppFont>(FontNotifier.new);
@@ -63,6 +73,11 @@ class TextScaleNotifier extends Notifier<double> {
   double next() {
     state = TextScale.nextPreset(state);
     return state;
+  }
+
+  /// Show a size without stepping, for the settings preview.
+  void set(double scale) {
+    state = scale;
   }
 }
 
@@ -76,6 +91,11 @@ class TextSpacingNotifier extends Notifier<TextSpacing> {
   TextSpacing next() {
     state = TextSpacings.next(state);
     return state;
+  }
+
+  /// Show a spacing without stepping, for the settings preview.
+  void set(TextSpacing spacing) {
+    state = spacing;
   }
 }
 

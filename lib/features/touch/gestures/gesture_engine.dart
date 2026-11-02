@@ -238,10 +238,17 @@ class GestureEngine {
     } else if (_maxPointers >= 3) {
       out.add(duration > _c.longPressMs ? const ThreeFingerHold() : const ThreeFingerTap());
     } else if (_moved()) {
-      final swipeable = !twoFingerSwipe || _maxPointers >= 2;
+      // In two-finger mode a vertical swipe needs two fingers; one
+      // finger is left to scroll. Horizontal swipes keep working with
+      // one finger because a vertical list ignores them.
+      final direction = _direction(dx, dy);
+      final horizontal = direction == SwipeDirection.left ||
+          direction == SwipeDirection.right;
+      final swipeable =
+          !twoFingerSwipe || _maxPointers >= 2 || horizontal;
       if (swipeable &&
           (dx.abs() > _c.swipeMinDistance || dy.abs() > _c.swipeMinDistance)) {
-        out.add(Swipe(_zone, _direction(dx, dy)));
+        out.add(Swipe(_zone, direction));
       }
     } else if (duration <= _c.tapMaxDurationMs && _maxPointers == 1) {
       if (_zone == Zone.rightEdge) return; // dead zone: no accidental triggers
