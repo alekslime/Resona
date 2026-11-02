@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:resonant/core/theme/app_fonts.dart';
 import 'package:resonant/core/theme/motion.dart';
 import 'package:resonant/core/theme/palettes.dart';
 import 'package:resonant/core/theme/resonant_theme.dart';
@@ -25,6 +26,16 @@ void main() {
       styleOf(t.labelMedium, 'Metropolis', FontWeight.w500, 20, 26);
     });
 
+
+    test('the chosen font reaches the theme', () {
+      expect(
+          buildTheme(Palettes.standard).textTheme.bodyLarge!.fontFamily,
+          'Metropolis');
+      final t = buildTheme(Palettes.standard, AppFonts.lexend).textTheme;
+      expect(t.displayLarge!.fontFamily, 'Lexend');
+      expect(t.bodyLarge!.fontFamily, 'Lexend');
+      expect(t.headlineMedium!.fontFamily, 'Lexend');
+    });
     test('shared spacing matches the old margins and targets', () {
       expect(screenHorizontalPadding, 40);
       expect(screenTopPadding, 48);

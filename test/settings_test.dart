@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/theme/app_fonts.dart';
 import 'package:resonant/core/theme/text_spacings.dart';
+import 'package:resonant/core/ui/resonant_controls.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/settings_screen.dart';
 
@@ -180,6 +181,24 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(SettingsScreen), findsOneWidget);
       expect(log.events, contains('say: Opening Settings.'));
+    });
+
+    testWidgets('the chosen font reaches the shared button', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      container.read(fontProvider.notifier).next();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: Scaffold(
+              body: ResonantButton(text: 'Go', onPressed: () {}),
+            ),
+          ),
+        ),
+      );
+      final text = tester.widget<Text>(find.text('Go'));
+      expect(text.style!.fontFamily, 'Atkinson');
     });
   });
 }
