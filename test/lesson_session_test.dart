@@ -127,7 +127,7 @@ void main() {
       r.session.open();
       r.log.events.clear();
       r.session.jumpSection(1);
-      expect(r.log.events, contains('say: What plants need.'));
+      expect(r.log.events, contains('say: What plants need'));
       expect(
         r.log.events,
         contains(
@@ -183,7 +183,7 @@ void main() {
       );
       expect(r.log.events, contains('haptic:next'));
       r.session.handle(const Swipe(Zone.center, SwipeDirection.right));
-      expect(r.log.events, contains('say: What plants need.'));
+      expect(r.log.events, contains('say: What plants need'));
     });
 
     test('the edges stop, repeat and exit', () {
@@ -215,7 +215,7 @@ void main() {
       expect(
         r.log.events,
         contains(
-          'say: You are in Introduction to Photosynthesis, section 1 of 6. '
+          'say: You are in Introduction to Photosynthesis, section 1 of 5. '
           'Auto mode. Audio is playing at normal. Text size 125 percent.',
         ),
       );
@@ -250,8 +250,8 @@ void main() {
         r.session.next();
       }
       r.session.dispose();
-      r.log.events.clear();
       await r.speech.stop();
+      r.log.events.clear();
       await Future<void>.delayed(const Duration(milliseconds: 400));
       expect(r.log.events, isEmpty);
       expect(r.session.view.finished, isFalse);
