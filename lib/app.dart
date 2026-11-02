@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'core/nav/resonant_nav.dart';
 import 'core/providers.dart';
 import 'core/theme/resonant_theme.dart';
 import 'features/touch/presentation/home_screen.dart';
+import 'features/touch/presentation/splash_screen.dart';
 
 class ResonantApp extends ConsumerWidget {
   const ResonantApp({super.key});
@@ -33,7 +35,19 @@ class ResonantApp extends ConsumerWidget {
           child: child!,
         );
       },
-      home: const HomeScreen(),
+      home: Builder(
+        builder: (context) => SplashScreen(
+          onFinished: () {
+            Navigator.of(context).pushAndRemoveUntil(
+              resonantRoute(
+                const HomeScreen(),
+                reduce: MediaQuery.disableAnimationsOf(context),
+              ),
+              (_) => false,
+            );
+          },
+        ),
+      ),
     );
   }
 }
