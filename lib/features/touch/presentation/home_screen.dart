@@ -1,7 +1,7 @@
 /// The menu home screen, ported from Resonant's HomeScreen.
 ///
 /// A fixed brand surface — flat theme background, matching the splash it
-/// visually continues from. Six big lines; the focused one draws in ink and
+/// visually continues from. Seven big lines; the focused one draws in ink and
 /// the rest in dim. A tap opens the item; a swipe moves focus and speaks it.
 ///
 /// Our menu holds our features where the old one held its own (Talk first,
@@ -34,6 +34,7 @@ import '../data/touch_repository.dart';
 import '../domain/region.dart';
 import 'live_talk_screen.dart';
 import 'pictures_screen.dart';
+import 'settings_screen.dart';
 import 'study_notes_screen.dart';
 
 /// Opens a live room about [analysis]: the Talk destination.
@@ -56,6 +57,7 @@ const _items = [
   _HomeItem('Lessons', Routes.lessons),
   _HomeItem('Quiz', Routes.quiz),
   _HomeItem('Notes', Routes.notes),
+  _HomeItem('Settings', Routes.settings),
   _HomeItem('Quit', Routes.quit),
 ];
 
@@ -149,6 +151,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         if (mounted) _push(const PicturesScreen());
       case Routes.notes:
         _push(StudyNotesScreen(analysis: _last!.analysis));
+      case Routes.settings:
+        _push(const SettingsScreen());
     }
   }
 
