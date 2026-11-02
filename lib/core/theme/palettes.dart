@@ -142,8 +142,8 @@ abstract final class Palettes {
     dim: Color(0xFFB3B3B3),
     bar: Color(0xFF000000),
     onBar: Color(0xFFFFFFFF),
-    button: Color(0xFFFFFFFF),
-    onButton: Color(0xFF000000),
+    button: Color(0xFF000000),
+    onButton: Color(0xFFFFFFFF),
     correct: Color(0xFFFFFFFF),
     onCorrect: Color(0xFF000000),
     incorrect: Color(0xFF4D4D4D),
@@ -285,7 +285,7 @@ abstract final class Palettes {
     signal: Color(0xFF005FCC),
     cardOutline: Color(0xFF6F6F6E),
     outlineWidth: 2,
-    cardRadius: 2,
+    cardRadius: 28,
   );
 
   static const whiteOnBlue = ResonantPalette(
