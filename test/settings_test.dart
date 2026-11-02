@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:resonant/app.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/theme/app_fonts.dart';
 import 'package:resonant/core/theme/text_spacings.dart';
+import 'package:resonant/core/ui/capped_text.dart';
 import 'package:resonant/core/ui/resonant_controls.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/settings_screen.dart';
@@ -199,6 +201,77 @@ void main() {
       );
       final text = tester.widget<Text>(find.text('Go'));
       expect(text.style!.fontFamily, 'Atkinson');
+    });
+    testWidgets('text size and reduce motion reach the whole app', (tester) async {
+      final log = Log();
+      final container = ProviderContainer(
+        overrides: [
+          speechProvider.overrideWithValue(FakeSpeech(log)),
+          hapticsProvider.overrideWithValue(FakeHaptics(log)),
+          cuesProvider.overrideWithValue(FakeCues(log)),
+          speechInputProvider.overrideWithValue(FakeInput(log)),
+          repositoryProvider.overrideWithValue(FakeRepository(log)),
+        ],
+      );
+      addTearDown(container.dispose);
+      tester.view.physicalSize = const Size(1440, 2560);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      container.read(textScaleProvider.notifier).next();
+      container.read(reduceMotionProvider.notifier).toggle();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const ResonantApp(),
+        ),
+      );
+      await tester.pump();
+      final context = tester.element(find.byType(HomeScreen));
+      expect(
+          MediaQuery.textScalerOf(context), const TextScaler.linear(1.25));
+      expect(MediaQuery.disableAnimationsOf(context), isTrue);
+      final menu = tester.element(find.text('Talk'));
+      expect(
+          MediaQuery.textScalerOf(menu), const TextScaler.linear(1.2));
+    });
+    testWidgets('the menu cap keeps the phone size and lets shrinking through', (tester) async {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      for (var i = 0; i < 4; i++) {
+        container.read(textScaleProvider.notifier).next();
+      }
+      expect(container.read(textScaleProvider), 2.5);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(5.0)),
+            child: MaterialApp(
+              home: CappedText(max: 1.2, child: Text('x')),
+            ),
+          ),
+        ),
+      );
+      final capped = tester.element(find.text('x'));
+      expect(MediaQuery.textScalerOf(capped), const TextScaler.linear(2.4));
+      container.read(textScaleProvider.notifier).next();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MediaQuery(
+            data: MediaQueryData(textScaler: TextScaler.linear(0.75)),
+            child: MaterialApp(
+              home: CappedText(max: 1.2, child: Text('x')),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final small = tester.element(find.text('x'));
+      expect(MediaQuery.textScalerOf(small), const TextScaler.linear(0.75));
     });
   });
 }
