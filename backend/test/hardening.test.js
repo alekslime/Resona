@@ -1,6 +1,12 @@
 import test from "node:test";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 import { createApp } from "../server/index.js";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const sampleImage = "data:image/png;base64," + fs.readFileSync(path.join(here, "..", "sample", "sample.png")).toString("base64");
 
 async function withServer(meta, fn) {
   const server = createApp(meta).listen(0);
@@ -72,5 +78,37 @@ test("by default a forwarded header cannot escape the shared bucket", async () =
       assert.equal((await grade(base, "10.9.9.9")).status, 429);
       assert.equal((await grade(base, "10.9.9.8")).status, 429);
     });
+  });
+});
+
+test("a client that hangs up mid-stream does not break the server", async () => {
+  let release = () => {};
+  const gate = new Promise((r) => { release = r; });
+  const hangingMeta = {
+    sparkModel: "hanging-spark",
+    samModel: "hanging-sam",
+    describeParts: async () => {
+      await gate;
+      return { title: "t", kind: "other", overview: "", parts: [{ label: "x" }] };
+    },
+    segment: async () => ({ records: [] }),
+  };
+  await withServer(hangingMeta, async (base) => {
+    const ac = new AbortController();
+    const req = (async () => {
+      const res = await fetch(base + "/api/analyze-stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: sampleImage }),
+        signal: ac.signal,
+      });
+      await res.text();
+    })();
+    await new Promise((r) => setTimeout(r, 200));
+    ac.abort();
+    await assert.rejects(req);
+    release();
+    await new Promise((r) => setTimeout(r, 300));
+    assert.equal((await fetch(base + "/api/health")).status, 200);
   });
 });
