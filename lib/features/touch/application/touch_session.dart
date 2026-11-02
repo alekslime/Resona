@@ -481,7 +481,7 @@ class TouchSession {
       return;
     }
     final near = nearestRegion(regions, _lastPx, _lastPy);
-    if (near != null) _say('Nothing here. ${near.region.label} is ${near.words}.');
+    if (near != null) _sayEmpty(near);
   }
 
   void _describeTouched() {
@@ -492,8 +492,23 @@ class TouchSession {
       _say('${r.label}. ${r.spoken}${aroundWords(r, regions)}${rank.isEmpty ? '' : ' $rank'}');
     } else {
       final near = nearestRegion(regions, _lastPx, _lastPy);
-      if (near != null) _say('Nothing here. ${near.region.label} is ${near.words}.');
+      if (near != null) _sayEmpty(near);
     }
+  }
+
+  /// Empty-space help: points at the nearest part and, outside a hunt, offers
+  /// the way there ("yes" starts it). Mid-hunt it stays plain so "yes" can
+  /// never hijack the hunt.
+  void _sayEmpty(Nearest near) {
+    if (_guide != null) {
+      _say('Nothing here. ${near.region.label} is ${near.words}.');
+      return;
+    }
+    _offeredNext = near.region;
+    _say(
+      'Nothing here. ${near.region.label} is ${near.words}. '
+      'Say "where is the ${near.region.label}?" to go there.',
+    );
   }
 
   // ---- stepping through parts without dragging ----
