@@ -9,25 +9,32 @@ Transient working doc: delete when the port lands.
 splash -> setup -> onboarding -> home. Back pops, else lands home.
 Transitions: 250 ms fade + 0.96 scale; reduce motion = plain cut.
 
-| Old route | Old screen | Port to | Slice |
-| --- | --- | --- | --- |
-| home | Chat, Lessons, Quiz, Profile, Settings, Quit | home_screen.dart, 8 items (below) | 1 |
-| chat (liveMode) | hero + answer + history + voice commands | new chat_screen.dart on our backend/Meta API | 2 |
-| lessons | built-in library + own materials | lessons_screen.dart (built-ins only) | 3 |
-| lesson_mode/{id} | Manual / Auto picker | lesson_mode_screen.dart | 3 |
-| lesson/{id}?auto | section reader, auto-advance | lesson_screen.dart | 3 |
-| quiz_browser | built-in sets | quiz_browser_screen.dart | 4 |
-| quiz/{id} | browse options, tap selects, swipe right submits | quiz_screen.dart | 4 |
-| quiz_results/{c}/{t} | score + retry-missed offer | quiz_results_screen.dart | 4 |
-| quiz_review | QuizScreen over missed questions | same, data-only route arg | 4 |
-| profile | braille avatar, stats, milestones, How am I doing | profile_screen.dart + stores | 4 |
-| settings (17 rows) | see row map below | extend settings_screen.dart | 5 |
-| debug | connection info + server setup entry | debug_screen.dart (info only) | 5 |
-| name_setup | set your name | name_setup_screen.dart | 5 |
-| server_setup | LiveKit/Whisper URLs | NOT ported (info lives in debug) | - |
-| setup | first-run setup | setup_screen.dart if budget allows | 5b |
-| onboarding | gesture tutorial | onboarding_screen.dart if budget allows | 5b |
-| talkback notice | TalkBack explain + settings link | fold into settings Replay Tutorial | 5 |
+| Old route | Old screen | Port to | Slice | Status |
+| --- | --- | --- | --- | --- |
+| home | Chat, Lessons, Quiz, Profile, Settings, Quit | home_screen.dart, 8 items (below) | 1 | done (surface gestures in 5) |
+| chat (liveMode) | hero + answer + history + voice commands | new chat_screen.dart on our backend/Meta API | 2 | done |
+| lessons | built-in library + own materials | lessons_screen.dart (built-ins only) | 3 | done |
+| lesson_mode/{id} | Manual / Auto picker | lesson_mode_screen.dart | 3 | done |
+| lesson/{id}?auto | section reader, auto-advance | lesson_screen.dart | 3 | done |
+| quiz_browser | built-in sets | quiz_browser_screen.dart | 4 | done |
+| quiz/{id} | browse options, tap selects, swipe right submits | quiz_reader_screen.dart | 4 | done |
+| quiz_results/{c}/{t} | score + retry-missed offer | quiz_results_screen.dart | 4 | done |
+| quiz_review | QuizScreen over missed questions | reviewSet() into the reader | 4 | done |
+| profile | braille avatar, stats, milestones, How am I doing | profile_screen.dart + stores | 4 | done |
+| settings (17 rows) | see row map below | extend settings_screen.dart | 5 | done (9 rows; rest omitted, below) |
+| debug | connection info + server setup entry | — | 5 | omitted: no debug bus in this tree |
+| name_setup | set your name | name_setup_screen.dart | 4c | done |
+| server_setup | LiveKit/Whisper URLs | — | - | omitted: build-time Env instead |
+| setup | first-run setup | — | 5b | omitted: no budget |
+| onboarding | gesture tutorial | — | 5b | omitted: no budget |
+| talkback notice | TalkBack explain + settings link | — | 5 | omitted with the tutorial |
+
+Settings rows omitted: Replay Tutorial (no tutorial), Add material (file
+picker = new package), Voice engine (Android TTS; server-side here), Live
+voice/speed/mic (on-device live mode), Offline voice model + On-phone AI
+(model downloads; server-side here), Debug Mode (no debug bus). The
+Speech rate row is this app's own, driving the same rate the edge drag
+adjusts.
 
 ## Home items (new)
 

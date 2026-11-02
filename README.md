@@ -2,19 +2,19 @@
 
 # Resonant
 
-**A voice tutor for pictures.** Talk, explore, lesson, quiz, notes — one study loop. Spark teaches, SAM places.
+**A voice tutor for pictures.** Chat, explore, lesson, quiz, notes — one study loop. Spark teaches, SAM places.
 
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3%20%2B%20SAM%203.1-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-343%20Flutter%20%2B%2054%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-527%20Flutter%20%2B%2054%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
 </div>
 
 Diagrams, charts and photos are the part of school that screen readers cannot reach. Alt text says
-"a diagram of the water cycle" and stops. Resonant turns the picture into a study loop: **Talk**
+"a diagram of the water cycle" and stops. Resonant turns the picture into a study loop: **Chat**
 asks the tutor anything, **Explore** feels every part by touch, **Lessons** walks through them in
 order, **Quiz** checks they stuck, and **Notes** keeps the whole picture as text for revision.
 **Spark teaches, SAM places** — Muse Spark names the parts, writes the lessons and does the
@@ -36,14 +36,22 @@ Regenerate them with the golden-test generator in `tool/` (see `docs/screenshots
 <div align="center">
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/01-home.png" width="250" alt="Home: a seven-line menu on orange — Talk, Pictures, Lessons, Quiz, Notes, Settings, Quit — with Talk focused"><br><b>Home</b><br><sub>Talk, explore, study — in seven lines</sub></td>
+<td align="center"><img src="docs/screenshots/01-home.png" width="250" alt="Home: an eight-line menu on orange — Chat, Lessons, Quiz, Pictures, Notes, Profile, Settings, Quit — with Chat focused"><br><b>Home</b><br><sub>Chat, explore, study — in eight lines</sub></td>
 <td align="center"><img src="docs/screenshots/02-explore.png" width="250" alt="Explore: the sample landscape with the sun outlined, its spoken caption below, gesture strips on both sides, and buttons for Overview, Previous and Next part, Lesson, Quiz me and Study notes"><br><b>Explore</b><br><sub>The sun, outlined and captioned</sub></td>
 <td align="center"><img src="docs/screenshots/03-study-notes.png" width="250" alt="Study notes: the picture as plain text — title, a Copy notes to share button, overview, the map in words, and every part with its description and clock position"><br><b>Study notes</b><br><sub>The whole picture as readable text</sub></td>
 </tr>
 <tr>
 <td align="center"><img src="docs/screenshots/04-lesson.png" width="250" alt="Lesson mode: the picture above the caption 'Lesson. Welcome to the lesson.' and Previous step, Next step, Repeat and Back to exploring buttons"><br><b>Lesson</b><br><sub>A guided walk through the parts</sub></td>
 <td align="center"><img src="docs/screenshots/05-quiz.png" width="250" alt="Quiz mode: the caption asks 'Quiz. 2 questions. Question 1. Find the sun.' with Answer by voice, Repeat question, Skip and Back to exploring buttons"><br><b>Quiz</b><br><sub>Find it by touch, or answer out loud</sub></td>
-<td align="center"><img src="docs/screenshots/06-theme-low-vision.png" width="250" alt="Home in the Low vision theme: the seven-line menu in yellow on a near-black background"><br><b>Low vision theme</b><br><sub>One of twelve, a tap away</sub></td>
+<td align="center"><img src="docs/screenshots/06-theme-low-vision.png" width="250" alt="Home in the Low vision theme: the eight-line menu in yellow on a near-black background"><br><b>Low vision theme</b><br><sub>One of twelve, a tap away</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/07-chat.png" width="250" alt="Chat: the braille dots above the greeting 'Hi there!' and the ask bar"><br><b>Chat</b><br><sub>The voice tutor, by text or mic</sub></td>
+<td align="center"><img src="docs/screenshots/08-lessons.png" width="250" alt="Lessons: the library of built-in lessons as cards with Continue buttons"><br><b>Lessons</b><br><sub>Six lessons that read themselves</sub></td>
+<td align="center"><img src="docs/screenshots/09-quiz.png" width="250" alt="Quizzes: 'Test what you know.' above one card per quiz set with Start buttons"><br><b>Quizzes</b><br><sub>Four sets, with retry rounds</sub></td>
+</tr>
+<tr>
+<td align="center"><img src="docs/screenshots/10-profile.png" width="250" alt="Profile: the name in braille dots above streak, lesson, quiz and milestone rows"><br><b>Profile</b><br><sub>Streaks, counts, milestones</sub></td>
 </tr>
 </table>
 </div>
@@ -83,6 +91,7 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 | Quiz / check-me: correct–incorrect haptic and sound feedback, score | `lib/features/learn/`, `POST /api/quiz`, `POST /api/grade` |
 | Voice tutor chat (the old LiveKit agent, as hold-to-talk multi-turn chat) | `TouchSession` history + `POST /api/chat` |
 | Live voice: a real conversation you can interrupt (the old PC agent, rewritten) | `agent/agent.py`, `POST /api/livekit-token`, the Talk live screen — *built; first on-phone call still to be made* |
+| Study screens: home menu, chat hero, lesson library and reader, quiz sets with retry rounds, profile with streaks and milestones, settings with option previews | `lib/features/touch/presentation/`, `lib/features/learn/domain/` |
 
 ## Status — what is in the app, and what is not
 
@@ -106,7 +115,10 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 - **Study notes**: the whole picture as plain text (overview, map, every part with its clock-face
   position) for revision with a screen reader — and **Copy notes to share** pastes them anywhere.
 - Screen-reader buttons for every gesture, twelve themes, a show-all-outlines view for sighted helpers,
-  chart value readout with bar ranks, 343 Flutter tests + 54 backend tests, all green.
+  chart value readout with bar ranks, 527 Flutter tests + 54 backend tests, all green.
+- **Study library**: six built-in lessons that read themselves, four quiz sets with retry rounds, a
+  profile with streaks and milestones, and settings that preview each theme, font and size before
+  keeping it — all working offline, with progress kept for the session.
 
 **Built, one step from proven:**
 
@@ -215,10 +227,13 @@ Carried over from the earlier app, plus finger exploration:
 | Right edge | Hold, then drag up or down | Speech faster or slower |
 | Right edge | Hold without dragging | Back |
 | Anywhere | Three-finger tap / hold | Repeat last / hear the overview and the map in words |
+| Menus and lists | Two-finger swipe up/down, tap | Move focus (one finger scrolls), open the focused line |
+| Quiz answers | Swipe to browse, tap to choose, swipe right | Answer; each option buzzes its letter |
+| Settings rows | Hold a theme/font/size row, swipe sideways | Preview each option on screen, tap to keep |
 
 ## Themes
 
-The **Theme** line on Home cycles twelve themes carried over from Resonant: Resonant native,
+Twelve themes carried over from Resonant, switched in Settings (or on your Profile): Resonant native,
 Low vision (enormous contrast), Cataracts (high clarity), Handsfree (screen reader), Monochrome
 (colorblind), Photophobia (low glare), Warm ambiance, Night red, Blue on yellow, Soft cream,
 Paper gray and White on blue. They are not just colour swaps — the high-contrast ones add outlines
@@ -275,7 +290,7 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound, dots, shell, nav, home, gallery, talk, notes, touch, settings, splash, hints, shell (343 tests)
+flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound, dots, shell, nav, home, gallery, talk, notes, touch, settings, splash, hints, shell, chat, lessons, quizzes, profile (527 tests)
 cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (54 tests)
 ```
 
