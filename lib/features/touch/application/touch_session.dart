@@ -445,11 +445,13 @@ class TouchSession {
   /// What finding a part teaches: its spoken line, what sits around it
   /// (both already in the region's own words), then the next part to find.
   String _teachWords(Region r) {
+    final a = _analysis!;
     final next = _nextInOrder(r);
     final offer = next == null
         ? ' That was the last part. Try Quiz me or Lesson below to keep studying.'
         : ' Next is the ${next.label}. Say "where is the ${next.label}?" to keep going.';
-    return '${r.spoken}${aroundWords(r, regions)}$offer';
+    final clock = clockWords(r, a.width.toDouble(), a.height.toDouble());
+    return '${r.spoken} It sits $clock.${aroundWords(r, regions)}$offer';
   }
 
   void _rest() {
