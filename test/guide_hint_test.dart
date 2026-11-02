@@ -91,6 +91,7 @@ void main() {
       expect(r.log.where('say').single, 'say: Say hint if you want help.');
       r.session.handle(const ExploreMove(110, 70)); // said once only
       expect(r.log.where('say').length, 1);
+      r.now += 700; // past the live-cue gap the nudge also arms
       r.session.handle(const ExploreMove(60, 300)); // sector changes: guides again
       expect(r.log.where('say').last, 'say: right and a little up');
     });
