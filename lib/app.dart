@@ -32,7 +32,10 @@ class ResonantApp extends ConsumerWidget {
             // The settings switch joins the system one: either silences motion.
             disableAnimations: media.disableAnimations || reduced,
           ),
-          child: child!,
+          // Transparent: only here so every screen's text and ink wells
+          // have a Material to sit on. Without one, text falls back to a
+          // debug style with yellow double underlines.
+          child: Material(type: MaterialType.transparency, child: child!),
         );
       },
       home: Builder(

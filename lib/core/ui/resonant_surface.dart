@@ -75,6 +75,11 @@ class ResonantSurface extends ConsumerStatefulWidget {
 
   final Widget child;
 
+  /// Freeze the drift at its starting pose. Test-only: the drift follows the
+  /// wall clock, which never repeats, so golden screenshots set this to
+  /// render the same frame on every run. Like Flutter's debugDisableShadows.
+  static bool debugFreezeDrift = false;
+
   @override
   ConsumerState<ResonantSurface> createState() => _ResonantSurfaceState();
 }
@@ -108,17 +113,22 @@ class _ResonantSurfaceState extends ConsumerState<ResonantSurface> {
     paintSystemBars(palette.background);
     final profile = MotionProfiles.forTheme(palette.id);
     final reduce = MediaQuery.of(context).disableAnimations;
-    return Container(
-      decoration: BoxDecoration(gradient: surfaceGradient(palette)),
-      child: CustomPaint(
-        painter: _DriftPainter(
-          elapsedS: _elapsedS,
-          ink: palette.ink,
-          patchAlpha: AmbientMotion.patchAlpha * profile.driftStrength,
-          slowdown: profile.driftSlowdown,
-          reduce: reduce,
-        ),
-        child: widget.child,
+    // Transparent: only here so text and ink have a Material to sit on
+    // when a screen renders outside the app shell, as in tests.
+    return Material(
+      type: MaterialType.transparency,
+      child: Container(
+        decoration: BoxDecoration(gradient: surfaceGradient(palette)),
+        child: CustomPaint(
+          painter: _DriftPainter(
+            elapsedS: _elapsedS,
+            ink: palette.ink,
+            patchAlpha: AmbientMotion.patchAlpha * profile.driftStrength,
+            slowdown: profile.driftSlowdown,
+            reduce: reduce,
+          ),
+          child: widget.child,
+      ),
       ),
     );
   }
@@ -142,7 +152,8 @@ class _DriftPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Read in the paint phase, so the drift redraws without rebuilding.
-    final t = reduce ? 0.0 : elapsedS.value;
+    final t =
+        reduce || ResonantSurface.debugFreezeDrift ? 0.0 : elapsedS.value;
     if (patchAlpha <= 0 || reduce) return;
     final radius =
         math.max(size.width, size.height) * AmbientMotion.radiusShare;
