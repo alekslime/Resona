@@ -9,8 +9,9 @@ import 'gesture_types.dart';
 /// The grammar is Resonant's (ported from the Kotlin GestureManager, written before the
 /// hackathon), with one addition: in the centre of the screen a single finger EXPLORES the picture.
 ///
-///   CENTER      one finger down or dragging = explore. Tap = hear the part. Hold still 0.5 s =
-///               hold-to-talk. Move, then rest = hear its description.
+///   CENTER      one finger down or dragging = explore. Tap = hear the part. Double tap =
+///               trace its outline. Hold still 0.5 s = hold-to-talk. Move, then rest =
+///               hear its description.
 ///   LEFT EDGE   tap = stop/resume talking, double tap = repeat, swipe = previous/next part.
 ///   RIGHT EDGE  hold, then drag up/down = speech speed. Hold without dragging = back. Tap = nothing.
 ///   ANYWHERE    three-finger tap = repeat last, three-finger hold = orientation.
@@ -213,7 +214,20 @@ class GestureEngine {
     } else if (_exploring) {
       _exploring = false;
       out.add(const ExploreEnd());
-      if (!_moved() && duration <= _c.tapMaxDurationMs) out.add(const Tap(Zone.center));
+      if (!_moved() && duration <= _c.tapMaxDurationMs) {
+        // Exploring implies centre: a second quick tap traces instead of
+        // describing again (any tap between breaks the pair, as on the edge).
+        if (_lastTapZone == Zone.center &&
+            s.timeMs - _lastTapUpMs <= _c.doubleTapMaxIntervalMs) {
+          out.add(const DoubleTap(Zone.center));
+          _lastTapUpMs = 0;
+          _lastTapZone = null;
+        } else {
+          out.add(const Tap(Zone.center));
+          _lastTapUpMs = s.timeMs;
+          _lastTapZone = Zone.center;
+        }
+      }
     } else if (_maxPointers >= 3) {
       out.add(duration > _c.longPressMs ? const ThreeFingerHold() : const ThreeFingerTap());
     } else if (_moved()) {
