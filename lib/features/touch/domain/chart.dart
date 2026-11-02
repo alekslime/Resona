@@ -28,8 +28,9 @@ String _valueWords(Region r) {
   return n.unit.isEmpty ? v : '$v ${n.unit}';
 }
 
-/// "5 bars. Tallest: April bar, 80 millimetres. Shortest: January bar, 30 millimetres."
-/// Empty when there are no bars.
+/// "5 bars. Tallest: April bar, 80 millimetres. Shortest: January bar, 30 millimetres.
+/// Average 54 millimetres." Empty when there are no bars; no average when no
+/// bar carries a number.
 String chartSummary(Analysis a) {
   final bars = barsByHeight(a.regions);
   if (bars.isEmpty) return '';
@@ -41,7 +42,25 @@ String chartSummary(Analysis a) {
   final hi = _valueWords(tallest), lo = _valueWords(shortest);
   final hiWords = hi.isEmpty ? tallest.label : '${tallest.label}, $hi';
   final loWords = lo.isEmpty ? shortest.label : '${shortest.label}, $lo';
-  return '${bars.length} bars. Tallest: $hiWords. Shortest: $loWords.';
+  final avg = _averageWords(bars);
+  return '${bars.length} bars. Tallest: $hiWords. Shortest: $loWords.${avg.isEmpty ? '' : ' Average $avg.'}';
+}
+
+/// Mean of the bars that carry numbers: "54 millimetres". Empty when none do.
+String _averageWords(List<Region> bars) {
+  var sum = 0.0, count = 0;
+  var unit = '';
+  for (final b in bars) {
+    final n = chartNumber(b.spoken) ?? chartNumber(b.detail);
+    if (n == null) continue;
+    sum += n.value;
+    count++;
+    if (unit.isEmpty) unit = n.unit;
+  }
+  if (count == 0) return '';
+  final r = (sum / count * 10).round() / 10;
+  final v = r == r.roundToDouble() ? '${r.toInt()}' : '$r';
+  return unit.isEmpty ? v : '$v $unit';
 }
 
 /// What sliding onto a bar says: "April bar, 80 millimetres." The bare
