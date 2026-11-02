@@ -7,7 +7,7 @@
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3%20%2B%20SAM%203.1-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-184%20Flutter%20%2B%2044%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-191%20Flutter%20%2B%2044%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -100,7 +100,7 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
 - **Study notes**: the whole picture as plain text (overview, map, every part with its clock-face
   position) for revision with a screen reader — and **Copy notes to share** pastes them anywhere.
 - Screen-reader buttons for every gesture, twelve themes, a show-all-outlines view for sighted helpers,
-  chart value readout with bar ranks, 184 Flutter tests + 44 backend tests, all green.
+  chart value readout with bar ranks, 191 Flutter tests + 44 backend tests, all green.
 
 **Built, one step from proven:**
 
@@ -269,7 +269,7 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound (184 tests)
+flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound (191 tests)
 cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (44 tests)
 ```
 
