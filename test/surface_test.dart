@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:resonant/app.dart';
+import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/theme/palettes.dart';
 import 'package:resonant/core/ui/resonant_surface.dart';
 import 'package:resonant/core/ui/system_bars.dart';
+
+import 'fakes.dart';
 
 void main() {
   group('ambient drift', () {
@@ -61,6 +65,53 @@ void main() {
         ),
       );
       expect(find.text('hello'), findsOneWidget);
+    });
+  });
+  group('material contract', () {
+    testWidgets('the surface sits its content on a material', (tester) async {
+      await tester.pumpWidget(
+        const ProviderScope(
+          child: MaterialApp(home: ResonantSurface(child: Text('hello'))),
+        ),
+      );
+      expect(
+        find.ancestor(
+          of: find.text('hello'),
+          matching: find.byType(Material),
+        ),
+        findsWidgets,
+      );
+    });
+
+    testWidgets('the app shell sits every screen on a material', (tester) async {
+      final log = Log();
+      final container = ProviderContainer(
+        overrides: [
+          speechProvider.overrideWithValue(FakeSpeech(log)),
+          hapticsProvider.overrideWithValue(FakeHaptics(log)),
+          cuesProvider.overrideWithValue(FakeCues(log)),
+          speechInputProvider.overrideWithValue(FakeInput(log)),
+          repositoryProvider.overrideWithValue(FakeRepository(log)),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const ResonantApp(),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 2900));
+      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(
+        find.ancestor(
+          of: find.text('Talk'),
+          matching: find.byType(Material),
+        ),
+        findsWidgets,
+      );
     });
   });
 }
