@@ -112,3 +112,12 @@ test("a client that hangs up mid-stream does not break the server", async () => 
     assert.equal((await fetch(base + "/api/health")).status, 200);
   });
 });
+
+test("health answers only booleans, never model names", async () => {
+  await withServer(null, async (base) => {
+    const data = await (await fetch(base + "/api/health")).json();
+    assert.deepEqual(Object.keys(data).sort(), ["liveKitConfigured", "metaConfigured", "ok"]);
+    assert.equal(data.ok, true);
+    assert.equal(data.metaConfigured, false);
+  });
+});
