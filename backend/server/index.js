@@ -92,7 +92,7 @@ export function createApp(meta) {
   app.use(express.static(webDir)); // no-op until `flutter build web` has been run
 
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, metaConfigured: Boolean(meta), sparkModel: meta?.sparkModel ?? null, samModel: meta?.samModel ?? null, liveKitConfigured: Boolean(liveKitConfig()) });
+    res.json({ ok: true, metaConfigured: Boolean(meta), liveKitConfigured: Boolean(liveKitConfig()) });
   });
 
   // Instant demo pictures: every *.json in sample/ with a matching *.png beside it.
