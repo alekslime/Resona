@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/features/touch/application/touch_session.dart';
+import 'package:resonant/features/touch/domain/region.dart';
 import 'package:resonant/features/touch/gestures/gesture_types.dart';
 
 import 'fakes.dart';
@@ -87,8 +88,34 @@ void main() {
       expect(r.log.where('say').single, 'say: sun'); // labels resume
     });
 
-    test('double-tap with no touched part says how first', () {
+    test('double-tap on empty space traces the nearest part, with a pointer', () {
       final r = TraceRig();
+      r.session.handle(const ExploreStart(60, 60));
+      r.session.handle(const ExploreEnd());
+      r.log.events.clear();
+      r.session.handle(const DoubleTap(Zone.center));
+      final said = r.log.where('say').single;
+      expect(said.contains('Tracing the cloud.'), isTrue);
+      expect(said.contains('It is to the right from here.'), isTrue);
+      expect(r.lastView!.highlight!.label, 'cloud');
+      r.session.handle(const ExploreEnd()); // tracing was on: confirms
+      expect(r.log.where('haptic:confirm').length, 1);
+    });
+
+    test('double-tap with no parts at all says how first', () {
+      final r = TraceRig();
+      r.session.load(
+        Analysis(
+          width: 800,
+          height: 600,
+          title: 'Empty',
+          kind: 'other',
+          overview: '',
+          regions: const [],
+        ),
+        tinyPicture,
+      );
+      r.log.events.clear();
       r.session.handle(const DoubleTap(Zone.center));
       expect(
         r.log.where('say').single,
