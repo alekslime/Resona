@@ -120,6 +120,22 @@ void main() {
       expect(text.style!.letterSpacing, closeTo(24 * 0.04, 0.001));
       expect(text.style!.height, closeTo(1.35 * 1.15, 0.001));
     });
+
+    testWidgets('reading text follows the chosen font', (tester) async {
+      final container = await notesContainer(Log());
+      container.read(fontProvider.notifier).next();
+      final analysis = loadSample();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: StudyNotesScreen(analysis: analysis),
+          ),
+        ),
+      );
+      final text = tester.widget<Text>(find.text(analysis.overview));
+      expect(text.style!.fontFamily, 'Atkinson');
+    });
   });
 
   group('notes text', () {
