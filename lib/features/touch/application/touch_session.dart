@@ -97,6 +97,8 @@ class TouchSession {
   int _guideWrong = 0;
   bool _guideHelped = false;
   bool _guideNudgeSaid = false;
+  Region? _pendingFirst;
+  Region? _pendingSecond;
   Map<String, List<(double, double)>> _guideCache = const {};
   int? _guideSectorLast;
   int? _guideBucketLast;
@@ -131,6 +133,7 @@ class TouchSession {
     _helpById.clear();
     _currentHelp = GuideHelp.full;
     _guideHelped = _guideNudgeSaid = false;
+    _pendingFirst = _pendingSecond = null;
     _guideCache = buildGuideCache(analysis.regions);
     _guideSectorLast = _guideBucketLast = null;
     _guideSpokenMs = 0;
@@ -477,6 +480,17 @@ class TouchSession {
       _say('I did not catch that.');
       return;
     }
+    // An open "did you mean A or B?" lasts exactly one answer: anything that
+    // does not pick a side dismisses it. Silence keeps it (handled above).
+    if (_pendingFirst != null && _pendingSecond != null) {
+      final pick = _resolvePending(heard);
+      final first = _pendingFirst, second = _pendingSecond;
+      _pendingFirst = _pendingSecond = null;
+      if (pick != null) {
+        _beginGuide(pick == 0 ? first! : second!);
+        return;
+      }
+    }
     // While guiding, "give me a hint" points the way without restarting the hunt.
     if (_guide != null && RegExp(r'\bhints?\b').hasMatch(heard.toLowerCase())) {
       _thinking = false;
@@ -488,40 +502,15 @@ class TouchSession {
     final match = matchGuideTarget(regions, heard);
     if (match is GuideAmbiguous) {
       _thinking = false;
+      _pendingFirst = match.first;
+      _pendingSecond = match.second;
       _say('Did you mean ${match.first.label} or ${match.second.label}?');
       return;
     }
     // GuideNotFound falls through to the tutor: the model may still know
     // the answer even when no part matched by name. The guide keeps running.
     if (match is GuideFound) {
-      final target = match.region;
-      if (target.id == _guide?.id) {
-        // Asking for the same part again is a hint, not a restart.
-        _thinking = false;
-        _guideHint();
-        return;
-      }
-      _thinking = false;
-      _guide = target;
-      _currentHelp = _helpById[target.id] ?? GuideHelp.full;
-      _guideStartedMs = nowMs();
-      _guideWrong = 0;
-      _guideHelped = _guideNudgeSaid = false;
-      _guideGapMs = null; // guide-start speech does not hold the first live cue
-      _lastToneStep = _lastToneMs = null;
-      haptics.play(HapticPattern.confirm);
-      cues.play(HapticPattern.confirm);
-      final a = _analysis!;
-      final (dx, dy, dist) = _guideVector(target);
-      _guideSectorLast = guideSector(dx, dy);
-      _guideBucketLast = guideBucket(dist, a.width.toDouble());
-      _guideSpokenMs = nowMs();
-      _say(
-        'Guide mode. Drag your finger slowly and I will guide you. '
-        'The ${target.label} is ${directionWords(dx, dy)} from where you last touched, '
-        '${distanceWords(dist, a.width.toDouble())}.',
-      );
-      _emit();
+      _beginGuide(match.region);
       return;
     }
     _thinking = true;
@@ -549,6 +538,55 @@ class TouchSession {
       haptics.play(HapticPattern.error);
       _say('Something went wrong. Try again.');
     }
+  }
+
+  /// Starts (or re-points) a guide hunt. Asking for the part already being
+  /// hunted is a hint, not a restart.
+  void _beginGuide(Region target) {
+    if (target.id == _guide?.id) {
+      _thinking = false;
+      _guideHint();
+      return;
+    }
+    _thinking = false;
+    _guide = target;
+    _currentHelp = _helpById[target.id] ?? GuideHelp.full;
+    _guideStartedMs = nowMs();
+    _guideWrong = 0;
+    _guideHelped = _guideNudgeSaid = false;
+    _guideGapMs = null; // guide-start speech does not hold the first live cue
+    _lastToneStep = _lastToneMs = null;
+    haptics.play(HapticPattern.confirm);
+    cues.play(HapticPattern.confirm);
+    final a = _analysis!;
+    final (dx, dy, dist) = _guideVector(target);
+    _guideSectorLast = guideSector(dx, dy);
+    _guideBucketLast = guideBucket(dist, a.width.toDouble());
+    _guideSpokenMs = nowMs();
+    _say(
+      'Guide mode. Drag your finger slowly and I will guide you. '
+      'The ${target.label} is ${directionWords(dx, dy)} from where you last touched, '
+      '${distanceWords(dist, a.width.toDouble())}.',
+    );
+    _emit();
+  }
+
+  /// Which side of the open "did you mean" the student picked: 0, 1, or null
+  /// when the answer picks neither (both names at once counts as neither).
+  int? _resolvePending(String heard) {
+    final lower = heard.toLowerCase();
+    if (RegExp(r'\bfirst\b').hasMatch(lower)) return 0;
+    if (RegExp(r'\bsecond\b').hasMatch(lower)) return 1;
+    final text = ' ${lower.replaceAll(RegExp(r'[^a-z ]'), ' ')} ';
+    if (text.contains(' option a ') || text.trim() == 'a') return 0;
+    if (text.contains(' option b ') || text.trim() == 'b') return 1;
+    final first = ' ${_pendingFirst!.label.toLowerCase()} ';
+    final second = ' ${_pendingSecond!.label.toLowerCase()} ';
+    final hasFirst = text.contains(first);
+    final hasSecond = text.contains(second);
+    if (hasFirst && !hasSecond) return 0;
+    if (hasSecond && !hasFirst) return 1;
+    return null;
   }
 
   // ---- speaking ----
