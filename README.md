@@ -57,7 +57,7 @@ Dart**:
 | --- | --- |
 | The name, the braille R logo and the dot animation geometry | `lib/core/ui/resonant_dots.dart`, `assets/brand/` |
 | Colour palettes, shapes and sizes (all twelve of its themes) | `lib/core/theme/` |
-| Fonts (Metropolis, Atkinson Hyperlegible) | `assets/fonts/`, see `NOTICE.md` |
+| Fonts (Metropolis, Atkinson Hyperlegible Next) | `assets/fonts/`, see `NOTICE.md` |
 | Gesture grammar: zones, timings, swipe inversion, hold-to-adjust-speed, three-finger gestures | `lib/features/touch/gestures/` |
 | The haptic vocabulary and its matching sound cues, and the stereo-panning rule | `lib/core/services/haptics.dart`, `sound.dart` |
 
@@ -295,8 +295,8 @@ Resonant stands on a lot of generous work. Each of these keeps its own license.
 | [Kokoro](https://github.com/hexgrad/kokoro) via [kokoro-onnx](https://github.com/thewh1teagle/kokoro-onnx) | The tutor's spoken voice, on your own PC (Piper is the fallback) | Apache-2.0 (model), MIT |
 | [Piper](https://github.com/rhasspy/piper) | Fallback spoken voice, on your own PC | MIT |
 | Flutter, Riverpod | The app itself, Android / iOS / web | BSD-3-Clause, MIT |
-| [Atkinson Hyperlegible](https://www.brailleinstitute.org/freefont/) | Body typeface, made for low vision | SIL OFL 1.1 |
-| Metropolis | Display typeface and the wordmark | SIL OFL 1.1 |
+| [Atkinson Hyperlegible Next](https://github.com/googlefonts/atkinson-hyperlegible-next) | Body typeface, made for low vision | SIL OFL 1.1 |
+| Metropolis | Display typeface and the wordmark | The Unlicense (public domain) |
 
 The initial project scaffold was written with help from Claude (Anthropic) as a coding assistant.
 
