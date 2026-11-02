@@ -18,12 +18,20 @@ class GestureSurface extends StatefulWidget {
     required this.child,
     this.exploreEnabled = true,
     this.twoFingerSwipe = false,
+    this.ignoreChildGestureAt,
   });
 
   final void Function(Gesture gesture) onGesture;
   final Widget child;
   final bool exploreEnabled;
   final bool twoFingerSwipe;
+
+  /// Taps and holds a tappable child already took, by the touch's global
+  /// down position: the engine still sees the raw touch, so the screen
+  /// drops the echo and the child handles it alone. Ported from Resonant's
+  /// ignoreChildTaps (there the child consumes the lift-off). Swipes and
+  /// three-finger gestures always pass through.
+  final bool Function(Offset position)? ignoreChildGestureAt;
 
   @override
   State<GestureSurface> createState() => _GestureSurfaceState();
@@ -33,16 +41,27 @@ class _GestureSurfaceState extends State<GestureSurface> {
   final _engine = GestureEngine();
   final _clock = Stopwatch()..start();
   Timer? _timer;
+  Offset? _downPos;
 
   int get _now => _clock.elapsedMilliseconds;
 
   void _emit(Iterable<Gesture> gestures) {
     for (final g in gestures) {
+      final tapLike = g is Tap ||
+          g is DoubleTap ||
+          g is LongPress ||
+          g is LongPressEnd;
+      if (tapLike &&
+          _downPos != null &&
+          (widget.ignoreChildGestureAt?.call(_downPos!) ?? false)) {
+        continue;
+      }
       widget.onGesture(g);
     }
   }
 
   void _feed(PointerEvent e, PointerPhase phase) {
+    if (phase == PointerPhase.down) _downPos = e.position;
     _emit(
       _engine.onPointer(
         PointerSample(e.pointer, phase, e.localPosition.dx, e.localPosition.dy, _now),
