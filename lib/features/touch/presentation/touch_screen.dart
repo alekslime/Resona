@@ -176,7 +176,7 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                     spell: false,
                     size: 56,
                     color: palette.ink,
-                    level: 0.6,
+                    level: () => 0.6,
                   ),
                   const SizedBox(width: 12),
                   Expanded(
