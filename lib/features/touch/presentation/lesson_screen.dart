@@ -47,8 +47,9 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
       haptics: ref.read(hapticsProvider),
       cues: ref.read(cuesProvider),
       autoAdvance: widget.autoAdvance,
-      // Slice 4 wires the finish into the activity store.
-      onLessonFinished: null,
+      onLessonFinished: (id) {
+        ref.read(activityProvider.notifier).lessonFinished(id);
+      },
       onExit: () {
         if (mounted) Navigator.of(context).pop();
       },

@@ -199,3 +199,37 @@ class ActivityNotifier extends Notifier<ActivityLog> {
 
 final activityProvider =
     NotifierProvider<ActivityNotifier, ActivityLog>(ActivityNotifier.new);
+
+/// The first name used in the Chat greeting ("Hi Ana!").
+/// Null or blank = the generic greeting. Session-only for now.
+class UserNameNotifier extends Notifier<String?> {
+  @override
+  String? build() => null;
+
+  void set(String? name) {
+    final trimmed = (name ?? '').trim();
+    state = trimmed.isEmpty ? null : trimmed;
+  }
+
+  void clear() => state = null;
+}
+
+final userNameProvider =
+    NotifierProvider<UserNameNotifier, String?>(UserNameNotifier.new);
+
+/// Milestones already celebrated, so each is cheered once.
+/// Session-only for now.
+class MilestoneSeenNotifier extends Notifier<Set<String>> {
+  @override
+  Set<String> build() => const {};
+
+  void markSeen(Iterable<String> ids) {
+    state = {...state, ...ids};
+  }
+
+  void clear() => state = const {};
+}
+
+final milestoneSeenProvider =
+    NotifierProvider<MilestoneSeenNotifier, Set<String>>(
+        MilestoneSeenNotifier.new);

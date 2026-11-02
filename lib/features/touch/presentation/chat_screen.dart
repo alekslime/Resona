@@ -123,6 +123,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           view: view,
                           fontFamily: font.family,
                           ink: palette.ink,
+                          name: ref.watch(userNameProvider),
                         )
                       : _Answer(
                           view: view,
@@ -148,11 +149,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 /// prompt slot only shows Listening… / Thinking…, and is reserved so the
 /// layout doesn't jump.
 class _Hero extends StatelessWidget {
-  const _Hero({required this.view, required this.fontFamily, required this.ink});
+  const _Hero(
+      {required this.view,
+      required this.fontFamily,
+      required this.ink,
+      required this.name});
 
   final ChatView view;
   final String fontFamily;
   final Color ink;
+  final String? name;
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +180,7 @@ class _Hero extends StatelessWidget {
         EnterStagger(
           index: 1,
           child: Text(
-            'Hi there!',
+            'Hi ${name ?? 'there'}!',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: fontFamily,
