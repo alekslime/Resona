@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/theme/palettes.dart';
 import 'package:resonant/core/ui/resonant_surface.dart';
@@ -55,8 +56,8 @@ void main() {
   group('surface widget', () {
     testWidgets('renders content on the theme background', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: ResonantSurface(child: Text('hello')),
+        const ProviderScope(
+          child: MaterialApp(home: ResonantSurface(child: Text('hello'))),
         ),
       );
       expect(find.text('hello'), findsOneWidget);
