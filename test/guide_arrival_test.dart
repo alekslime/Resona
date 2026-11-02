@@ -66,6 +66,7 @@ void main() {
       expect(said.startsWith('say: You found the sea.'), isTrue);
       expect(said.contains('The sea, along the bottom.'), isTrue);
       expect(said.toLowerCase().contains('last part'), isTrue);
+      expect(said.contains('Try Quiz me or Lesson below to keep studying.'), isTrue);
     });
 
     test('arrival still celebrates with the correct cue (regression)', () async {
