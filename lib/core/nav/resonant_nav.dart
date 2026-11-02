@@ -5,6 +5,8 @@
 /// window behind never shows through. Reduce motion gets a plain cut.
 library;
 
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 abstract final class Routes {
@@ -52,13 +54,14 @@ PageRouteBuilder<T> resonantRoute<T>(Widget child, {required bool reduce}) {
 Future<void> goBack(BuildContext context, {required Widget home}) async {
   if (!await Navigator.of(context).maybePop()) {
     if (context.mounted) {
-      await Navigator.of(context).pushAndRemoveUntil(
+      // Not awaited: a pushed route's future only completes when it pops.
+      unawaited(Navigator.of(context).pushAndRemoveUntil(
         resonantRoute(
           home,
           reduce: MediaQuery.of(context).disableAnimations,
         ),
         (_) => false,
-      );
+      ));
     }
   }
 }
