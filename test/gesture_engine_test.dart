@@ -47,6 +47,36 @@ void main() {
       expect((g.last as Tap).zone, Zone.center);
     });
 
+    test('two quick centre taps end in a centre double tap', () {
+      final e = engine();
+      final g = run(e, [
+        down(1, 200, 300, 0),
+        up(1, 200, 300, 100),
+        down(1, 200, 300, 200),
+        up(1, 200, 300, 300),
+      ]);
+      expect(names(g), [
+        'ExploreStart',
+        'ExploreEnd',
+        'Tap',
+        'ExploreStart',
+        'ExploreEnd',
+        'DoubleTap',
+      ]);
+      expect((g.last as DoubleTap).zone, Zone.center);
+    });
+
+    test('two centre taps far apart stay two taps', () {
+      final e = engine();
+      final g = run(e, [
+        down(1, 200, 300, 0),
+        up(1, 200, 300, 100),
+        down(1, 200, 300, 900),
+        up(1, 200, 300, 1000),
+      ]);
+      expect(names(g), ['ExploreStart', 'ExploreEnd', 'Tap', 'ExploreStart', 'ExploreEnd', 'Tap']);
+    });
+
     test('resting still for 0.5 s is hold-to-talk, and release ends it', () {
       final e = engine();
       final g = run(e, [down(1, 200, 300, 0), 250, 500, up(1, 200, 300, 900)]);
