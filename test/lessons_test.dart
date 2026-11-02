@@ -56,16 +56,38 @@ Future<void> twoFingerSwipe(
   await second.up();
 }
 
-Future<void> threeFingerHold(WidgetTester tester, Finder finder) async {
-  final center = tester.getCenter(finder);
+/// Real-time hold: the surface clock is a stopwatch, which fake async
+/// leaves alone, so fake pumps by themselves never reach the 500 ms hold
+/// line. Alternate real waiting with pumps so the surface timer ticks.
+Future<void> holdFor(WidgetTester tester, Duration duration) async {
+  var left = duration;
+  while (left > Duration.zero) {
+    final step = left < const Duration(milliseconds: 50)
+        ? left
+        : const Duration(milliseconds: 50);
+    await tester.runAsync(() => Future<void>.delayed(step));
+    await tester.pump(step);
+    left -= step;
+  }
+}
+
+Future<void> holdThree(WidgetTester tester, Offset at) async {
   final fingers = <TestGesture>[];
   for (var i = 0; i < 3; i++) {
-    fingers.add(await tester.startGesture(center + Offset(24.0 * i, 0)));
+    fingers.add(await tester.startGesture(at + Offset(24.0 * i, 0)));
   }
-  await tester.pump(const Duration(milliseconds: 600));
+  await holdFor(tester, const Duration(milliseconds: 650));
   for (final f in fingers) {
     await f.up();
   }
+}
+
+/// The midpoint between two stacked card titles: inside the gap, on no
+/// card. A tap there reaches the surface, which opens the focused item.
+Offset cardGap(WidgetTester tester, String upper, String lower) {
+  final bottom = tester.getBottomLeft(find.text(upper)).dy;
+  final top = tester.getTopLeft(find.text(lower)).dy;
+  return Offset(400, (bottom + top) / 2);
 }
 
 void main() {
@@ -129,29 +151,14 @@ void main() {
       expect(log.events, contains('say: Opening Cells and their parts.'));
     });
 
-    testWidgets('a tap between cards opens the focused lesson',
-        (tester) async {
-      final log = Log();
-      final container = await lessonsContainer(log);
-      await tester.pumpWidget(harnessedLessons(container));
-      await tester.pump();
-      // 20 px above the second card's title: inside the gap, on no card.
-      final second = tester.getTopLeft(find.text('Cells and their parts'));
-      await tester.tapAt(Offset(400, second.dy - 20));
-      await settle(tester);
-      expect(find.byType(LessonModeScreen), findsOneWidget);
-      expect(
-        log.events,
-        contains('say: Opening Introduction to Photosynthesis.'),
-      );
-    });
-
     testWidgets('a right-edge hold goes back home', (tester) async {
       final log = Log();
       final container = await lessonsContainer(log);
       await tester.pumpWidget(harnessedLessons(container));
       await tester.pump();
-      await tester.longPressAt(const Offset(790, 300));
+      final hold = await tester.startGesture(const Offset(790, 300));
+      await holdFor(tester, const Duration(milliseconds: 650));
+      await hold.up();
       await settle(tester);
       expect(log.events, contains('say: Back to Home.'));
       expect(find.byType(HomeScreen), findsOneWidget);
@@ -162,8 +169,12 @@ void main() {
       final container = await lessonsContainer(log);
       await tester.pumpWidget(harnessedLessons(container));
       await tester.pump();
-      await threeFingerHold(
-          tester, find.text('Introduction to Photosynthesis'));
+      // Held on a card: the card's own hold also fires (it says the
+      // lesson is built in), but the list status comes through too.
+      await holdThree(
+        tester,
+        tester.getCenter(find.text('Introduction to Photosynthesis')),
+      );
       await settle(tester);
       expect(
         log.events,
@@ -238,6 +249,47 @@ void main() {
       );
     });
 
+    testWidgets('a tap between the cards picks the focused mode',
+        (tester) async {
+      final log = Log();
+      final container = await lessonsContainer(log);
+      await tester.pumpWidget(harnessedLessons(container));
+      await tester.pump();
+      await tester.tap(find.text('Introduction to Photosynthesis'));
+      await settle(tester);
+      await tester.fling(find.text('MANUAL'), const Offset(0, 300), 800);
+      await settle(tester);
+      // Between the cards, on neither: the surface picks AUTO, focused.
+      await tester.tapAt(cardGap(tester, 'MANUAL', 'AUTO'));
+      await settle(tester);
+      expect(find.byType(LessonScreen), findsOneWidget);
+      expect(
+        log.events,
+        contains('say: Auto. The lesson will play on its own.'),
+      );
+    });
+
+    testWidgets('three fingers describe the choice', (tester) async {
+      final log = Log();
+      final container = await lessonsContainer(log);
+      await tester.pumpWidget(harnessedLessons(container));
+      await tester.pump();
+      await tester.tap(find.text('Introduction to Photosynthesis'));
+      await settle(tester);
+      log.events.clear();
+      await holdThree(
+        tester,
+        tester.getCenter(find.text('MANUAL')),
+      );
+      await settle(tester);
+      expect(
+        log.events,
+        contains(
+          'say: Choose Manual or Auto. Currently focused: manual.',
+        ),
+      );
+    });
+
     testWidgets('backing out of the picker returns to the list',
         (tester) async {
       final log = Log();
@@ -287,7 +339,8 @@ void main() {
     testWidgets('a sideways swipe jumps sections', (tester) async {
       final log = await openReader(tester, mode: 'AUTO');
       log.events.clear();
-      await tester.fling(find.byType(LessonScreen), const Offset(300, 0), 800);
+      await twoFingerSwipe(
+          tester, find.byType(LessonScreen), const Offset(300, 0));
       await settle(tester);
       expect(log.events, contains('say: What plants need'));
       expect(
@@ -326,13 +379,13 @@ void main() {
       await settle(tester);
       // Last section, then its last two sentences.
       for (var i = 0; i < 4; i++) {
-        await tester.fling(
-            find.byType(LessonScreen), const Offset(300, 0), 800);
+        await twoFingerSwipe(
+            tester, find.byType(LessonScreen), const Offset(300, 0));
         await settle(tester);
       }
       for (var i = 0; i < 2; i++) {
-        await tester.fling(
-            find.byType(LessonScreen), const Offset(0, 300), 800);
+        await twoFingerSwipe(
+            tester, find.byType(LessonScreen), const Offset(0, 300));
         await settle(tester);
       }
       await (container.read(speechProvider) as FakeSpeech).stop();
@@ -344,7 +397,7 @@ void main() {
     testWidgets('three fingers describe the place', (tester) async {
       final log = await openReader(tester, mode: 'AUTO');
       log.events.clear();
-      await threeFingerHold(tester, find.byType(LessonScreen));
+      await holdThree(tester, const Offset(400, 300));
       await settle(tester);
       expect(
         log.events.firstWhere((e) => e.startsWith('say: You are in')),
