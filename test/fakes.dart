@@ -69,6 +69,12 @@ class FakeCues implements Cues {
     if (!enabled) return;
     log.events.add('prox:${closeness.toStringAsFixed(2)}');
   }
+
+  @override
+  Future<void> splash() async {
+    if (!enabled) return;
+    log.events.add('splash');
+  }
 }
 
 class FakeInput implements SpeechInput {

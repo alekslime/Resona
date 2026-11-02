@@ -109,4 +109,13 @@ void main() {
     await cues.position(x01: 0, y01: 0);
     await cues.proximity(closeness: 1);
   });
+  test('the splash track plays through the cue player', () async {
+    final log = Log();
+    final cues = FakeCues(log);
+    await cues.splash();
+    expect(log.events, ['splash']);
+    cues.enabled = false;
+    await cues.splash();
+    expect(log.events, ['splash']);
+  });
 }
