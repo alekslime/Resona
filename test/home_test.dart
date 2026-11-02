@@ -51,6 +51,21 @@ Future<void> flushNav(WidgetTester tester) async {
   await tester.pump(const Duration(milliseconds: 500));
 }
 
+/// A two-finger vertical swipe, the old focus gesture: one finger scrolls.
+Future<void> twoFingerSwipe(
+  WidgetTester tester,
+  Finder finder,
+  Offset delta,
+) async {
+  final center = tester.getCenter(finder);
+  final first = await tester.startGesture(center);
+  final second = await tester.startGesture(center + const Offset(24, 0));
+  await first.moveBy(delta);
+  await second.moveBy(delta);
+  await first.up();
+  await second.up();
+}
+
 void main() {
   group('home menu', () {
     testWidgets('lists the old menu plus pictures and notes',
@@ -179,6 +194,7 @@ void main() {
       addTearDown(() => tester.binding.defaultBinaryMessenger
           .setMockMethodCallHandler(SystemChannels.platform, null));
       await tester.pumpWidget(harnessedHome(container));
+      await tester.scrollUntilVisible(find.text('Quit'), 200);
       await tester.tap(find.text('Quit'));
       await tester.pump(const Duration(milliseconds: 200));
       expect(log.events, contains('say: Exiting Resonant.'));
@@ -186,19 +202,21 @@ void main() {
       expect(calls, contains('SystemNavigator.pop'));
     });
 
-    testWidgets('a swipe moves focus and speaks the item', (tester) async {
+    testWidgets('a two-finger swipe moves focus and speaks the item',
+        (tester) async {
       final log = Log();
       final container = await riggedContainer(log);
       final semantics = tester.ensureSemantics();
       try {
         await tester.pumpWidget(harnessedHome(container));
         await tester.pumpAndSettle();
-        await tester.fling(find.text('Chat'), const Offset(0, -300), 800);
+        await twoFingerSwipe(tester, find.text('Chat'), const Offset(0, -300));
         await flushNav(tester);
         expect(find.bySemanticsLabel('Lessons, focused'), findsOneWidget);
         expect(log.events, contains('say: Lessons'));
         expect(log.events, contains('haptic:next'));
-        await tester.fling(find.text('Lessons'), const Offset(0, 300), 800);
+        await twoFingerSwipe(
+            tester, find.text('Lessons'), const Offset(0, 300));
         await flushNav(tester);
         expect(find.bySemanticsLabel('Chat, focused'), findsOneWidget);
         expect(log.events, contains('haptic:previous'));
@@ -207,13 +225,25 @@ void main() {
       }
     });
 
+    testWidgets('one finger scrolls without moving focus', (tester) async {
+      final log = Log();
+      final container = await riggedContainer(log);
+      await tester.pumpWidget(harnessedHome(container));
+      await tester.pumpAndSettle();
+      log.events.clear();
+      await tester.fling(find.text('Chat'), const Offset(0, -300), 800);
+      await flushNav(tester);
+      expect(log.events.where((e) => e.startsWith('say:')), isEmpty);
+      expect(log.events.where((e) => e.startsWith('haptic:')), isEmpty);
+    });
+
     testWidgets('a swipe past the end does nothing', (tester) async {
       final log = Log();
       final container = await riggedContainer(log);
       await tester.pumpWidget(harnessedHome(container));
       await tester.pumpAndSettle();
       log.events.clear();
-      await tester.fling(find.text('Chat'), const Offset(0, 300), 800);
+      await twoFingerSwipe(tester, find.text('Chat'), const Offset(0, 300));
       await flushNav(tester);
       expect(log.events.where((e) => e.startsWith('say:')), isEmpty);
       expect(log.events.where((e) => e.startsWith('haptic:')), isEmpty);
