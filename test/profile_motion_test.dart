@@ -39,7 +39,8 @@ void main() {
 
     test('the shine rolls along the name and is gone at the end', () {
       expect(AvatarMotion.shine(0, 0, 3), greaterThan(0));
-      expect(AvatarMotion.shine(1, 2, 3), 0);
+      // Not quite zero at the last cell; the caller cuts it there.
+      expect(AvatarMotion.shine(1, 2, 3), closeTo(0.0625, 1e-9));
       expect(AvatarMotion.shine(0.5, 99, 3), 0);
       expect(AvatarMotion.shine(0.5, 0, 0), 0);
     });

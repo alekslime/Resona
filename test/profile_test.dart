@@ -189,13 +189,14 @@ void main() {
       container.read(quizBookProvider.notifier).markCompleted('quiz_cells', 6, 6);
       container.read(activityProvider.notifier).lessonFinished('lesson_cells');
       await tester.pumpWidget(harnessedProfile(container, const ProfileScreen()));
+      await settle(tester);
+      expect(find.text('Milestones: 2 of 14, 2 new'), findsOneWidget);
       await settleCelebration(tester);
       expect(log.events, contains('haptic:correct'));
       expect(
         log.events,
         contains('say: New milestones: First lesson finished and First quiz finished.'),
       );
-      expect(find.text('Milestones: 2 of 14, 2 new'), findsOneWidget);
 
       // Told once: reopening celebrates nothing.
       log.events.clear();
