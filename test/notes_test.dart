@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -79,6 +78,7 @@ void main() {
     });
 
     testWidgets('copy shares the whole text', (tester) async {
+      mockClipboard();
       final log = Log();
       final container = await notesContainer(log);
       final analysis = loadSample();
@@ -90,12 +90,11 @@ void main() {
           ),
         ),
       );
-      await tester.scrollUntilVisible(
-        find.text('Copy notes to share'),
-        200,
-      );
+      await tester.ensureVisible(find.text('Copy notes to share'));
+      await tester.pump(const Duration(milliseconds: 500));
       await tester.tap(find.text('Copy notes to share'));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
       expect(
         log.events,
         contains('say: Notes copied. Paste them anywhere to share.'),

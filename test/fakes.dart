@@ -1,7 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/services/haptics.dart';
 import 'package:resonant/core/services/sound.dart';
 import 'package:resonant/core/services/speech.dart';
@@ -214,3 +215,23 @@ Analysis loadChart() {
 }
 
 final tinyPicture = PictureBytes(Uint8List.fromList([1, 2, 3]), 'image/png');
+
+/// An in-memory clipboard for widget tests: the test binding leaves
+/// Clipboard.setData hanging with no reply, so any test that taps a copy
+/// button must install this first. Returns the stored text.
+String? Function() mockClipboard() {
+  String? stored;
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(SystemChannels.platform,
+          (MethodCall call) async {
+    if (call.method == 'Clipboard.setData') {
+      stored = (call.arguments as Map)['text'] as String?;
+      return null;
+    }
+    if (call.method == 'Clipboard.getData') {
+      return <String, dynamic>{'text': stored};
+    }
+    return null;
+  });
+  return () => stored;
+}
