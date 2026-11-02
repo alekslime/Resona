@@ -7,6 +7,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { imageSize } from "image-size";
 import { createMeta, mapLimit } from "./meta.js";
+import { createLimiter } from "./limit.js";
 import { buildRegions, conceptVariants, dedupeRegions } from "./regions.js";
 import { orientedSize } from "./orient.js";
 import { cleanRegions } from "./learn.js";
@@ -38,22 +39,6 @@ function parseImage(dataUrl) {
 
 function httpError(status, message) {
   return Object.assign(new Error(message), { status, expose: true });
-}
-
-// Tiny in-memory limiter so a public demo can't burn through the API credits.
-function limiter(max, windowMs) {
-  const hits = new Map();
-  return (req, res, next) => {
-    const now = Date.now();
-    const key = req.ip;
-    const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-    if (recent.length >= max) {
-      return res.status(429).json({ error: "Too many requests. Wait a minute and try again." });
-    }
-    recent.push(now);
-    hits.set(key, recent);
-    next();
-  };
 }
 
 export function createApp(meta) {
@@ -176,7 +161,7 @@ export function createApp(meta) {
     };
   };
 
-  app.post("/api/analyze", limiter(6, 60_000), async (req, res, next) => {
+  app.post("/api/analyze", createLimiter({ max: 6, windowMs: 60_000 }), async (req, res, next) => {
     try {
       if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env, or try the sample picture.");
       const { width, height } = parseImage(req.body?.image);
@@ -195,7 +180,7 @@ export function createApp(meta) {
   // per outlined part ({done, total, label}), then "done" with the full payload
   // or "error" with {error}. The phone speaks the progress, so a 30-second
   // analysis feels alive instead of frozen.
-  app.post("/api/analyze-stream", limiter(6, 60_000), async (req, res, next) => {
+  app.post("/api/analyze-stream", createLimiter({ max: 6, windowMs: 60_000 }), async (req, res, next) => {
     try {
       if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env, or try the sample picture.");
       const { width, height } = parseImage(req.body?.image);
@@ -222,7 +207,7 @@ export function createApp(meta) {
     }
   });
 
-  app.post("/api/ask", limiter(20, 60_000), async (req, res, next) => {
+  app.post("/api/ask", createLimiter({ max: 20, windowMs: 60_000 }), async (req, res, next) => {
     try {
       if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env.");
       parseImage(req.body?.image);
@@ -238,7 +223,7 @@ export function createApp(meta) {
     }
   });
 
-  app.post("/api/lesson", limiter(10, 60_000), async (req, res, next) => {
+  app.post("/api/lesson", createLimiter({ max: 10, windowMs: 60_000 }), async (req, res, next) => {
     try {
       requireMeta();
       res.json(await meta.lesson(learnCtx(req.body)));
@@ -247,7 +232,7 @@ export function createApp(meta) {
     }
   });
 
-  app.post("/api/quiz", limiter(10, 60_000), async (req, res, next) => {
+  app.post("/api/quiz", createLimiter({ max: 10, windowMs: 60_000 }), async (req, res, next) => {
     try {
       requireMeta();
       res.json(await meta.quiz(learnCtx(req.body)));
@@ -256,7 +241,7 @@ export function createApp(meta) {
     }
   });
 
-  app.post("/api/grade", limiter(20, 60_000), async (req, res, next) => {
+  app.post("/api/grade", createLimiter({ max: 20, windowMs: 60_000 }), async (req, res, next) => {
     try {
       requireMeta();
       const question = String(req.body?.question ?? "").trim().slice(0, 500);
@@ -269,7 +254,7 @@ export function createApp(meta) {
     }
   });
 
-  app.post("/api/chat", limiter(20, 60_000), async (req, res, next) => {
+  app.post("/api/chat", createLimiter({ max: 20, windowMs: 60_000 }), async (req, res, next) => {
     try {
       requireMeta();
       parseImage(req.body?.image);
@@ -290,7 +275,7 @@ export function createApp(meta) {
     }
   });
 
-  app.post("/api/livekit-token", limiter(10, 60_000), async (req, res, next) => {
+  app.post("/api/livekit-token", createLimiter({ max: 10, windowMs: 60_000 }), async (req, res, next) => {
     try {
       const cfg = liveKitConfig();
       if (!cfg) {
