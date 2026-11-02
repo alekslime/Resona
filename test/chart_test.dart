@@ -40,8 +40,37 @@ void main() {
     test('summary names the tallest and shortest with their values', () {
       expect(
         chartSummary(loadChart()),
-        '5 bars. Tallest: April bar, 80 millimetres. Shortest: January bar, 30 millimetres.',
+        '5 bars. Tallest: April bar, 80 millimetres. Shortest: January bar, 30 millimetres. '
+        'Average 54 millimetres.',
       );
+    });
+
+    test('the average covers only the bars that carry numbers', () {
+      final may = loadChart().regions.firstWhere((r) => r.label == 'May bar');
+      final a = Analysis(
+        width: 800,
+        height: 600,
+        title: 't',
+        kind: 'chart',
+        overview: '',
+        regions: [loadSample().regions.first, may],
+      );
+      expect(
+        chartSummary(a),
+        '2 bars. Tallest: May bar, 65 millimetres. Shortest: sun. Average 65 millimetres.',
+      );
+    });
+
+    test('no numbers anywhere means no average', () {
+      final a = Analysis(
+        width: 800,
+        height: 600,
+        title: 't',
+        kind: 'chart',
+        overview: '',
+        regions: loadSample().regions,
+      );
+      expect(chartSummary(a), '4 bars. Tallest: mountain. Shortest: cloud.');
     });
 
     test('ranks place every bar against the tallest', () {
