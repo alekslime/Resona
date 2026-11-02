@@ -258,7 +258,7 @@ class TouchSession {
         _guide = null;
         haptics.play(HapticPattern.correct);
         cues.play(HapticPattern.correct);
-        _labelTimer = Timer(labelDelay, () => _say('You found the ${r.label}. ${r.spoken}'));
+        _labelTimer = Timer(labelDelay, () => _say(_arrivalWords(r)));
       } else {
         // A short pause so a finger sweeping across several parts does not stutter the voice.
         _labelTimer = Timer(labelDelay, () => _say(r.label));
@@ -269,6 +269,18 @@ class TouchSession {
       _caption = '';
     }
     _emit();
+  }
+
+  /// What finding a part teaches: its spoken line, what sits around it
+  /// (both already in the region's own words), then the next part to find.
+  String _arrivalWords(Region r) {
+    final order = readingOrder(regions);
+    final i = order.indexWhere((o) => o.id == r.id);
+    final next = i >= 0 && i + 1 < order.length ? order[i + 1] : null;
+    final offer = next == null
+        ? ' That was the last part.'
+        : ' Next is the ${next.label}. Say "where is the ${next.label}?" to keep going.';
+    return 'You found the ${r.label}. ${r.spoken}${aroundWords(r, regions)}$offer';
   }
 
   void _rest() {
