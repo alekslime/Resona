@@ -7,10 +7,40 @@ import 'package:resonant/core/theme/app_fonts.dart';
 import 'package:resonant/core/theme/text_spacings.dart';
 import 'package:resonant/core/ui/capped_text.dart';
 import 'package:resonant/core/ui/resonant_controls.dart';
+import 'package:resonant/features/learn/domain/library.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
+import 'package:resonant/features/touch/presentation/name_setup_screen.dart';
 import 'package:resonant/features/touch/presentation/settings_screen.dart';
 
 import 'fakes.dart';
+
+Future<void> holdFor(WidgetTester tester, Duration duration) async {
+  var left = duration;
+  while (left > Duration.zero) {
+    const step = Duration(milliseconds: 50);
+    final wait = left < step ? left : step;
+    await tester.runAsync(() => Future<void>.delayed(wait));
+    await tester.pump(wait);
+    left -= wait;
+  }
+}
+
+Future<void> holdCenter(WidgetTester tester, Offset at) async {
+  final finger = await tester.startGesture(at);
+  await holdFor(tester, const Duration(milliseconds: 650));
+  await finger.up();
+}
+
+Future<void> holdThree(WidgetTester tester, Offset at) async {
+  final fingers = <TestGesture>[];
+  for (var i = 0; i < 3; i++) {
+    fingers.add(await tester.startGesture(at + Offset(24.0 * i, 0)));
+  }
+  await holdFor(tester, const Duration(milliseconds: 650));
+  for (final f in fingers) {
+    await f.up();
+  }
+}
 void main() {
   group('settings state', () {
     test('font cycles the three faces and wraps', () {
@@ -111,6 +141,7 @@ void main() {
       final container = await rigged(Log());
       await open(tester, container);
       for (final row in [
+        'Your name',
         'Sound cues: on',
         'Color theme: Resonant native',
         'Font: Metropolis',
@@ -118,10 +149,17 @@ void main() {
         'Text spacing: Normal',
         'Reduce motion: off',
         'Speech rate: 100 percent',
+        'Clear chat history',
       ]) {
         await tester.scrollUntilVisible(find.text(row), 200);
         expect(find.text(row), findsOneWidget);
       }
+      expect(
+        find.text(
+            'Hold the right edge and drag up to speed up, down to slow down.'),
+        findsOneWidget,
+      );
+      expect(find.text('Speech speed: 1.0x'), findsOneWidget);
     });
 
     testWidgets('tapping a row steps it and says the new value', (tester) async {
@@ -158,6 +196,134 @@ void main() {
       expect(container.read(speechRateProvider), 1.25);
       expect(container.read(speechProvider).rate, 1.25);
       expect(log.events, contains('say: Speech rate: 125 percent.'));
+    });
+
+    testWidgets('the name row opens name setup', (tester) async {
+      final container = await rigged(Log());
+      await open(tester, container);
+      await tester.tap(find.text('Your name'));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(NameSetupScreen), findsOneWidget);
+    });
+
+    testWidgets('clearing history takes two taps', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      container.read(chatHistoryProvider.notifier).set(const [
+        ChatExchange('hi', const ['hello']),
+      ]);
+      await open(tester, container);
+      await tester.scrollUntilVisible(find.text('Clear chat history'), 200);
+      await tester.tap(find.text('Clear chat history'));
+      await tester.pump();
+      expect(
+        log.events,
+        contains(
+            'say: Clear all chat history? Tap again to confirm, or swipe away to cancel.'),
+      );
+      expect(container.read(chatHistoryProvider), hasLength(1));
+      await tester.tap(find.text('Clear chat history'));
+      await tester.pump();
+      expect(container.read(chatHistoryProvider), isEmpty);
+      expect(log.events, contains('say: Chat history cleared.'));
+      expect(log.events, contains('haptic:confirm'));
+    });
+
+    testWidgets('swiping away cancels the clear confirm', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      container.read(chatHistoryProvider.notifier).set(const [
+        ChatExchange('hi', const ['hello']),
+      ]);
+      await open(tester, container);
+      await tester.scrollUntilVisible(find.text('Clear chat history'), 200);
+      await tester.tap(find.text('Clear chat history'));
+      await tester.pump();
+      // A two-finger swipe moves focus and drops the armed confirm.
+      final center = tester.getCenter(find.text('Clear chat history'));
+      final first = await tester.startGesture(center);
+      final second =
+          await tester.startGesture(center + const Offset(24, 0));
+      await first.moveBy(const Offset(0, 200));
+      await second.moveBy(const Offset(0, 200));
+      await first.up();
+      await second.up();
+      await tester.pump();
+      await tester.scrollUntilVisible(find.text('Clear chat history'), 200);
+      await tester.tap(find.text('Clear chat history'));
+      await tester.pump();
+      expect(container.read(chatHistoryProvider), hasLength(1));
+    });
+
+    testWidgets('holding a theme row previews its options', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      await open(tester, container);
+      await tester.scrollUntilVisible(
+          find.text('Color theme: Resonant native'), 200);
+      await holdCenter(
+          tester, tester.getCenter(find.text('Color theme: Resonant native')));
+      expect(log.events, contains('haptic:holdEngaged'));
+      expect(
+        log.events,
+        contains('say: Preview. Swipe left or right, tap to keep, '
+            'hold the right edge to cancel. Resonant native, 1 of 7.'),
+      );
+      expect(
+        find.text('Previewing: Resonant native. Tap to keep'),
+        findsOneWidget,
+      );
+      await tester.flingFrom(const Offset(400, 400), const Offset(-300, 0), 800);
+      await tester.pump();
+      expect(
+        log.events,
+        contains('say: Low vision, enormous contrast, 2 of 7.'),
+      );
+      await tester.tapAt(const Offset(400, 200));
+      await tester.pump();
+      expect(container.read(paletteProvider).label,
+          'Low vision, enormous contrast');
+      expect(log.events, contains('haptic:confirm'));
+      expect(
+        log.events,
+        contains('say: Color theme: Low vision, enormous contrast'),
+      );
+    });
+
+    testWidgets('a preview can be cancelled from the right edge',
+        (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      await open(tester, container);
+      await tester.scrollUntilVisible(find.text('Font: Metropolis'), 200);
+      await holdCenter(
+          tester, tester.getCenter(find.text('Font: Metropolis')));
+      await tester.flingFrom(const Offset(400, 400), const Offset(-300, 0), 800);
+      await tester.pump();
+      expect(container.read(fontProvider).label, 'Atkinson Hyperlegible');
+      final right = Offset(
+          tester.getTopRight(find.text('Font: Atkinson Hyperlegible')).dx + 10,
+          400);
+      final finger = await tester.startGesture(right);
+      await holdFor(tester, const Duration(milliseconds: 650));
+      await finger.up();
+      await tester.pump();
+      expect(log.events, contains('say: Cancelled.'));
+      expect(container.read(fontProvider).label, 'Metropolis');
+      expect(find.text('Font: Metropolis'), findsOneWidget);
+    });
+
+    testWidgets('a hold says the speed and the focus', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      await open(tester, container);
+      await holdThree(tester, const Offset(400, 300));
+      expect(
+        log.events,
+        contains('say: Settings. Speaking at normal speed. '
+            'Hold the right edge and drag up to speed up, down to slow down. '
+            'Currently focused: Your name.'),
+      );
     });
 
     testWidgets('home opens settings', (tester) async {
