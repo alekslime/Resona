@@ -7,7 +7,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/env.dart';
 import '../../../core/providers.dart';
 import '../../../core/theme/resonant_theme.dart';
+import '../../../core/theme/shapes.dart';
 import '../../../core/ui/resonant_dots.dart';
+import '../../../core/ui/resonant_scaffold.dart';
 import '../application/touch_controller.dart';
 import '../application/touch_session.dart';
 import '../data/touch_repository.dart';
@@ -18,9 +20,11 @@ import 'live_talk_screen.dart';
 import 'picture_painter.dart';
 import 'study_notes_screen.dart';
 
-/// The explore screen. Layout, top to bottom: a title pill, the stage (picture with a gesture margin
-/// on each side, like Resonant's edge zones), the spoken caption, and buttons that do the same jobs
-/// as the gestures, for people using a screen reader.
+/// The explore screen. Layout, top to bottom: the shared back pill, the stage
+/// (picture with a gesture margin on each side, like Resonant's edge zones),
+/// the spoken caption, and buttons that do the same jobs as the gestures, for
+/// people using a screen reader. The buttons keep the theme's filled style;
+/// only the chrome moved into the shared scaffold.
 class TouchScreen extends ConsumerStatefulWidget {
   const TouchScreen({super.key});
 
@@ -98,290 +102,257 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
             ? DotsState.thinking
             : DotsState.idle;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-          child: Column(
-            children: [
-              _TitlePill(title: analysis.title, onBack: controller.leave),
-              const SizedBox(height: 12),
-              Expanded(
-                child: KeyedSubtree(
-                  key: _surfaceKey,
-                  child: GestureSurface(
-                    onGesture: controller.onGesture,
-                    child: Row(
-                      children: [
-                        const _EdgeZone(label: 'stop · repeat\nswipe: parts'),
-                        Expanded(
-                          // The card hugs the picture's own shape, centred in the stage,
-                          // so the picture is as big as the stage allows instead of
-                          // floating in a tall white box.
-                          child: Center(
-                            child: AspectRatio(
-                              aspectRatio: analysis.width / analysis.height,
-                              child: Container(
-                                key: _pictureKey,
-                                margin: const EdgeInsets.symmetric(vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: palette.card,
-                                  borderRadius:
-                                      BorderRadius.circular(palette.cardRadius),
-                                  border: palette.cardOutline == null
-                                      ? null
-                                      : Border.all(
-                                          color: palette.cardOutline!,
-                                          width: palette.outlineWidth,
-                                        ),
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                padding: const EdgeInsets.all(8),
-                                child: _image == null
-                                    ? const SizedBox.expand()
-                                    : Semantics(
-                                        label:
-                                            '${analysis.title}. Drag a finger across the picture to hear and feel its parts.',
-                                        child: CustomPaint(
-                                          size: Size.infinite,
-                                          painter: PicturePainter(
-                                            image: _image!,
-                                            width: analysis.width,
-                                            height: analysis.height,
-                                            highlight: highlight,
-                                            highlightPath: path,
-                                            showAll: _showAll,
-                                            allPaths: allPaths,
-                                            tint: palette.signal,
-                                          ),
+    return ResonantScaffold(
+      title: analysis.title,
+      onBack: controller.leave,
+      bottomBar: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+        child: _ModeButtons(
+          state: state,
+          analysis: analysis,
+          showAll: _showAll,
+          onToggleOutlines: () {
+            setState(() => _showAll = !_showAll);
+            ref.read(speechProvider).speak(
+                  _showAll ? 'All outlines shown.' : 'Outlines hidden.',
+                );
+          },
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+        child: Column(
+          children: [
+            Expanded(
+              child: KeyedSubtree(
+                key: _surfaceKey,
+                child: GestureSurface(
+                  onGesture: controller.onGesture,
+                  child: Row(
+                    children: [
+                      const _EdgeZone(label: 'stop · repeat\nswipe: parts'),
+                      Expanded(
+                        // The card hugs the picture's own shape, centred in the stage,
+                        // so the picture is as big as the stage allows instead of
+                        // floating in a tall white box.
+                        child: Center(
+                          child: AspectRatio(
+                            aspectRatio: analysis.width / analysis.height,
+                            child: Container(
+                              key: _pictureKey,
+                              margin: const EdgeInsets.symmetric(vertical: 4),
+                              decoration: BoxDecoration(
+                                color: palette.card,
+                                borderRadius: cardShape(palette),
+                                border: cardBorder(palette),
+                              ),
+                              clipBehavior: Clip.antiAlias,
+                              padding: const EdgeInsets.all(8),
+                              child: _image == null
+                                  ? const SizedBox.expand()
+                                  : Semantics(
+                                      label:
+                                          '${analysis.title}. Drag a finger across the picture to hear and feel its parts.',
+                                      child: CustomPaint(
+                                        size: Size.infinite,
+                                        painter: PicturePainter(
+                                          image: _image!,
+                                          width: analysis.width,
+                                          height: analysis.height,
+                                          highlight: highlight,
+                                          highlightPath: path,
+                                          showAll: _showAll,
+                                          allPaths: allPaths,
+                                          tint: palette.signal,
                                         ),
                                       ),
-                              ),
+                                    ),
                             ),
                           ),
                         ),
-                        const _EdgeZone(
-                            label: 'speed: hold + drag\nhold: back'),
-                      ],
-                    ),
+                      ),
+                      const _EdgeZone(
+                          label: 'speed: hold + drag\nhold: back'),
+                    ],
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  ResonantDots(
-                    state: dotsState,
-                    spell: false,
-                    size: 56,
-                    color: palette.ink,
-                    level: () => 0.6,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      state.view.caption,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        color: palette.ink,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              if (state.mode == ExploreMode.explore)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    FilledButton(
-                      onPressed: () =>
-                          controller.onGesture(const ThreeFingerHold()),
-                      child: const Text('Overview'),
-                    ),
-                    FilledButton(
-                      onPressed: () => controller.onGesture(
-                          const Swipe(Zone.leftEdge, SwipeDirection.down)),
-                      child: const Text('Previous part'),
-                    ),
-                    FilledButton(
-                      onPressed: () => controller.onGesture(
-                          const Swipe(Zone.leftEdge, SwipeDirection.up)),
-                      child: const Text('Next part'),
-                    ),
-                    FilledButton(
-                      onPressed: controller.startLesson,
-                      child: const Text('Lesson'),
-                    ),
-                    FilledButton(
-                        onPressed: controller.startQuiz,
-                        child: const Text('Quiz me')),
-                    if (Env.liveVoiceEnabled)
-                      FilledButton(
-                        onPressed: () async {
-                          final repo = ref.read(repositoryProvider);
-                          final highlight = state.view.highlight;
-                          await ref.read(speechProvider).stop();
-                          try {
-                            final connection = await repo.liveVoice(
-                              title: analysis.title,
-                              overview: analysis.overview,
-                              regionLabel: highlight?.label ?? '',
-                              regionSpoken: highlight?.spoken ?? '',
-                              regionDetail: highlight?.detail ?? '',
-                            );
-                            if (!context.mounted) return;
-                            await Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) => LiveTalkScreen(
-                                    connection: connection,
-                                    title: analysis.title),
-                              ),
-                            );
-                          } on TouchApiException catch (e) {
-                            ref.read(speechProvider).speak(e.message);
-                            if (!context.mounted) return;
-                            ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text(e.message)));
-                          }
-                        },
-                        child: const Text('Talk live'),
-                      ),
-                    FilledButton(
-                      onPressed: () => Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => StudyNotesScreen(analysis: analysis),
-                        ),
-                      ),
-                      child: const Text('Study notes'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        setState(() => _showAll = !_showAll);
-                        ref.read(speechProvider).speak(
-                              _showAll
-                                  ? 'All outlines shown.'
-                                  : 'Outlines hidden.',
-                            );
-                      },
-                      child: Text(_showAll ? 'Hide outlines' : 'Show outlines'),
-                    ),
-                  ],
-                )
-              else if (state.mode == ExploreMode.lesson)
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    FilledButton(
-                      onPressed: () => controller.onGesture(
-                          const Swipe(Zone.leftEdge, SwipeDirection.down)),
-                      child: const Text('Previous step'),
-                    ),
-                    FilledButton(
-                      onPressed: () => controller.onGesture(
-                          const Swipe(Zone.leftEdge, SwipeDirection.up)),
-                      child: const Text('Next step'),
-                    ),
-                    FilledButton(
-                      onPressed: () =>
-                          controller.onGesture(const ThreeFingerTap()),
-                      child: const Text('Repeat'),
-                    ),
-                    FilledButton(
-                      onPressed: () =>
-                          controller.onGesture(const LongPress(Zone.rightEdge)),
-                      child: const Text('Back to exploring'),
-                    ),
-                  ],
-                )
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    FilledButton(
-                      onPressed: controller.toggleAnswer,
-                      child: const Text('Answer by voice'),
-                    ),
-                    FilledButton(
-                      onPressed: () =>
-                          controller.onGesture(const ThreeFingerTap()),
-                      child: const Text('Repeat question'),
-                    ),
-                    FilledButton(
-                      onPressed: () => controller.onGesture(
-                          const Swipe(Zone.leftEdge, SwipeDirection.up)),
-                      child: const Text('Skip'),
-                    ),
-                    if (state.view.learnDone && state.view.missedCount > 0)
-                      FilledButton(
-                        onPressed: controller.retryMissed,
-                        child:
-                            Text('Practise missed (${state.view.missedCount})'),
-                      ),
-                    FilledButton(
-                      onPressed: () =>
-                          controller.onGesture(const LongPress(Zone.rightEdge)),
-                      child: const Text('Back to exploring'),
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                ResonantDots(
+                  state: dotsState,
+                  spell: false,
+                  size: 56,
+                  color: palette.ink,
+                  level: () => 0.6,
                 ),
-            ],
-          ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    state.view.caption,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Metropolis',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: palette.ink,
+                      height: 1.2,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
       ),
     );
   }
 }
 
-class _TitlePill extends ConsumerWidget {
-  const _TitlePill({required this.title, required this.onBack});
-  final String title;
-  final VoidCallback onBack;
+/// The row of buttons that mirror the gestures, one set per mode. The filled
+/// style already comes from the theme, so this is just the same buttons moved
+/// under the shared scaffold.
+class _ModeButtons extends ConsumerWidget {
+  const _ModeButtons({
+    required this.state,
+    required this.analysis,
+    required this.showAll,
+    required this.onToggleOutlines,
+  });
+
+  final TouchState state;
+  final Analysis analysis;
+  final bool showAll;
+  final VoidCallback onToggleOutlines;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final p = ref.watch(paletteProvider);
-    return Container(
-      constraints: const BoxConstraints(minHeight: minTouchTarget),
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: p.bar,
-        borderRadius: BorderRadius.circular(p.controlRadius),
-        border: p.controlOutline == null
-            ? null
-            : Border.all(color: p.controlOutline!, width: p.outlineWidth),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: onBack,
-            tooltip: 'Back',
-            icon: Icon(Icons.arrow_back, color: p.onBar),
-            iconSize: 28,
-            constraints: const BoxConstraints(
-                minWidth: minTouchTarget, minHeight: minTouchTarget),
+    final controller = ref.read(touchControllerProvider.notifier);
+    final buttons = <Widget>[];
+    if (state.mode == ExploreMode.explore) {
+      buttons.addAll([
+        FilledButton(
+          onPressed: () => controller.onGesture(const ThreeFingerHold()),
+          child: const Text('Overview'),
+        ),
+        FilledButton(
+          onPressed: () => controller
+              .onGesture(const Swipe(Zone.leftEdge, SwipeDirection.down)),
+          child: const Text('Previous part'),
+        ),
+        FilledButton(
+          onPressed: () => controller
+              .onGesture(const Swipe(Zone.leftEdge, SwipeDirection.up)),
+          child: const Text('Next part'),
+        ),
+        FilledButton(
+          onPressed: controller.startLesson,
+          child: const Text('Lesson'),
+        ),
+        FilledButton(
+            onPressed: controller.startQuiz, child: const Text('Quiz me')),
+        if (Env.liveVoiceEnabled)
+          FilledButton(
+            onPressed: () async {
+              final repo = ref.read(repositoryProvider);
+              final highlight = state.view.highlight;
+              await ref.read(speechProvider).stop();
+              try {
+                final connection = await repo.liveVoice(
+                  title: analysis.title,
+                  overview: analysis.overview,
+                  regionLabel: highlight?.label ?? '',
+                  regionSpoken: highlight?.spoken ?? '',
+                  regionDetail: highlight?.detail ?? '',
+                );
+                if (!context.mounted) return;
+                await Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => LiveTalkScreen(
+                        connection: connection, title: analysis.title),
+                  ),
+                );
+              } on TouchApiException catch (e) {
+                ref.read(speechProvider).speak(e.message);
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context)
+                    .showSnackBar(SnackBar(content: Text(e.message)));
+              }
+            },
+            child: const Text('Talk live'),
           ),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: brandStyle(22, p.onBar),
+        FilledButton(
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => StudyNotesScreen(analysis: analysis),
             ),
           ),
-        ],
-      ),
+          child: const Text('Study notes'),
+        ),
+        FilledButton(
+          onPressed: onToggleOutlines,
+          child: Text(showAll ? 'Hide outlines' : 'Show outlines'),
+        ),
+      ]);
+    } else if (state.mode == ExploreMode.lesson) {
+      buttons.addAll([
+        FilledButton(
+          onPressed: () => controller
+              .onGesture(const Swipe(Zone.leftEdge, SwipeDirection.down)),
+          child: const Text('Previous step'),
+        ),
+        FilledButton(
+          onPressed: () => controller
+              .onGesture(const Swipe(Zone.leftEdge, SwipeDirection.up)),
+          child: const Text('Next step'),
+        ),
+        FilledButton(
+          onPressed: () => controller.onGesture(const ThreeFingerTap()),
+          child: const Text('Repeat'),
+        ),
+        FilledButton(
+          onPressed: () =>
+              controller.onGesture(const LongPress(Zone.rightEdge)),
+          child: const Text('Back to exploring'),
+        ),
+      ]);
+    } else {
+      buttons.addAll([
+        FilledButton(
+          onPressed: controller.toggleAnswer,
+          child: const Text('Answer by voice'),
+        ),
+        FilledButton(
+          onPressed: () => controller.onGesture(const ThreeFingerTap()),
+          child: const Text('Repeat question'),
+        ),
+        FilledButton(
+          onPressed: () => controller
+              .onGesture(const Swipe(Zone.leftEdge, SwipeDirection.up)),
+          child: const Text('Skip'),
+        ),
+        if (state.view.learnDone && state.view.missedCount > 0)
+          FilledButton(
+            onPressed: controller.retryMissed,
+            child: Text('Practise missed (${state.view.missedCount})'),
+          ),
+        FilledButton(
+          onPressed: () =>
+              controller.onGesture(const LongPress(Zone.rightEdge)),
+          child: const Text('Back to exploring'),
+        ),
+      ]);
+    }
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      alignment: WrapAlignment.center,
+      children: buttons,
     );
   }
 }
