@@ -152,11 +152,23 @@ void main() {
       expect(said.contains('right lung'), isTrue);
     });
 
-    test('session: unknown part says it could not be found', () async {
+    test('session: unknown part falls back to the tutor', () async {
       final rig = GuideRig(analysis: makeAnalysis([makeRegion('a', 'sun', 0)]));
       await rig.ask('where is the zebra?');
-      expect(rig.log.where('ask').isEmpty, isTrue);
-      expect(rig.log.where('say').last.toLowerCase().contains('could not find'), isTrue);
+      expect(rig.log.where('ask').single.startsWith('ask:where is the zebra?'), isTrue);
+      expect(rig.log.where('say').last, 'say: It is the sun.');
+    });
+
+    test('session: fallback keeps an active guide running', () async {
+      final rig = GuideRig(
+        analysis: makeAnalysis([makeRegion('a', 'sun', 0), makeRegion('b', 'cloud', 1)]),
+      );
+      await rig.ask('where is the sun?');
+      expect(rig.log.where('say').last.contains('Guide mode.'), isTrue);
+      await rig.ask('where is the zebra?');
+      expect(rig.log.where('ask').isNotEmpty, isTrue); // the tutor got the fallback
+      rig.session.handle(const ExploreRest(60, 60)); // still guiding to the sun
+      expect(rig.log.where('say').last.contains('The sun is'), isTrue);
     });
   });
 
