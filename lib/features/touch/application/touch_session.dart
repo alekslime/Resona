@@ -101,6 +101,7 @@ class TouchSession {
   int? _guideSectorLast;
   int? _guideBucketLast;
   int _guideSpokenMs = 0;
+  int? _guideGapMs;
   int? _lastToneStep;
   int? _lastToneMs;
   double _lastPx = 0, _lastPy = 0;
@@ -133,6 +134,7 @@ class TouchSession {
     _guideCache = buildGuideCache(analysis.regions);
     _guideSectorLast = _guideBucketLast = null;
     _guideSpokenMs = 0;
+    _guideGapMs = null;
     _lastToneStep = _lastToneMs = null;
     _wasInside = _listening = _thinking = false;
     _lastSpoken = '';
@@ -239,10 +241,17 @@ class TouchSession {
     if (_guideNudgeSaid || nowMs() - _guideStartedMs <= _nudgeAfterMs) return false;
     _guideNudgeSaid = true;
     _guideSpokenMs = nowMs();
+    _guideGapMs = _guideSpokenMs;
     _say('Say hint if you want help.');
     return true;
   }
 
+  /// Minimum gap between live spoken cues (and after rest/hint/nudge speech).
+  static const int _minLiveGapMs = 700;
+
+  /// Short live cues while the finger moves: only on a sector or bucket
+  /// change, or after ~1.5 s, with hysteresis at sector edges and
+  /// [_minLiveGapMs] between spoken cues so they never chatter.
   void _guideLive() {
     final guide = _guide;
     if (guide == null || _focus?.id == guide.id) return;
@@ -253,14 +262,16 @@ class TouchSession {
     if (pts == null || pts.isEmpty) return;
     final (nx, ny, dist) = nearestGuidePoint(pts, _lastPx, _lastPy);
     _playProximity(guideCloseness(dist, a.width.toDouble()));
-    final sector = guideSector(nx - _lastPx, ny - _lastPy);
+    final sector = guideSectorStable(nx - _lastPx, ny - _lastPy, _guideSectorLast);
     final bucket = guideBucket(dist, a.width.toDouble());
     final now = nowMs();
     final changed = sector != _guideSectorLast || bucket != _guideBucketLast;
     if (!changed && now - _guideSpokenMs < 1500) return;
+    if (_guideGapMs != null && now - _guideGapMs! < _minLiveGapMs) return;
     _guideSectorLast = sector;
     _guideBucketLast = bucket;
     _guideSpokenMs = now;
+    _guideGapMs = now;
     _say(guideCue(sector, bucket));
   }
 
@@ -283,6 +294,7 @@ class TouchSession {
     _guideSectorLast = guideSector(dx, dy);
     _guideBucketLast = guideBucket(dist, a.width.toDouble());
     _guideSpokenMs = nowMs();
+    _guideGapMs = _guideSpokenMs;
     _say(
       '${prefix}The ${guide.label} is ${directionWords(dx, dy)}, ${distanceWords(dist, a.width.toDouble())}.',
     );
@@ -380,6 +392,7 @@ class TouchSession {
       _guideSectorLast = guideSector(dx, dy);
       _guideBucketLast = guideBucket(dist, a.width.toDouble());
       _guideSpokenMs = nowMs();
+      _guideGapMs = _guideSpokenMs;
       _say(
         '${prefix}The ${guide.label} is ${directionWords(dx, dy)}, ${distanceWords(dist, a.width.toDouble())}.',
         queue: on != null,
@@ -494,6 +507,7 @@ class TouchSession {
       _guideStartedMs = nowMs();
       _guideWrong = 0;
       _guideHelped = _guideNudgeSaid = false;
+      _guideGapMs = null; // guide-start speech does not hold the first live cue
       _lastToneStep = _lastToneMs = null;
       haptics.play(HapticPattern.confirm);
       cues.play(HapticPattern.confirm);

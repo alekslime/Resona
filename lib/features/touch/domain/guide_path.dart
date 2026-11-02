@@ -65,11 +65,35 @@ Map<String, List<(double, double)>> buildGuideCache(List<Region> regions) => {
   return (bestX, bestY, math.sqrt(best2));
 }
 
+/// Compass angle 0..360 for a move (0 = right, 90 = up; screen coordinates).
+double guideAngle(double dx, double dy) {
+  final angle = math.atan2(-dy, dx) * 180 / math.pi;
+  return (angle % 360 + 360) % 360;
+}
+
 /// Sixteen short direction sectors for live cues (screen coordinates).
-int guideSector(double dx, double dy) {
-  final angle = math.atan2(-dy, dx) * 180 / math.pi; // 0 = right, 90 = up
-  final n = (angle % 360 + 360) % 360;
-  return (((n + 11.25) % 360) / 22.5).floor();
+int guideSector(double dx, double dy) => guideSectorForAngle(guideAngle(dx, dy));
+
+int guideSectorForAngle(double n) => (((n + 11.25) % 360) / 22.5).floor();
+
+const double _sectorWidth = 22.5;
+
+/// [guideSector] with hysteresis: within [marginDeg] of the boundary shared
+/// with [lastSector], the finger is still on its way, so hold the old sector
+/// instead of flip-flopping speech. Decisive jumps switch immediately.
+int guideSectorStable(double dx, double dy, int? lastSector, {double marginDeg = 3}) {
+  final sector = guideSector(dx, dy);
+  if (lastSector == null) return sector;
+  final last = lastSector % 16;
+  if (sector == last) return sector;
+  final forward = (sector - last) % 16 == 1;
+  final back = (last - sector) % 16 == 1;
+  if (!forward && !back) return sector;
+  final boundary = (last * _sectorWidth + (forward ? 11.25 : -11.25)) % 360;
+  final n = guideAngle(dx, dy);
+  var d = (n - boundary).abs() % 360;
+  if (d > 180) d = 360 - d;
+  return d < marginDeg ? last : sector;
 }
 
 const _sectorWords = [
