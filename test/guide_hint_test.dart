@@ -63,6 +63,7 @@ void main() {
     test('an explicit hint always gives a direction, and raises next time', () async {
       final r = HintRig();
       await r.reachPureFind();
+      r.session.handle(const ExploreStart(60, 60)); // hunt from empty sky
       await r.ask('give me a hint');
       expect(r.session.view.guideHelp, GuideHelp.none); // this hunt stays pure
       final said = r.log.where('say').last;

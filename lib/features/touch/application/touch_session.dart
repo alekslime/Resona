@@ -95,6 +95,8 @@ class TouchSession {
   GuideHelp _currentHelp = GuideHelp.full;
   int _guideStartedMs = 0;
   int _guideWrong = 0;
+  bool _guideHelped = false;
+  bool _guideNudgeSaid = false;
   Map<String, List<(double, double)>> _guideCache = const {};
   int? _guideSectorLast;
   int? _guideBucketLast;
@@ -127,6 +129,7 @@ class TouchSession {
     _guide = null;
     _helpById.clear();
     _currentHelp = GuideHelp.full;
+    _guideHelped = _guideNudgeSaid = false;
     _guideCache = buildGuideCache(analysis.regions);
     _guideSectorLast = _guideBucketLast = null;
     _guideSpokenMs = 0;
@@ -227,9 +230,23 @@ class TouchSession {
 
   /// Short live cues while the finger moves in guide mode, throttled so they
   /// never chatter: only on a sector or bucket change, or after ~1.5 s.
+  /// After this long without a find, point at the hint mechanism, once.
+  static const int _nudgeAfterMs = 20000;
+
+  /// Says "Say hint if you want help." once per long hunt. True when it spoke
+  /// (the caller skips its own cue that turn).
+  bool _guideNudge() {
+    if (_guideNudgeSaid || nowMs() - _guideStartedMs <= _nudgeAfterMs) return false;
+    _guideNudgeSaid = true;
+    _guideSpokenMs = nowMs();
+    _say('Say hint if you want help.');
+    return true;
+  }
+
   void _guideLive() {
     final guide = _guide;
     if (guide == null || _focus?.id == guide.id) return;
+    if (_guideNudge()) return;
     if (_currentHelp != GuideHelp.full) return; // hints/none stay quiet while moving
     final a = _analysis!;
     final pts = _guideCache[guide.id];
@@ -248,13 +265,15 @@ class TouchSession {
   }
 
   /// One spoken pointer to the guide target, for rest, hint requests and
-  /// repeated questions. Silent about direction on a pure find.
+  /// repeated questions. An explicit ask always answers, even on a pure find.
   void _guideHint() {
     final guide = _guide;
     if (guide == null) return;
     if (_currentHelp == GuideHelp.none) {
-      _say('Keep looking for the ${guide.label}.');
-      return;
+      // A pure find that needed a hint was not pure: step back up for next
+      // time, but finish this hunt unaided apart from this one pointer.
+      _helpById[guide.id] = raiseHelp(_helpById[guide.id] ?? GuideHelp.none);
+      _guideHelped = true;
     }
     final a = _analysis!;
     final (dx, dy, dist) = _guideVector(guide);
@@ -313,7 +332,7 @@ class TouchSession {
         final tookMs = nowMs() - _guideStartedMs;
         final level = _helpById[r.id] ?? GuideHelp.full;
         _currentHelp = _helpById[r.id] =
-            (tookMs <= fastGuideMs && _guideWrong == 0)
+            (tookMs <= fastGuideMs && _guideWrong == 0 && !_guideHelped)
                 ? lowerHelp(level)
                 : (_guideWrong > 0 || tookMs > slowGuideMs)
                 ? raiseHelp(level)
@@ -348,6 +367,7 @@ class TouchSession {
   void _rest() {
     final guide = _guide;
     if (guide != null) {
+      if (_guideNudge()) return;
       if (_currentHelp == GuideHelp.none) {
         _say('Keep looking for the ${guide.label}.');
         return;
@@ -447,6 +467,7 @@ class TouchSession {
     // While guiding, "give me a hint" points the way without restarting the hunt.
     if (_guide != null && RegExp(r'\bhints?\b').hasMatch(heard.toLowerCase())) {
       _thinking = false;
+      _guideNudgeSaid = true; // they know about hints; no nudge needed
       _guideHint();
       return;
     }
@@ -472,6 +493,7 @@ class TouchSession {
       _currentHelp = _helpById[target.id] ?? GuideHelp.full;
       _guideStartedMs = nowMs();
       _guideWrong = 0;
+      _guideHelped = _guideNudgeSaid = false;
       _lastToneStep = _lastToneMs = null;
       haptics.play(HapticPattern.confirm);
       cues.play(HapticPattern.confirm);
