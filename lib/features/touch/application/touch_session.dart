@@ -267,15 +267,30 @@ class TouchSession {
   /// the finger (with the usual position tone); lift to stop. Tracing
   /// pauses labels and guidance until the finger lifts.
   void _startTrace() {
-    final r = _endedOn;
-    if (r == null) {
+    final touched = _endedOn;
+    if (touched != null) {
+      _trace = touched;
+      _highlight = touched;
+      _lastTraceMs = null;
+      _say('Tracing the ${touched.label}. Follow the buzz around its edge. Lift to stop.');
+      return;
+    }
+    // Double-tapped empty space: trace the nearest part, with one pointer
+    // to get there, since the edge gives no direction from afar.
+    final near = nearestRegion(regions, _lastPx, _lastPy);
+    if (near == null) {
       _say('Touch a part first, then double-tap to trace its outline.');
       return;
     }
+    final r = near.region;
     _trace = r;
     _highlight = r;
     _lastTraceMs = null;
-    _say('Tracing the ${r.label}. Follow the buzz around its edge. Lift to stop.');
+    final (dx, dy, _) = _guideVector(r);
+    _say(
+      'Tracing the ${r.label}. It is ${directionWords(dx, dy)} from here. '
+      'Follow the buzz around its edge. Lift to stop.',
+    );
   }
 
   /// One trace sample: buzz only near the traced part's edge.
