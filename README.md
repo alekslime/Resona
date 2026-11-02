@@ -200,6 +200,7 @@ Carried over from the earlier app, plus finger exploration:
 | Centre | Touch or drag one finger | Explore: hear and feel the part under it |
 | Centre | Move, then rest | Hear the part's description |
 | Centre | Quick tap | Hear its name and description now, and what is around it |
+| Centre | Double tap | Trace the touched part: drag and its edge buzzes under your finger; lift to stop |
 | Centre | Hold still 0.5 s, speak, lift | Ask a question about the picture, or ask "Where is the …?" to be guided to it |
 | Explore screen | Lesson / Quiz me / Talk live buttons | Guided lesson, a quiz (touch the part it names, answer out loud), or a live conversation |
 | Lesson / Quiz | Left-edge swipe, buttons below | Next / previous step or question; hold right edge to go back to exploring |
