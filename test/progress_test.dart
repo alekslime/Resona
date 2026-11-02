@@ -2,260 +2,309 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/features/learn/domain/milestones.dart';
 import 'package:resonant/features/learn/domain/progress.dart';
 
-ProfileStats stats({
-  int streak = 0,
-  int longestStreak = 0,
-  int lessonsDone = 0,
-  int lessonsTotal = 6,
-  int quizzesDone = 0,
-  int quizzesTotal = 4,
-  int attemptedQuizSets = 0,
-  int perfectSets = 0,
-  int bestAveragePct = 0,
-  int materials = 0,
-  int listeningSeconds = 0,
-}) =>
-    ProfileStats(
-      streak: streak,
-      longestStreak: longestStreak,
-      lessonsDone: lessonsDone,
-      lessonsTotal: lessonsTotal,
-      quizzesDone: quizzesDone,
-      quizzesTotal: quizzesTotal,
-      attemptedQuizSets: attemptedQuizSets,
-      perfectSets: perfectSets,
-      bestAveragePct: bestAveragePct,
-      materials: materials,
-      listeningSeconds: listeningSeconds,
-    );
-
 void main() {
-  group('streaks', () {
-    test('counts back from today, longest anywhere', () {
-      expect(computeStreaks({10}, 10), (streak: 1, longest: 1));
-      expect(computeStreaks({8, 9, 10}, 10), (streak: 3, longest: 3));
-      expect(computeStreaks({8, 10}, 10), (streak: 1, longest: 1));
-      expect(computeStreaks({5, 6, 7}, 10), (streak: 0, longest: 3));
-      expect(computeStreaks(<int>{}, 10), (streak: 0, longest: 0));
-      expect(computeStreaks({10, 11}, 10), (streak: 1, longest: 1));
-    });
-  });
-
-  group('activity log', () {
-    test('finishing marks the day and remembers what', () {
-      final log = ActivityLog(today: () => 10);
-      log.lessonFinished('lesson_cells');
-      log.lessonFinished('lesson_cells');
-      log.quizFinished(
-          id: 'cells_and_parts', perfect: true, correct: 6, total: 6);
-      log.quizFinished(
-          id: 'cells_and_parts', perfect: false, correct: 4, total: 6);
-      final snap = log.snapshot();
-      expect(snap.days, {10});
-      expect(snap.finishedLessonIds, {'lesson_cells'});
-      expect(snap.finishedQuizIds, {'cells_and_parts'});
-      expect(snap.finishedQuizAttempts, 2);
-      expect(snap.correctAnswers, 10);
-      expect(snap.totalAnswers, 12);
-    });
-
-    test('an hour of listening, not a minute, marks the day', () {
-      final log = ActivityLog(today: () => 10);
-      log.addListening(59);
-      expect(log.snapshot().days, isEmpty);
-      log.addListening(1);
-      expect(log.snapshot().days, {10});
-    });
-
-    test('old days and overgrown shelves trim away', () {
-      final log = ActivityLog(
-        today: () => 1000,
-        seed: ActivityDay(
-          days: {100, 999, 1000},
-          finishedLessonIds: {for (var i = 0; i < 600; i++) 'l$i'},
-        ),
-      );
-      final old = log.snapshot();
-      expect(old.days, {999, 1000});
-      expect(old.finishedLessonIds.length, 500);
-    });
-  });
-
   group('quiz progress', () {
-    test('a fresh set invites starting', () {
-      const p = QuizProgress();
-      expect(p.statusLabel, 'Not started');
-      expect(p.percentComplete, 0);
-      expect(p.buttonLabel, 'Start quiz');
-    });
-
-    test('an opened set invites continuing, never downgrades', () {
-      final p =
-          const QuizProgress().markInProgress(5).record(3, 5).markInProgress(5);
-      expect(p.status, QuizStatus.completed);
+    test('status and button labels are old-exact', () {
+      expect(const QuizProgress().statusLabel, 'Not started');
+      expect(const QuizProgress().buttonLabel, 'Start quiz');
       expect(
-        const QuizProgress()
-            .markInProgress(5)
-            .statusLabel,
+        const QuizProgress(status: QuizStatus.inProgress).statusLabel,
         'Ready to continue',
       );
-      expect(const QuizProgress().markInProgress(5).buttonLabel,
-          'Continue quiz');
+      expect(
+        const QuizProgress(status: QuizStatus.inProgress).buttonLabel,
+        'Continue quiz',
+      );
+      expect(
+        const QuizProgress(status: QuizStatus.completed).statusLabel,
+        'Completed',
+      );
+      expect(
+        const QuizProgress(status: QuizStatus.completed).buttonLabel,
+        'Review answers',
+      );
     });
 
-    test('a finished set keeps its best and invites review', () {
-      final p = const QuizProgress().record(3, 5).record(2, 5);
-      expect(p.status, QuizStatus.completed);
-      expect(p.statusLabel, 'Completed');
-      expect(p.bestScore, 3);
-      expect(p.percentComplete, 60);
-      expect(p.buttonLabel, 'Review answers');
+    test('percent rounds down from best score', () {
+      expect(const QuizProgress(bestScore: 4, totalQuestions: 5).percentComplete, 80);
+      expect(const QuizProgress(bestScore: 5, totalQuestions: 6).percentComplete, 83);
+      expect(const QuizProgress().percentComplete, 0);
     });
 
-    test('the book remembers every set', () {
+    test('re-open never downgrades a completed quiz', () {
       final book = QuizProgressBook();
-      book.markInProgress('a', 5);
-      book.markCompleted('b', 4, 5);
-      expect(book.progressFor('a').status, QuizStatus.inProgress);
-      expect(book.progressFor('b').percentComplete, 80);
-      expect(book.progressFor('c').status, QuizStatus.notStarted);
+      book.markCompleted('q', 4, 5);
+      book.markInProgress('q', 5);
+      expect(book['q'].status, QuizStatus.completed);
+      expect(book['q'].bestScore, 4);
     });
 
-    test('progress survives a JSON round trip', () {
-      const p = QuizProgress(
-          status: QuizStatus.completed, bestScore: 4, totalQuestions: 5);
-      final back = QuizProgress.fromJson(
-          p.toJson() as Map<String, dynamic>);
-      expect(back.status, QuizStatus.completed);
-      expect(back.percentComplete, 80);
-    });
-  });
-
-  group('profile stats', () {
-    test('an empty week reads empty', () {
-      final s = profileStats(
-        progress: const {},
-        quizIds: const ['a', 'b'],
-        materials: 0,
-        activity: const ActivityDay(),
-        today: 10,
-        lessonIds: const ['l1', 'l2'],
-      );
-      expect(s.streak, 0);
-      expect(s.quizzesDone, 0);
-      expect(s.bestAveragePct, 0);
-      expect(profileSpoken(null, s), 'Your progress is just getting started.');
-      expect(lessonsLine(s), 'Lessons: none finished yet.');
-      expect(quizLine(s), 'Quizzes: none finished yet.');
-      expect(averageLine(s), isNull);
-      expect(materialsLine(s), 'Materials: none yet.');
-    });
-
-    test('a busy week reads back', () {
-      final s = stats(
-        streak: 4,
-        longestStreak: 7,
-        lessonsDone: 2,
-        quizzesDone: 1,
-        quizzesTotal: 4,
-        perfectSets: 1,
-        bestAveragePct: 88,
-        materials: 3,
-        listeningSeconds: 1500,
-      );
-      expect(
-        profileSpoken('Marc', s),
-        'Marc, you have a 4 day streak, finished 2 of 6 lessons, '
-        'completed 1 of 4 quizzes, and listened for 25 minutes.',
-      );
-      expect(lessonsLine(s), 'Lessons: 2 of 6 finished.');
-      expect(quizLine(s), 'Quizzes: 1 of 4 completed.');
-      expect(averageLine(s), 'Average quiz score: 88 percent.');
-      expect(materialsLine(s), 'Materials: 3.');
+    test('in-progress then completed keeps the best score', () {
+      final book = QuizProgressBook();
+      book.markInProgress('q', 5);
+      expect(book['q'].status, QuizStatus.inProgress);
+      book.markCompleted('q', 3, 5);
+      book.markCompleted('q', 5, 5);
+      book.markCompleted('q', 2, 5);
+      expect(book['q'].bestScore, 5);
+      expect(book['q'].percentComplete, 100);
     });
   });
 
-  group('milestones', () {
-    test('reach, freshness and celebration lines', () {
-      final s = stats(streak: 7, lessonsDone: 1, perfectSets: 1);
-      final reached = reachedMilestones(s, const {});
-      expect(
-        reached.map((m) => m.id),
-        containsAll(['streak_7', 'lessons_1', 'quiz_perfect_1']),
-      );
-      expect(freshMilestones(s, const {'streak_7'}).map((m) => m.id),
-          isNot(contains('streak_7')));
-      expect(
-        milestonesRowLine(reached, const []),
-        'Milestones: ${reached.length} of 14 reached.',
-      );
-      expect(
-        milestonesAnnouncement(freshMilestones(s, const {})),
-        startsWith('New milestone reached: '),
-      );
-      expect(milestonesSpoken(const []), 'No milestones reached yet.');
+  group('streaks', () {
+    test('current counts the run ending today', () {
+      expect(Streaks.current({8, 9, 10}, 10), 3);
     });
 
-    test('seen milestones are never forgotten', () {
-      final seen = MilestoneSeen();
-      seen.markSeen(['a']);
-      seen.markSeen(['b']);
-      expect(seen.seen(), {'a', 'b'});
+    test('a quiet today stays alive on yesterday', () {
+      expect(Streaks.current({9}, 10), 1);
+      expect(Streaks.current({8}, 10), 0);
+    });
+
+    test('longest finds the best run', () {
+      expect(Streaks.longest({1, 2, 3, 7, 8}), 3);
+      expect(Streaks.longest(const {}), 0);
+    });
+
+    test('a day activates after a minute of listening', () {
+      var log = const ActivityLog();
+      log = Streaks.withListening(log, 30, 10);
+      expect(log.activeDays, isEmpty);
+      log = Streaks.withListening(log, 30, 10);
+      expect(log.activeDays, {10});
+      expect(log.listeningSeconds, 60);
+    });
+
+    test('a new day restarts the daily counter', () {
+      var log = const ActivityLog();
+      log = Streaks.withListening(log, 50, 9);
+      log = Streaks.withListening(log, 50, 10);
+      expect(log.todayDay, 10);
+      expect(log.todaySeconds, 50);
+      expect(log.listeningSeconds, 100);
+    });
+
+    test('finishing a lesson activates the day and records it', () {
+      final log = Streaks.withLessonFinished(const ActivityLog(), 'l1', 10);
+      expect(log.activeDays, {10});
+      expect(log.lessonsFinished, {'l1'});
+    });
+
+    test('old days are forgotten past the keep window', () {
+      expect(Streaks.trim({1, 500}, 500), {500});
     });
   });
 
   group('activity text', () {
-    test('streak, longest and listening lines', () {
-      expect(streakLine(0), 'Day streak: none yet.');
-      expect(streakLine(1), 'Day streak: 1 day.');
-      expect(streakLine(5), 'Day streak: 5 days.');
-      expect(longestLine(9), 'Longest streak: 9 days.');
-      expect(listeningLine(0), 'Listening time: none yet.');
-      expect(listeningLine(59), 'Listening time: 59 seconds.');
-      expect(listeningLine(60), 'Listening time: 1 minute.');
-      expect(listeningLine(3600), 'Listening time: 1 hour.');
-      expect(listeningLine(3660), 'Listening time: 1 hour and 1 minute.');
-      expect(countPeople(1, 'day'), '1 day');
-      expect(countPeople(2, 'day'), '2 days');
+    test('streak and longest lines', () {
+      expect(ActivityText.streakLine(0), 'Streak: none yet');
+      expect(ActivityText.streakLine(1), 'Streak: 1 day');
+      expect(ActivityText.streakLine(4), 'Streak: 4 days');
+      expect(ActivityText.longestLine(9), 'Longest streak: 9 days');
+    });
+
+    test('listening durations', () {
+      expect(ActivityText.listening(30), 'under a minute');
+      expect(ActivityText.listening(60), '1 minute');
+      expect(ActivityText.listening(120), '2 minutes');
+      expect(ActivityText.listening(3600), '1 hour');
+      expect(ActivityText.listening(3660), '1 hour 1 minute');
+      expect(ActivityText.listening(7260), '2 hours 1 minute');
+      expect(ActivityText.listeningLine(90), 'Listening: 1 minute');
+    });
+  });
+
+  group('profile summary', () {
+    ProfileStats stats({
+      Map<String, QuizProgress> progress = const {},
+      List<String> quizIds = const ['q1', 'q2'],
+      int materials = 0,
+      ActivityLog activity = const ActivityLog(),
+      int today = 0,
+      List<String> lessonIds = const [],
+    }) =>
+        ProfileSummary.stats(
+          progress: progress,
+          quizIds: quizIds,
+          materials: materials,
+          activity: activity,
+          today: today,
+          lessonIds: lessonIds,
+        );
+
+    test('counts only quizzes that still exist', () {
+      final s = stats(
+        progress: const {
+          'q1': QuizProgress(status: QuizStatus.completed, bestScore: 4, totalQuestions: 5),
+          'gone': QuizProgress(status: QuizStatus.completed, bestScore: 5, totalQuestions: 5),
+        },
+      );
+      expect(s.quizzesDone, 1);
+      expect(s.quizzesTotal, 2);
+      expect(s.averagePercent, 80);
+    });
+
+    test('average is null until one finishes', () {
+      expect(stats().averagePercent, isNull);
+      expect(ProfileSummary.averageLine(stats()), isNull);
+    });
+
+    test('row lines read plain numbers', () {
+      expect(ProfileSummary.quizLine(stats()), 'Quizzes: 0 of 2 done');
+      expect(ProfileSummary.quizLine(stats(quizIds: const [])), 'Quizzes: none yet');
+      expect(ProfileSummary.lessonsLine(stats()), 'Lessons: none yet');
+      expect(
+        ProfileSummary.lessonsLine(stats(lessonIds: const ['a', 'b'])),
+        'Lessons: 0 of 2 finished',
+      );
+      expect(ProfileSummary.materialsLine(stats()), 'Materials: none yet');
+      expect(ProfileSummary.materialsLine(stats(materials: 3)), 'Materials: 3');
+      expect(
+        ProfileSummary.averageLine(stats(
+          progress: const {
+            'q1': QuizProgress(
+                status: QuizStatus.completed, bestScore: 4, totalQuestions: 5),
+          },
+        )),
+        'Average best score: 80 percent',
+      );
+    });
+
+    test('spoken summary for a fresh learner', () {
+      expect(
+        ProfileSummary.spoken(null, stats()),
+        'Here is how you are doing. '
+        'You have not finished a quiz yet. '
+        'You have not added your own material yet. '
+        'Next, try a quiz you have not finished.',
+      );
+    });
+
+    test('spoken summary names the learner and the streak', () {
+      final s = stats(
+        activity: const ActivityLog(activeDays: {9, 10}, listeningSeconds: 90),
+        today: 10,
+        lessonIds: const ['a', 'b'],
+      );
+      expect(
+        ProfileSummary.spoken(' Ana ', s),
+        'Here is how you are doing, Ana. '
+        'You are on a 2 day streak. '
+        'You have not finished a lesson yet. '
+        'You have not finished a quiz yet. '
+        'You have not added your own material yet. '
+        'You have listened for 1 minute. '
+        'Next, try a quiz you have not finished.',
+      );
     });
   });
 
   group('braille avatar', () {
-    test('spells the name, one cell per letter', () {
-      expect(brailleCells('Ann'), [
+    test('cells spell the name in dots', () {
+      expect(BrailleAvatar.cells('ab'), [
         [1],
-        [1, 3, 4, 5],
-        [1, 3, 4, 5],
+        [1, 2],
       ]);
-      expect(brailleCells(null), isEmpty);
-      expect(brailleCells('A1!'), [
-        [1]
+      expect(BrailleAvatar.cells(null), isEmpty);
+    });
+
+    test('only plain letters count', () {
+      expect(BrailleAvatar.cells('A-1 b'), [
+        [1],
+        [1, 2],
       ]);
     });
 
-    test('cells shrink to fit the width', () {
-      expect(brailleCellWidthDp(1, 400), 44);
-      expect(brailleCellWidthDp(20, 400), closeTo(4.8, 1e-9));
+    test('cells shrink to fit but never grow past the max', () {
+      expect(BrailleAvatar.cells('w'), [
+        [2, 4, 5, 6],
+      ]);
+      expect(BrailleAvatar.cellWidth(count: 0, available: 10), 44);
+      expect(BrailleAvatar.cellWidth(count: 1, available: 500), 44);
+      expect(BrailleAvatar.cellWidth(count: 10, available: 100), lessThan(44));
     });
   });
 
-  group('count up', () {
-    test('scales every number to the progress', () {
-      expect(countUpApply('5 day streak', 0.5), '3 day streak');
-      expect(countUpApply('2 of 6 lessons', 1.0), '2 of 6 lessons');
-      expect(countUpApply('none yet', 0.3), 'none yet');
-    });
-  });
+  group('milestones', () {
+    const fresh = ProfileStats(
+      quizzesDone: 0,
+      quizzesTotal: 4,
+      averagePercent: null,
+      materials: 0,
+    );
 
-  group('avatar motion', () {
-    test('dots light in order and settle back', () {
-      expect(avatarDotProgress(0.5, 1), 1.0);
-      expect(avatarDotProgress(0.5, 6), 0.0);
-      expect(avatarSwell(0.5), closeTo(1.4, 1e-9));
-      expect(avatarSwell(1.0), closeTo(1.0, 1e-9));
-      expect(avatarRestingAlpha(0.25), closeTo(0.15, 1e-9));
-      expect(avatarShine(0.375, 1, 3), closeTo(1.0, 1e-9));
-      expect(avatarShine(1.0, 0, 3), closeTo(0.0, 1e-9));
+    test('fourteen milestones in firsts-then-streaks-then-counts order', () {
+      expect(allMilestones.map((m) => m.id), [
+        'lessons_1',
+        'quizzes_1',
+        'material_1',
+        'streak_3',
+        'streak_7',
+        'streak_14',
+        'streak_30',
+        'lessons_5',
+        'lessons_10',
+        'lessons_all',
+        'quizzes_5',
+        'quizzes_all',
+        'listen_1h',
+        'listen_10h',
+      ]);
+    });
+
+    test('a fresh learner has reached nothing', () {
+      expect(reachedMilestonesNow(fresh), isEmpty);
+      expect(reachedMilestones(fresh, const {}), isEmpty);
+    });
+
+    test('reached keeps milestones told about before', () {
+      expect(reachedMilestones(fresh, const {'streak_3'}).map((m) => m.id), ['streak_3']);
+    });
+
+    test('fresh celebrates only the untold', () {
+      const s = ProfileStats(
+        quizzesDone: 1,
+        quizzesTotal: 4,
+        averagePercent: 80,
+        materials: 1,
+        lessonsDone: 1,
+        lessonsTotal: 5,
+      );
+      expect(freshMilestones(s, const {}).map((m) => m.id),
+          ['lessons_1', 'quizzes_1', 'material_1']);
+      expect(freshMilestones(s, const {'lessons_1'}).map((m) => m.id),
+          ['quizzes_1', 'material_1']);
+    });
+
+    test('row line counts plainly with new ones called out', () {
+      const s = ProfileStats(
+        quizzesDone: 1,
+        quizzesTotal: 4,
+        averagePercent: 80,
+        materials: 0,
+      );
+      final reached = reachedMilestones(s, const {});
+      expect(milestoneRowLine(reached, const []), 'Milestones: 1 of 14');
+      expect(milestoneRowLine(reached, reached), 'Milestones: 1 of 14, 1 new');
+    });
+
+    test('spoken row names the next goal', () {
+      final reached = reachedMilestones(fresh, const {'lessons_1'});
+      expect(
+        milestoneSpoken(reached),
+        'You have reached 1 of 14 milestones. '
+        'Reached: First lesson finished. '
+        'Next goal: First quiz finished.',
+      );
+    });
+
+    test('announcements stay short', () {
+      expect(milestoneAnnouncement(const []), '');
+      final one = reachedMilestones(
+          const ProfileStats(
+              quizzesDone: 0, quizzesTotal: 4, averagePercent: null, materials: 1),
+          const {});
+      expect(milestoneAnnouncement(one), 'New milestone: First material of your own.');
     });
   });
 }
