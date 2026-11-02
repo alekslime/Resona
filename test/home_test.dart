@@ -108,7 +108,7 @@ void main() {
       await flushNav(tester);
       expect(find.byType(ChatScreen), findsOneWidget);
       expect(
-        tester.widget<ChatScreen>(find.byType(ChatScreen)).analysis,
+        tester.widget<ChatScreen>(find.byType(ChatScreen)).recent,
         isNull,
       );
       expect(log.events, contains('say: Opening Chat.'));
@@ -121,8 +121,8 @@ void main() {
       await tester.tap(find.text('Chat'));
       await flushNav(tester);
       final chat = tester.widget<ChatScreen>(find.byType(ChatScreen));
-      expect(chat.analysis, isNotNull);
-      expect(chat.analysis!.title, isNotEmpty);
+      expect(chat.recent, isNotNull);
+      expect(chat.recent!.analysis.title, isNotEmpty);
     });
 
     testWidgets('lessons opens the library, no picture needed',
