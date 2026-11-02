@@ -9,14 +9,14 @@ import '../application/touch_controller.dart';
 import '../data/touch_repository.dart';
 import 'touch_screen.dart';
 
-class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+class PicturesScreen extends ConsumerStatefulWidget {
+  const PicturesScreen({super.key});
 
   @override
-  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<PicturesScreen> createState() => _PicturesScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _PicturesScreenState extends ConsumerState<PicturesScreen> {
   List<GallerySample>? _gallery;
   ServerHealth? _health;
 

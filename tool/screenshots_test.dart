@@ -14,7 +14,7 @@ import 'package:resonant/features/touch/data/http_touch_repository.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
 import 'package:resonant/features/touch/domain/region.dart';
 import 'package:resonant/features/touch/gestures/gesture_types.dart';
-import 'package:resonant/features/touch/presentation/home_screen.dart';
+import 'package:resonant/features/touch/presentation/pictures_screen.dart';
 import 'package:resonant/features/touch/presentation/study_notes_screen.dart';
 import 'package:resonant/features/touch/presentation/touch_screen.dart';
 
@@ -71,12 +71,12 @@ void main() {
     addTearDown(tester.view.reset);
     await tester.pumpWidget(ProviderScope(overrides: fakes(), child: const ResonantApp()));
     await tester.pump(const Duration(milliseconds: 300));
-    return ProviderScope.containerOf(tester.element(find.byType(HomeScreen)));
+    return ProviderScope.containerOf(tester.element(find.byType(PicturesScreen)));
   }
 
   testWidgets('home screenshot', (tester) async {
     await pumpApp(tester);
-    await expectLater(find.byType(HomeScreen), matchesGoldenFile('../docs/screenshots/01-home.png'));
+    await expectLater(find.byType(PicturesScreen), matchesGoldenFile('../docs/screenshots/01-home.png'));
   });
 
   testWidgets('explore + study notes screenshots', (tester) async {
@@ -148,7 +148,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 400));
     await expectLater(
-      find.byType(HomeScreen),
+      find.byType(PicturesScreen),
       matchesGoldenFile('../docs/screenshots/06-theme-low-vision.png'),
     );
   });

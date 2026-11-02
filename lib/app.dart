@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/providers.dart';
 import 'core/theme/resonant_theme.dart';
-import 'features/touch/presentation/home_screen.dart';
+import 'features/touch/presentation/pictures_screen.dart';
 
 class ResonantApp extends ConsumerWidget {
   const ResonantApp({super.key});
@@ -15,7 +15,7 @@ class ResonantApp extends ConsumerWidget {
       title: 'Resonant',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(palette),
-      home: const HomeScreen(),
+      home: const PicturesScreen(),
     );
   }
 }
