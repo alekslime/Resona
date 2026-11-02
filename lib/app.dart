@@ -12,10 +12,27 @@ class ResonantApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
     final font = ref.watch(fontProvider);
+    final scale = ref.watch(textScaleProvider);
+    final reduced = ref.watch(reduceMotionProvider);
     return MaterialApp(
       title: 'Resonant',
       debugShowCheckedModeBanner: false,
       theme: buildTheme(palette, font),
+      builder: (context, child) {
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(
+            // The settings text size, app-wide, on top of the phone's own
+            // text size. 1.0 is normal.
+            textScaler: TextScaler.linear(
+              media.textScaler.scale(1.0) * scale,
+            ),
+            // The settings switch joins the system one: either silences motion.
+            disableAnimations: media.disableAnimations || reduced,
+          ),
+          child: child!,
+        );
+      },
       home: const HomeScreen(),
     );
   }

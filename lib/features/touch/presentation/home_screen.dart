@@ -10,7 +10,7 @@
 /// last explored picture, like old Chat answering from the material opened
 /// last; with no picture yet they say so and send you to Pictures.
 ///
-/// (The text-size cap and the full gesture grammar arrive with Settings.)
+/// Menu words are huge already, so the text size stops at 1.2x here.
 library;
 
 import 'dart:async';
@@ -25,6 +25,7 @@ import '../../../core/nav/resonant_nav.dart';
 import '../../../core/providers.dart';
 import '../../../core/services/haptics.dart';
 import '../../../core/theme/motion.dart';
+import '../../../core/ui/capped_text.dart';
 import '../../../core/ui/enter.dart';
 import '../../../core/ui/focus_fade.dart';
 import '../../../core/ui/system_bars.dart';
@@ -182,21 +183,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const CustomSemanticsAction(label: 'Next'): () => _move(1),
               const CustomSemanticsAction(label: 'Previous'): () => _move(-1),
             },
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (var i = 0; i < _items.length; i++)
-                  _MenuItem(
-                    label: _items[i].label,
-                    focused: i == _focus.index,
-                    index: i,
-                    onTap: () {
-                      setState(() => _focus.jumpTo(i));
-                      _open(i);
-                    },
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                // Seven lines at this size do not fit every phone: one finger
+                // scrolls when they overflow, and swipes move focus when
+                // everything fits.
+                child: ConstrainedBox(
+                  constraints:
+                      BoxConstraints(minHeight: constraints.maxHeight),
+                  child: CappedText(
+                    max: 1.2,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (var i = 0; i < _items.length; i++)
+                          _MenuItem(
+                            label: _items[i].label,
+                            focused: i == _focus.index,
+                            index: i,
+                            onTap: () {
+                              setState(() => _focus.jumpTo(i));
+                              _open(i);
+                            },
+                          ),
+                      ],
+                    ),
                   ),
-              ],
+                ),
+              ),
             ),
           ),
         ),
