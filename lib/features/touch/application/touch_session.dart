@@ -440,12 +440,16 @@ class TouchSession {
     return i >= 0 && i + 1 < order.length ? order[i + 1] : null;
   }
 
-  String _arrivalWords(Region r) {
+  String _arrivalWords(Region r) => 'You found the ${r.label}. ${_teachWords(r)}';
+
+  /// What finding a part teaches: its spoken line, what sits around it
+  /// (both already in the region's own words), then the next part to find.
+  String _teachWords(Region r) {
     final next = _nextInOrder(r);
     final offer = next == null
         ? ' That was the last part. Try Quiz me or Lesson below to keep studying.'
         : ' Next is the ${next.label}. Say "where is the ${next.label}?" to keep going.';
-    return 'You found the ${r.label}. ${r.spoken}${aroundWords(r, regions)}$offer';
+    return '${r.spoken}${aroundWords(r, regions)}$offer';
   }
 
   void _rest() {
@@ -629,6 +633,17 @@ class TouchSession {
   /// Starts (or re-points) a guide hunt. Asking for the part already being
   /// hunted is a hint, not a restart.
   void _beginGuide(Region target) {
+    if (_focus?.id == target.id) {
+      // Asked for the part already under the finger: teach on the spot, no
+      // hunt and no level change, but the next offer still stands.
+      _thinking = false;
+      _offeredNext = _nextInOrder(target);
+      haptics.play(HapticPattern.correct);
+      cues.play(HapticPattern.correct);
+      _say('You are already on the ${target.label}. ${_teachWords(target)}');
+      _emit();
+      return;
+    }
     if (target.id == _guide?.id) {
       _thinking = false;
       _guideHint();
