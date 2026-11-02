@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:resonant/core/ui/dots_engine.dart';
 import 'package:resonant/core/ui/resonant_dots.dart';
 
 // Pose layout: dot k lives at [4k]=x, [4k+1]=y, [4k+2]=x-scale, [4k+3]=y-scale.
@@ -66,7 +65,7 @@ void main() {
       expect(pose[3], greaterThanOrEqualTo(1));
       expect(pose[2] * pose[3], closeTo(1, 1e-9));
       expect(pose[0], lessThan(-400)); // spread across the cell
-      expect(pose[12], greaterThan(400));
+      expect(pose[16], greaterThan(400));
     });
 
     test('level smoothing attacks fast and releases slow', () {
@@ -81,7 +80,7 @@ void main() {
 
     test('state switches blend over about a second', () {
       final engine = DotsEngine();
-      final idle = engine.frame(DotsState.idle, 0, null, false);
+      final idle = List.of(engine.frame(DotsState.idle, 0, null, false));
       // Just switched: still the old pose.
       expect(
         engine.frame(DotsState.speaking, 0.45, null, false),
@@ -92,25 +91,27 @@ void main() {
         engine.frame(DotsState.speaking, 0.9, null, false),
         isNot(orderedEquals(idle)),
       );
-      // Settled: two engines agree exactly.
-      final settled = engine.frame(DotsState.speaking, 2, null, false);
+      // Settled: two engines agree to float noise.
+      final settled = List.of(engine.frame(DotsState.speaking, 2, null, false));
       final other = DotsEngine()
         ..frame(DotsState.speaking, 0, null, false);
-      expect(
-        other.frame(DotsState.speaking, 2, null, false),
-        orderedEquals(settled),
-      );
+      final got = other.frame(DotsState.speaking, 2, null, false);
+      expect(got.length, settled.length);
+      for (var i = 0; i < got.length; i++) {
+        expect(got[i], closeTo(settled[i], 1e-9));
+      }
     });
 
     test('reduce motion snaps instead of blending', () {
-      final snapped =
-          DotsEngine().frame(DotsState.speaking, 3, null, true);
+      final snapped = List.of(
+          DotsEngine().frame(DotsState.speaking, 3, null, true));
       final other = DotsEngine()
         ..frame(DotsState.speaking, 0, null, false);
-      expect(
-        other.frame(DotsState.speaking, 3, null, false),
-        orderedEquals(snapped),
-      );
+      final got = other.frame(DotsState.speaking, 3, null, false);
+      expect(got.length, snapped.length);
+      for (var i = 0; i < got.length; i++) {
+        expect(got[i], closeTo(snapped[i], 1e-9));
+      }
     });
   });
 
