@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 /// One complete colour theme. Every screen is drawn from these colours, exactly as in Resonant's
 /// Kotlin ThemePalette: [ink] is text and icons, [onInk] is what sits on an ink fill, [bar] is the
-/// top pill, [button] the buttons, and the outlines exist only in the high-contrast themes.
-/// The palettes below carry Resonant's twelve themes over with their colours unchanged
-/// (the last eight were added when the gallery was completed for this build).
+/// top pill, [button] the buttons, [correct]/[incorrect] the quiz result fills with their text,
+/// and the outlines edge cards ([cardOutline]) and bars/buttons ([controlOutline]) in the
+/// high-contrast themes. Null means no outline. The radii are part of the feel, not just color.
 class ResonantPalette {
   const ResonantPalette({
     required this.id,
@@ -18,8 +18,13 @@ class ResonantPalette {
     required this.onBar,
     required this.button,
     required this.onButton,
+    required this.correct,
+    required this.onCorrect,
+    required this.incorrect,
+    required this.onIncorrect,
     required this.signal,
-    this.outline,
+    this.cardOutline,
+    this.controlOutline,
     this.outlineWidth = 0,
     this.cardRadius = 28,
     this.controlRadius = 50,
@@ -27,10 +32,11 @@ class ResonantPalette {
 
   final String id, label;
   final Color background, card, ink, onInk, dim, bar, onBar, button, onButton;
+  final Color correct, onCorrect, incorrect, onIncorrect;
 
   /// Tint for the outlined part of a picture. New for the hackathon build.
   final Color signal;
-  final Color? outline;
+  final Color? cardOutline, controlOutline;
   final double outlineWidth;
   final double cardRadius, controlRadius;
 }
@@ -48,6 +54,10 @@ abstract final class Palettes {
     onBar: Color(0xFFFFFFFF),
     button: Color(0xFF0A0A0A),
     onButton: Color(0xFFFFFFFF),
+    correct: Color(0xFF8CCBFF),
+    onCorrect: Color(0xFF000000),
+    incorrect: Color(0xFF7A2900),
+    onIncorrect: Color(0xFFFFFFFF),
     signal: Color(0xFFFF5A1F),
   );
 
@@ -63,8 +73,13 @@ abstract final class Palettes {
     onBar: Color(0xFFFFFFFF),
     button: Color(0xFF000000),
     onButton: Color(0xFFFFFFFF),
+    correct: Color(0xFFFFE100),
+    onCorrect: Color(0xFF090A0C),
+    incorrect: Color(0xFF5A1A00),
+    onIncorrect: Color(0xFFFFFFFF),
     signal: Color(0xFFFFE100),
-    outline: Color(0xFFFFE100),
+    cardOutline: Color(0xFFFFE100),
+    controlOutline: Color(0xFFFFE100),
     outlineWidth: 3,
     cardRadius: 12,
     controlRadius: 14,
@@ -82,8 +97,13 @@ abstract final class Palettes {
     onBar: Color(0xFFFFFFFF),
     button: Color(0xFF16140E),
     onButton: Color(0xFFFFFFFF),
+    correct: Color(0xFF6FB8F0),
+    onCorrect: Color(0xFF0B1620),
+    incorrect: Color(0xFF6B2B00),
+    onIncorrect: Color(0xFFFFFFFF),
     signal: Color(0xFF6FB8F0),
-    outline: Color(0xFFFFE100),
+    cardOutline: Color(0xFFFFE100),
+    controlOutline: Color(0xFFFFE100),
     outlineWidth: 4,
     cardRadius: 20,
     controlRadius: 20,
@@ -101,8 +121,12 @@ abstract final class Palettes {
     onBar: Color(0xFFFFFFFF),
     button: Color(0xFF000000),
     onButton: Color(0xFFFFFFFF),
+    correct: Color(0xFFD0D0D0),
+    onCorrect: Color(0xFF000000),
+    incorrect: Color(0xFF000000),
+    onIncorrect: Color(0xFFFFFFFF),
     signal: Color(0xFF000000),
-    outline: Color(0xFF000000),
+    cardOutline: Color(0xFF000000),
     outlineWidth: 2,
     cardRadius: 4,
     controlRadius: 4,
@@ -120,8 +144,13 @@ abstract final class Palettes {
     onBar: Color(0xFFFFFFFF),
     button: Color(0xFFFFFFFF),
     onButton: Color(0xFF000000),
+    correct: Color(0xFFFFFFFF),
+    onCorrect: Color(0xFF000000),
+    incorrect: Color(0xFF4D4D4D),
+    onIncorrect: Color(0xFFFFFFFF),
     signal: Color(0xFFFFFFFF),
-    outline: Color(0xFFFFFFFF),
+    cardOutline: Color(0xFFFFFFFF),
+    controlOutline: Color(0xFFFFFFFF),
     outlineWidth: 3,
     cardRadius: 8,
     controlRadius: 8,
@@ -139,7 +168,14 @@ abstract final class Palettes {
     onBar: Color(0xFFF0DFC2),
     button: Color(0xFFF0DFC2),
     onButton: Color(0xFF211812),
+    correct: Color(0xFF3F5666),
+    onCorrect: Color(0xFFFFF8E9),
+    incorrect: Color(0xFF2A1006),
+    onIncorrect: Color(0xFFFFF8E9),
     signal: Color(0xFFE8A33D),
+    cardOutline: Color(0xFF837E74),
+    controlOutline: Color(0xFF837E74),
+    outlineWidth: 2,
     cardRadius: 36,
   );
 
@@ -155,7 +191,14 @@ abstract final class Palettes {
     onBar: Color(0xFFFFD9A3),
     button: Color(0xFFFFB35C),
     onButton: Color(0xFF2E1B10),
+    correct: Color(0xFFBFE0F5),
+    onCorrect: Color(0xFF000000),
+    incorrect: Color(0xFF6B2400),
+    onIncorrect: Color(0xFFFFF8E9),
     signal: Color(0xFFFF9E45),
+    cardOutline: Color(0xFF756F5F),
+    controlOutline: Color(0xFF756F5F),
+    outlineWidth: 2,
     cardRadius: 24,
   );
 
@@ -171,8 +214,13 @@ abstract final class Palettes {
     onBar: Color(0xFFFF7A6E),
     button: Color(0xFFFF7A6E),
     onButton: Color(0xFF000000),
+    correct: Color(0xFFFF7878),
+    onCorrect: Color(0xFF000000),
+    incorrect: Color(0xFF140000),
+    onIncorrect: Color(0xFFFF9494),
     signal: Color(0xFFFF7A6E),
-    outline: Color(0xFF7A1F1A),
+    cardOutline: Color(0xFF9E4A4A),
+    controlOutline: Color(0xFF9E4A4A),
     outlineWidth: 2,
   );
 
@@ -188,7 +236,13 @@ abstract final class Palettes {
     onBar: Color(0xFFFFFFFF),
     button: Color(0xFF002FA7),
     onButton: Color(0xFFFFFFFF),
+    correct: Color(0xFF0A1B6B),
+    onCorrect: Color(0xFFFFEB3B),
+    incorrect: Color(0xFFFFFFFF),
+    onIncorrect: Color(0xFF0A1B6B),
     signal: Color(0xFF002FA7),
+    cardOutline: Color(0xFF7B7B55),
+    outlineWidth: 2,
   );
 
   static const softCream = ResonantPalette(
@@ -203,7 +257,13 @@ abstract final class Palettes {
     onBar: Color(0xFFFFF4E0),
     button: Color(0xFF6D3B2A),
     onButton: Color(0xFFFFF4E0),
+    correct: Color(0xFFBFD9F2),
+    onCorrect: Color(0xFF1B2A49),
+    incorrect: Color(0xFF6B2400),
+    onIncorrect: Color(0xFFFFFDF5),
     signal: Color(0xFFB3541E),
+    cardOutline: Color(0xFF787D86),
+    outlineWidth: 2,
   );
 
   static const paperGray = ResonantPalette(
@@ -218,8 +278,12 @@ abstract final class Palettes {
     onBar: Color(0xFFFFFFFF),
     button: Color(0xFF16181D),
     onButton: Color(0xFFFFFFFF),
+    correct: Color(0xFFBFE0F5),
+    onCorrect: Color(0xFF1F1F1F),
+    incorrect: Color(0xFF6B2400),
+    onIncorrect: Color(0xFFF2F2EF),
     signal: Color(0xFF005FCC),
-    outline: Color(0xFF6E6E6E),
+    cardOutline: Color(0xFF6F6F6E),
     outlineWidth: 2,
     cardRadius: 16,
     controlRadius: 24,
@@ -237,7 +301,14 @@ abstract final class Palettes {
     onBar: Color(0xFFFFFFFF),
     button: Color(0xFFFFFFFF),
     onButton: Color(0xFF0B3D91),
+    correct: Color(0xFFFFFFFF),
+    onCorrect: Color(0xFF0B2A6F),
+    incorrect: Color(0xFF4A1A00),
+    onIncorrect: Color(0xFFFFFFFF),
     signal: Color(0xFFFFD500),
+    cardOutline: Color(0xFF7183AB),
+    controlOutline: Color(0xFF7183AB),
+    outlineWidth: 2,
   );
 
   static const all = [
@@ -254,4 +325,8 @@ abstract final class Palettes {
     paperGray,
     whiteOnBlue,
   ];
+
+  /// Unknown or missing ids fall back to the default theme.
+  static ResonantPalette byId(String? id) =>
+      all.firstWhere((p) => p.id == id, orElse: () => standard);
 }

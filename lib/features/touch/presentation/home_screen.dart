@@ -182,10 +182,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       decoration: BoxDecoration(
                         color: palette.card,
                         borderRadius: BorderRadius.circular(palette.cardRadius),
-                        border: palette.outline == null
+                        border: palette.cardOutline == null
                             ? null
                             : Border.all(
-                                color: palette.outline!,
+                                color: palette.cardOutline!,
                                 width: palette.outlineWidth),
                       ),
                       child: Column(

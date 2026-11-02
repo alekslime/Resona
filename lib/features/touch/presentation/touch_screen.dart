@@ -128,10 +128,10 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                                   color: palette.card,
                                   borderRadius:
                                       BorderRadius.circular(palette.cardRadius),
-                                  border: palette.outline == null
+                                  border: palette.cardOutline == null
                                       ? null
                                       : Border.all(
-                                          color: palette.outline!,
+                                          color: palette.cardOutline!,
                                           width: palette.outlineWidth,
                                         ),
                                 ),
@@ -358,9 +358,9 @@ class _TitlePill extends ConsumerWidget {
       decoration: BoxDecoration(
         color: p.bar,
         borderRadius: BorderRadius.circular(p.controlRadius),
-        border: p.outline == null
+        border: p.controlOutline == null
             ? null
-            : Border.all(color: p.outline!, width: p.outlineWidth),
+            : Border.all(color: p.controlOutline!, width: p.outlineWidth),
       ),
       child: Row(
         children: [

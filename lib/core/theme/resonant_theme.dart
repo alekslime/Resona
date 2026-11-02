@@ -36,9 +36,9 @@ ThemeData buildTheme(ResonantPalette p) {
         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(p.controlRadius),
-          side: p.outline == null
+          side: p.controlOutline == null
               ? BorderSide.none
-              : BorderSide(color: p.outline!, width: p.outlineWidth),
+              : BorderSide(color: p.controlOutline!, width: p.outlineWidth),
         ),
         textStyle: const TextStyle(
           fontFamily: 'Metropolis',
