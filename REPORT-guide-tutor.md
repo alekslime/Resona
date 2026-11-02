@@ -92,6 +92,43 @@ only optional/additive API (`nowMs` clock, `TouchView.guideHelp`), and
   (new, 16), `test/guide_arrival_test.dart` (new, 3),
   `test/guide_help_test.dart` (new, 10).
 
+## Follow-up fixes (same branch, after the report)
+
+All five requested fixes, each tests-then-impl, green and pushed per slice.
+176 tests total (was 153), `flutter analyze` clean. Line endings verified
+uniform per file (repo files CRLF, new files LF); `touch_session.dart` is
+not mixed.
+
+1. Tone throttle: the proximity tone replays only when its pitch step
+   (0..4, via shared `proximityStep`) changes, with a 150 ms minimum gap;
+   a step held inside the gap plays once the gap passes. New
+   `test/guide_tone_test.dart`; two `guide_live_test` tone counts updated.
+2. `GuideNotFound` falls through to normal tutor chat (guide keeps
+   running); "Did you mean A or B?" unchanged. The unknown-part session
+   test now expects the fallback plus a guide-preserved check.
+3. Hints on pure finds: an explicit hint always speaks a direction and
+   raises the stored level for next time (this hunt stays pure otherwise;
+   needing the hint blocks the fast-lower so the raise sticks). Past
+   20 s without a find, moves and rests say once "Say hint if you want
+   help." (asking for a hint marks it taught). New
+   `test/guide_hint_test.dart`.
+4. Live speech keeps a 700 ms gap (armed by live/rest/hint/nudge speech,
+   not by guide-start) and 3-degree hysteresis at sector edges
+   (`guideSectorStable`; decisive jumps switch at once). New
+   `test/guide_throttle_test.dart`; the nudge test advances past the gap.
+5. Answering "did you mean A or B?": the pair stays open for exactly one
+   answer (silence keeps it); "first", "second", "option a/b", bare
+   "a"/"b", or either part's name starts that hunt, anything else
+   dismisses it into normal flow. Guide-start extracted to `_beginGuide`
+   so answers share it. New `test/guide_disambiguate_test.dart`.
+
+Decisions: tone-gap compares against the last played step (a held step
+re-fires after the gap); hint-in-`none` raises stored level only, current
+hunt stays pure; nudge fires on moves and rests and yields its turn to no
+other cue; bare "a"/"b" accepted only as the whole utterance; both names
+at once resolves nothing. One fix-3 test setup line (touch sky before the
+hint ask) rode in the implementation commit after the tests commit.
+
 ## Risks you could not verify without a phone
 
 - Feel of the guidance: whether 16 sectors help or overwhelm, and whether
