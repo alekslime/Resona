@@ -62,4 +62,9 @@ class AudioPlayersCues implements Cues {
     );
     return _play(wav);
   }
+
+  @override
+  Future<void> splash() {
+    return _play(_cache.putIfAbsent('splash', synthSplash));
+  }
 }

@@ -234,6 +234,9 @@ abstract class Cues {
   /// The guide-mode proximity tone: higher as the finger nears the part.
   /// [closeness] is 0 (far) to 1 (on the part).
   Future<void> proximity({required double closeness});
+
+  /// The splash soundtrack, rendered once and cached like the other cues.
+  Future<void> splash();
 }
 
 class NoCues implements Cues {
@@ -248,6 +251,8 @@ class NoCues implements Cues {
   Future<void> position({required double x01, required double y01}) async {}
   @override
   Future<void> proximity({required double closeness}) async {}
+  @override
+  Future<void> splash() async {}
 }
 
 /// Where each named cue sits between the ears: back, slower and wrong go left, everything else
