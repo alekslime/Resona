@@ -96,7 +96,7 @@ void main() {
       r.session.handle(const DoubleTap(Zone.center));
       final said = r.log.where('say').single;
       expect(said.contains('Tracing the cloud.'), isTrue);
-      expect(said.contains('It is to the right from here.'), isTrue);
+      expect(said.contains('It is down and to the right from here.'), isTrue);
       expect(r.lastView!.highlight!.label, 'cloud');
       r.session.handle(const ExploreEnd()); // tracing was on: confirms
       expect(r.log.where('haptic:confirm').length, 1);
