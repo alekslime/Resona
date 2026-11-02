@@ -107,7 +107,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
       expect(
         find.ancestor(
-          of: find.text('Talk'),
+          of: find.text('Chat'),
           matching: find.byType(Material),
         ),
         findsWidgets,

@@ -235,7 +235,7 @@ void main() {
       expect(
           MediaQuery.textScalerOf(context), const TextScaler.linear(1.25));
       expect(MediaQuery.disableAnimationsOf(context), isTrue);
-      final menu = tester.element(find.text('Talk'));
+      final menu = tester.element(find.text('Chat'));
       expect(
           MediaQuery.textScalerOf(menu), const TextScaler.linear(1.2));
     });
