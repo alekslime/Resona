@@ -11,18 +11,18 @@ void main() {
     setUpAll(() => t = buildTheme(Palettes.standard).textTheme);
 
     test('headings are Metropolis Black at the old sizes', () {
-      StyleOf(t.displayLarge, 'Metropolis', FontWeight.w900, 56, 64);
-      StyleOf(t.headlineLarge, 'Metropolis', FontWeight.w700, 44, 52);
-      StyleOf(t.headlineMedium, 'Metropolis', FontWeight.w700, 34, 42);
-      StyleOf(t.headlineSmall, 'Metropolis', FontWeight.w700, 30, 38);
-      StyleOf(t.titleLarge, 'Metropolis', FontWeight.w600, 28, 36);
+      styleOf(t.displayLarge, 'Metropolis', FontWeight.w900, 56, 64);
+      styleOf(t.headlineLarge, 'Metropolis', FontWeight.w700, 44, 52);
+      styleOf(t.headlineMedium, 'Metropolis', FontWeight.w700, 34, 42);
+      styleOf(t.headlineSmall, 'Metropolis', FontWeight.w700, 30, 38);
+      styleOf(t.titleLarge, 'Metropolis', FontWeight.w600, 28, 36);
     });
 
     test('body and labels use the old sizes and weights', () {
-      StyleOf(t.bodyLarge, 'Metropolis', FontWeight.w400, 26, 38);
-      StyleOf(t.bodyMedium, 'Metropolis', FontWeight.w400, 22, 32);
-      StyleOf(t.labelLarge, 'Metropolis', FontWeight.w700, 22, 28);
-      StyleOf(t.labelMedium, 'Metropolis', FontWeight.w500, 20, 26);
+      styleOf(t.bodyLarge, 'Metropolis', FontWeight.w400, 26, 38);
+      styleOf(t.bodyMedium, 'Metropolis', FontWeight.w400, 22, 32);
+      styleOf(t.labelLarge, 'Metropolis', FontWeight.w700, 22, 28);
+      styleOf(t.labelMedium, 'Metropolis', FontWeight.w500, 20, 26);
     });
 
     test('shared spacing matches the old margins and targets', () {
@@ -90,7 +90,7 @@ void main() {
   });
 }
 
-void StyleOf(TextStyle? s, String family, FontWeight weight, double size, double height) {
+void styleOf(TextStyle? s, String family, FontWeight weight, double size, double height) {
   expect(s, isNotNull);
   expect(s!.fontFamily, family);
   expect(s.fontWeight, weight);
