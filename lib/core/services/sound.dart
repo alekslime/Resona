@@ -154,3 +154,7 @@ const _leftCues = {
 };
 
 double panFor(HapticPattern pattern) => _leftCues.contains(pattern) ? -cuePanOffset : cuePanOffset;
+
+/// The guide proximity tone's pitch step, 0 (far) to 4 (on the part), shared
+/// by the player and the session's throttle so both agree when it changes.
+int proximityStep(double closeness) => (closeness.clamp(0.0, 1.0) * 4).round();

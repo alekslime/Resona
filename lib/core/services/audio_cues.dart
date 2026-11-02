@@ -50,7 +50,7 @@ class AudioPlayersCues implements Cues {
 
   @override
   Future<void> proximity({required double closeness}) {
-    final step = (closeness.clamp(0.0, 1.0) * 4).round(); // 0..4: higher as it gets closer
+    final step = proximityStep(closeness); // 0..4: higher as it gets closer
     final hz = 600 + step * 150;
     final wav = _cache.putIfAbsent(
       'g:$hz',

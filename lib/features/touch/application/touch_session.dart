@@ -99,6 +99,8 @@ class TouchSession {
   int? _guideSectorLast;
   int? _guideBucketLast;
   int _guideSpokenMs = 0;
+  int? _lastToneStep;
+  int? _lastToneMs;
   double _lastPx = 0, _lastPy = 0;
   bool _wasInside = false;
   bool _listening = false;
@@ -128,6 +130,7 @@ class TouchSession {
     _guideCache = buildGuideCache(analysis.regions);
     _guideSectorLast = _guideBucketLast = null;
     _guideSpokenMs = 0;
+    _lastToneStep = _lastToneMs = null;
     _wasInside = _listening = _thinking = false;
     _lastSpoken = '';
     final note = analysis.synthetic
@@ -232,7 +235,7 @@ class TouchSession {
     final pts = _guideCache[guide.id];
     if (pts == null || pts.isEmpty) return;
     final (nx, ny, dist) = nearestGuidePoint(pts, _lastPx, _lastPy);
-    cues.proximity(closeness: guideCloseness(dist, a.width.toDouble()));
+    _playProximity(guideCloseness(dist, a.width.toDouble()));
     final sector = guideSector(nx - _lastPx, ny - _lastPy);
     final bucket = guideBucket(dist, a.width.toDouble());
     final now = nowMs();
@@ -257,13 +260,29 @@ class TouchSession {
     final (dx, dy, dist) = _guideVector(guide);
     final on = _focus;
     final prefix = on != null && on.id != guide.id ? 'That is the ${on.label}. ' : '';
-    cues.proximity(closeness: guideCloseness(dist, a.width.toDouble()));
+    _playProximity(guideCloseness(dist, a.width.toDouble()));
     _guideSectorLast = guideSector(dx, dy);
     _guideBucketLast = guideBucket(dist, a.width.toDouble());
     _guideSpokenMs = nowMs();
     _say(
       '${prefix}The ${guide.label} is ${directionWords(dx, dy)}, ${distanceWords(dist, a.width.toDouble())}.',
     );
+  }
+
+  /// Minimum gap between proximity tones, even across a step change.
+  static const int _minToneGapMs = 150;
+
+  /// The proximity tone, throttled: only when the pitch step changes, and
+  /// never more often than [_minToneGapMs]. A held step plays once the gap
+  /// passes if the finger is still on it.
+  void _playProximity(double closeness) {
+    final step = proximityStep(closeness);
+    if (step == _lastToneStep) return;
+    final now = nowMs();
+    if (_lastToneMs != null && now - _lastToneMs! < _minToneGapMs) return;
+    _lastToneStep = step;
+    _lastToneMs = now;
+    cues.proximity(closeness: closeness);
   }
 
   /// (dx, dy, dist) from the finger to the nearest point of [guide]'s mask.
@@ -337,7 +356,7 @@ class TouchSession {
       final (dx, dy, dist) = _guideVector(guide);
       final on = _focus;
       final prefix = on != null && on.id != guide.id ? 'That is the ${on.label}. ' : '';
-      cues.proximity(closeness: guideCloseness(dist, a.width.toDouble()));
+      _playProximity(guideCloseness(dist, a.width.toDouble()));
       _guideSectorLast = guideSector(dx, dy);
       _guideBucketLast = guideBucket(dist, a.width.toDouble());
       _guideSpokenMs = nowMs();
@@ -456,6 +475,7 @@ class TouchSession {
       _currentHelp = _helpById[target.id] ?? GuideHelp.full;
       _guideStartedMs = nowMs();
       _guideWrong = 0;
+      _lastToneStep = _lastToneMs = null;
       haptics.play(HapticPattern.confirm);
       cues.play(HapticPattern.confirm);
       final a = _analysis!;
