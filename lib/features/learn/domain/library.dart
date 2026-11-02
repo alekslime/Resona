@@ -65,3 +65,40 @@ class ChatExchange {
 /// or fail; trimming to the recent past trades old context for staying
 /// responsive.
 const maxChatExchanges = 20;
+
+/// One multiple-choice question of a built-in quiz set, ported from
+/// Resonant's QuizData. The picture-bound [Quiz] in learn.dart (find and
+/// say, graded by the backend) is a different thing.
+class LibraryQuizOption {
+  const LibraryQuizOption({required this.letter, required this.text});
+  final String letter;
+  final String text;
+}
+
+class LibraryQuizQuestion {
+  const LibraryQuizQuestion({
+    required this.id,
+    required this.prompt,
+    required this.options,
+    required this.correctIndex,
+    required this.explanation,
+  });
+  final String id;
+  final String prompt;
+  final List<LibraryQuizOption> options;
+  final int correctIndex;
+  final String explanation;
+}
+
+class LibraryQuizSet {
+  const LibraryQuizSet({
+    required this.id,
+    required this.title,
+    required this.category,
+    required this.questions,
+  });
+  final String id;
+  final String title;
+  final String category;
+  final List<LibraryQuizQuestion> questions;
+}
