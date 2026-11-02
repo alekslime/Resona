@@ -80,15 +80,19 @@ class LessonsTopBar extends ConsumerWidget {
                               pointRight: false,
                               tint: palette.onBar,
                             ),
-                            Text(
-                              title,
-                              style: TextStyle(
-                                fontFamily: font.family,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 22,
-                                color: palette.onBar,
+                            Flexible(
+                              child: Text(
+                                title,
+                                style: TextStyle(
+                                  fontFamily: font.family,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 22,
+                                  color: palette.onBar,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              textAlign: TextAlign.center,
                             ),
                           ],
                         ),
