@@ -84,33 +84,50 @@ void main() {
   group('quiz progress', () {
     test('a fresh set invites starting', () {
       const p = QuizProgress();
-      expect(p.statusLabel, 'Not started yet');
-      expect(p.percentComplete(5), 0);
+      expect(p.statusLabel, 'Not started');
+      expect(p.percentComplete, 0);
       expect(p.buttonLabel, 'Start quiz');
     });
 
-    test('an opened set invites continuing', () {
-      const p = QuizProgress(status: QuizStatus.inProgress);
-      expect(p.statusLabel, 'In progress');
-      expect(p.buttonLabel, 'Continue quiz');
+    test('an opened set invites continuing, never downgrades', () {
+      final p =
+          const QuizProgress().markInProgress(5).record(3, 5).markInProgress(5);
+      expect(p.status, QuizStatus.completed);
+      expect(
+        const QuizProgress()
+            .markInProgress(5)
+            .statusLabel,
+        'Ready to continue',
+      );
+      expect(const QuizProgress().markInProgress(5).buttonLabel,
+          'Continue quiz');
     });
 
     test('a finished set keeps its best and invites review', () {
-      final p =
-          const QuizProgress().markInProgress().record(3, 5).record(2, 5);
+      final p = const QuizProgress().record(3, 5).record(2, 5);
       expect(p.status, QuizStatus.completed);
-      expect(p.statusLabel, 'Best score: 3 out of 5');
-      expect(p.percentComplete(5), 60);
+      expect(p.statusLabel, 'Completed');
+      expect(p.bestScore, 3);
+      expect(p.percentComplete, 60);
       expect(p.buttonLabel, 'Review answers');
     });
 
     test('the book remembers every set', () {
       final book = QuizProgressBook();
-      book.markInProgress('a');
+      book.markInProgress('a', 5);
       book.markCompleted('b', 4, 5);
       expect(book.progressFor('a').status, QuizStatus.inProgress);
-      expect(book.progressFor('b').percentComplete(5), 80);
+      expect(book.progressFor('b').percentComplete, 80);
       expect(book.progressFor('c').status, QuizStatus.notStarted);
+    });
+
+    test('progress survives a JSON round trip', () {
+      const p = QuizProgress(
+          status: QuizStatus.completed, bestScore: 4, totalQuestions: 5);
+      final back = QuizProgress.fromJson(
+          p.toJson() as Map<String, dynamic>);
+      expect(back.status, QuizStatus.completed);
+      expect(back.percentComplete, 80);
     });
   });
 
