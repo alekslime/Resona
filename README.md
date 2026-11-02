@@ -75,7 +75,7 @@ through parts from the edge; the Flutter app and its architecture, for Android, 
 the tests.
 
 **Ported from Resonant-AI during the hackathon, rewritten in Dart/JS/Python** (behaviour and wording only,
-no old code copied; inventoried in `docs/HACKATHON.md`):
+no old code copied; inventoried in `docs/private/HACKATHON.md`):
 
 | Ported feature | Where it lives here |
 | --- | --- |
@@ -115,7 +115,7 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
   call on a real phone is still to be made. Until then the proven tutor is hold-to-talk, above, and
   the Talk live button stays hidden unless the app is built with `--dart-define=LIVE_VOICE=true`.
 
-**Not built yet (deliberately — see `docs/HACKATHON.md`):**
+**Not built yet (deliberately — see `docs/private/HACKATHON.md`):**
 
 - No public hosted link: for now the backend runs on your own computer and the phone talks to it
   over the same Wi-Fi. (A Modal hosting spike is planned; Baseten credits are held in reserve and
