@@ -1,9 +1,13 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/theme/app_fonts.dart';
 import 'package:resonant/core/theme/text_spacings.dart';
+import 'package:resonant/features/touch/presentation/home_screen.dart';
+import 'package:resonant/features/touch/presentation/settings_screen.dart';
 
+import 'fakes.dart';
 void main() {
   group('settings state', () {
     test('font cycles the three faces and wraps', () {
@@ -73,6 +77,109 @@ void main() {
       expect(container.read(speechRateProvider.notifier).next(), 1.5);
       expect(container.read(speechRateProvider.notifier).next(), 0.75);
       expect(container.read(speechRateProvider.notifier).next(), 1.0);
+    });
+  });
+
+  group('settings screen', () {
+    Future<ProviderContainer> rigged(Log log) async {
+      final container = ProviderContainer(
+        overrides: [
+          speechProvider.overrideWithValue(FakeSpeech(log)),
+          hapticsProvider.overrideWithValue(FakeHaptics(log)),
+          cuesProvider.overrideWithValue(FakeCues(log)),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    Future<void> open(WidgetTester tester, ProviderContainer container) async {
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: SettingsScreen()),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+    }
+
+    testWidgets('shows every row with its current value', (tester) async {
+      final container = await rigged(Log());
+      await open(tester, container);
+      for (final row in [
+        'Sound cues: on',
+        'Color theme: Resonant native',
+        'Font: Metropolis',
+        'Text size: 100 percent',
+        'Text spacing: Normal',
+        'Reduce motion: off',
+        'Speech rate: 100 percent',
+      ]) {
+        await tester.scrollUntilVisible(find.text(row), 200);
+        expect(find.text(row), findsOneWidget);
+      }
+    });
+
+    testWidgets('tapping a row steps it and says the new value', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      await open(tester, container);
+      await tester.scrollUntilVisible(find.text('Font: Metropolis'), 200);
+      await tester.tap(find.text('Font: Metropolis'));
+      await tester.pump();
+      expect(container.read(fontProvider).label, 'Atkinson Hyperlegible');
+      expect(log.events, contains('haptic:confirm'));
+      expect(log.events, contains('say: Font: Atkinson Hyperlegible.'));
+      expect(find.text('Font: Atkinson Hyperlegible'), findsOneWidget);
+    });
+
+    testWidgets('sound cues toggle silences the player', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      await open(tester, container);
+      await tester.tap(find.text('Sound cues: on'));
+      await tester.pump();
+      expect(container.read(soundCuesProvider), isFalse);
+      expect(container.read(cuesProvider).enabled, isFalse);
+      expect(log.events, contains('say: Sound cues: off.'));
+    });
+
+    testWidgets('speech rate reaches the speaker', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      await open(tester, container);
+      await tester.scrollUntilVisible(find.text('Speech rate: 100 percent'), 200);
+      await tester.tap(find.text('Speech rate: 100 percent'));
+      await tester.pump();
+      expect(container.read(speechRateProvider), 1.25);
+      expect(container.read(speechProvider).rate, 1.25);
+      expect(log.events, contains('say: Speech rate: 125 percent.'));
+    });
+
+    testWidgets('home opens settings', (tester) async {
+      final log = Log();
+      final container = ProviderContainer(
+        overrides: [
+          speechProvider.overrideWithValue(FakeSpeech(log)),
+          hapticsProvider.overrideWithValue(FakeHaptics(log)),
+          cuesProvider.overrideWithValue(FakeCues(log)),
+          speechInputProvider.overrideWithValue(FakeInput(log)),
+          repositoryProvider.overrideWithValue(FakeRepository(log)),
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: HomeScreen()),
+        ),
+      );
+      await tester.tap(find.text('Settings'));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(SettingsScreen), findsOneWidget);
+      expect(log.events, contains('say: Opening Settings.'));
     });
   });
 }

@@ -60,11 +60,11 @@ void main() {
   });
 
   group('home menu', () {
-    testWidgets('lists talk, pictures, lessons, quiz, notes, quit',
+    testWidgets('lists talk, pictures, lessons, quiz, notes, settings, quit',
         (tester) async {
       final container = await riggedContainer(Log());
       await tester.pumpWidget(harnessedHome(container));
-      for (final label in ['Talk', 'Pictures', 'Lessons', 'Quiz', 'Notes', 'Quit']) {
+      for (final label in ['Talk', 'Pictures', 'Lessons', 'Quiz', 'Notes', 'Settings', 'Quit']) {
         expect(find.text(label), findsOneWidget);
       }
       final style = tester.widget<Text>(find.text('Talk')).style!;
