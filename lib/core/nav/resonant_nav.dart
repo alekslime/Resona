@@ -11,11 +11,12 @@ import 'package:flutter/material.dart';
 
 abstract final class Routes {
   static const home = 'home';
+  static const chat = 'chat';
   static const pictures = 'pictures';
-  static const talk = 'talk';
   static const lessons = 'lessons';
   static const quiz = 'quiz';
   static const notes = 'notes';
+  static const profile = 'profile';
   static const settings = 'settings';
 
   /// Route sentinel for Quit — handled by Home, not an actual destination.

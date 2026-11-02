@@ -1,14 +1,15 @@
 /// The menu home screen, ported from Resonant's HomeScreen.
 ///
 /// A fixed brand surface — flat theme background, matching the splash it
-/// visually continues from. Seven big lines; the focused one draws in ink and
-/// the rest in dim. A tap opens the item; a swipe moves focus and speaks it.
+/// visually continues from. Eight big lines; the focused one draws in ink and
+/// the rest in dim. A tap opens the item; a two-finger swipe moves focus and
+/// speaks it, while one finger only scrolls.
 ///
-/// Our menu holds our features where the old one held its own (Talk first,
-/// because the voice tutor is the point; Pictures second; no Profile, which
-/// our backend has no data for). Talk, Lessons, Quiz and Notes hang off the
-/// last explored picture, like old Chat answering from the material opened
-/// last; with no picture yet they say so and send you to Pictures.
+/// The old menu (Chat, Lessons, Quiz, Profile, Settings, Quit) plus our two
+/// picture children: Pictures, where a finger explores, and Notes, the study
+/// notes it leaves behind. Chat and Notes hang off the last explored
+/// picture, like old Chat answering from the material opened last; Chat
+/// without a picture still talks, while Notes sends you to Pictures first.
 ///
 /// Menu words are huge already, so the text size stops at 1.2x here.
 library;
@@ -30,19 +31,13 @@ import '../../../core/ui/enter.dart';
 import '../../../core/ui/focus_fade.dart';
 import '../../../core/ui/system_bars.dart';
 import '../application/touch_controller.dart';
-import '../data/touch_repository.dart';
-import '../domain/region.dart';
-import 'live_talk_screen.dart';
+import 'chat_screen.dart';
+import 'lessons_screen.dart';
 import 'pictures_screen.dart';
+import 'profile_screen.dart';
+import 'quiz_browser_screen.dart';
 import 'settings_screen.dart';
 import 'study_notes_screen.dart';
-
-/// Opens a live room about [analysis]: the Talk destination.
-Future<LiveVoiceConnection> openTalkConnection(
-  TouchRepository repo,
-  Analysis analysis,
-) =>
-    repo.liveVoice(title: analysis.title, overview: analysis.overview);
 
 class _HomeItem {
   const _HomeItem(this.label, this.route);
@@ -52,21 +47,15 @@ class _HomeItem {
 }
 
 const _items = [
-  _HomeItem('Talk', Routes.talk),
-  _HomeItem('Pictures', Routes.pictures),
+  _HomeItem('Chat', Routes.chat),
   _HomeItem('Lessons', Routes.lessons),
   _HomeItem('Quiz', Routes.quiz),
+  _HomeItem('Pictures', Routes.pictures),
   _HomeItem('Notes', Routes.notes),
+  _HomeItem('Profile', Routes.profile),
   _HomeItem('Settings', Routes.settings),
   _HomeItem('Quit', Routes.quit),
 ];
-
-String _activityFor(String route) => switch (route) {
-      Routes.talk => 'talk',
-      Routes.lessons => 'study',
-      Routes.quiz => 'quiz',
-      _ => 'revise',
-    };
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -75,8 +64,43 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
+/// The old focus gesture: one finger scrolls the menu, a two-finger
+/// vertical swipe moves focus. Raw pointer tracking, so it never fights
+/// the scrollable for the gesture the way a drag recognizer would.
+class _TwoFingerSwipe {
+  _TwoFingerSwipe(this.onSwipe);
+
+  final void Function(int delta) onSwipe;
+  final _dy = <int, double>{};
+  bool _fired = false;
+
+  void down(PointerDownEvent e) {
+    _dy[e.pointer] = 0;
+    if (_dy.length < 2) _fired = false;
+  }
+
+  void move(PointerMoveEvent e) {
+    if (!_dy.containsKey(e.pointer) || _fired) return;
+    _dy[e.pointer] = _dy[e.pointer]! + e.delta.dy;
+    if (_dy.length < 2) return;
+    if (_dy.values.where((dy) => dy < -64).length >= 2) {
+      _fired = true;
+      onSwipe(1);
+    } else if (_dy.values.where((dy) => dy > 64).length >= 2) {
+      _fired = true;
+      onSwipe(-1);
+    }
+  }
+
+  void up(PointerEvent e) {
+    _dy.remove(e.pointer);
+    if (_dy.length < 2) _fired = false;
+  }
+}
+
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _focus = MenuFocus(count: _items.length);
+  late final _swipe = _TwoFingerSwipe(_move);
   Timer? _exitTimer;
 
   @override
@@ -97,11 +121,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return recents.isEmpty ? null : recents.first;
   }
 
-  bool _needsContext(String route) =>
-      route == Routes.talk ||
-      route == Routes.lessons ||
-      route == Routes.quiz ||
-      route == Routes.notes;
+  bool _needsContext(String route) => route == Routes.notes;
 
   Future<void> _open(int i) async {
     final item = _items[i];
@@ -118,39 +138,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
     if (_needsContext(item.route) && _last == null) {
       ref.read(speechProvider).speak(
-          'Explore a picture first, then come back to ${_activityFor(item.route)}.');
+          'Explore a picture first, then come back to revise.');
       _push(const PicturesScreen());
       return;
     }
     ref.read(speechProvider).speak('Opening ${item.label}.');
     switch (item.route) {
+      case Routes.chat:
+        _push(ChatScreen(analysis: _last?.analysis));
+      case Routes.lessons:
+        _push(const LessonsScreen());
+      case Routes.quiz:
+        _push(const QuizBrowserScreen());
       case Routes.pictures:
         _push(const PicturesScreen());
-      case Routes.talk:
-        final last = _last!;
-        final connection = await openTalkConnection(
-          ref.read(repositoryProvider),
-          last.analysis,
-        );
-        if (mounted) {
-          _push(LiveTalkScreen(
-            connection: connection,
-            title: last.analysis.title,
-          ));
-        }
-      case Routes.lessons:
-      case Routes.quiz:
-        final last = _last!;
-        final controller = ref.read(touchControllerProvider.notifier);
-        controller.openRecent(last);
-        if (item.route == Routes.lessons) {
-          await controller.startLesson();
-        } else {
-          await controller.startQuiz();
-        }
-        if (mounted) _push(const PicturesScreen());
       case Routes.notes:
         _push(StudyNotesScreen(analysis: _last!.analysis));
+      case Routes.profile:
+        _push(const ProfileScreen());
       case Routes.settings:
         _push(const SettingsScreen());
     }
@@ -172,12 +177,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Container(
       color: palette.background,
       child: SafeArea(
-        child: GestureDetector(
-          onVerticalDragEnd: (details) {
-            final velocity = details.primaryVelocity ?? 0;
-            if (velocity == 0) return;
-            _move(velocity < 0 ? 1 : -1);
-          },
+        child: Listener(
+          onPointerDown: _swipe.down,
+          onPointerMove: _swipe.move,
+          onPointerUp: _swipe.up,
+          onPointerCancel: _swipe.up,
           child: Semantics(
             customSemanticsActions: {
               const CustomSemanticsAction(label: 'Next'): () => _move(1),
@@ -185,9 +189,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             },
             child: LayoutBuilder(
               builder: (context, constraints) => SingleChildScrollView(
-                // Seven lines at this size do not fit every phone: one finger
-                // scrolls when they overflow, and swipes move focus when
-                // everything fits.
+                // Eight lines at this size do not fit every phone: one finger
+                // scrolls when they overflow, and a two-finger swipe moves
+                // focus whether they fit or not.
                 child: ConstrainedBox(
                   constraints:
                       BoxConstraints(minHeight: constraints.maxHeight),
