@@ -6,10 +6,13 @@ import 'package:resonant/core/nav/resonant_nav.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/features/touch/application/touch_controller.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
+import 'package:resonant/features/touch/presentation/chat_screen.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
+import 'package:resonant/features/touch/presentation/lessons_screen.dart';
 import 'package:resonant/features/touch/presentation/pictures_screen.dart';
+import 'package:resonant/features/touch/presentation/profile_screen.dart';
+import 'package:resonant/features/touch/presentation/quiz_browser_screen.dart';
 import 'package:resonant/features/touch/presentation/study_notes_screen.dart';
-import 'package:resonant/features/touch/presentation/touch_screen.dart';
 
 import 'fakes.dart';
 
@@ -49,25 +52,24 @@ Future<void> flushNav(WidgetTester tester) async {
 }
 
 void main() {
-  group('talk connection', () {
-    test('opens a room about the picture', () async {
-      final log = Log();
-      final connection =
-          await openTalkConnection(FakeRepository(log), loadSample());
-      expect(connection.url, 'wss://fake');
-      expect(log.events, contains('live:The water cycle|'));
-    });
-  });
-
   group('home menu', () {
-    testWidgets('lists talk, pictures, lessons, quiz, notes, settings, quit',
+    testWidgets('lists the old menu plus pictures and notes',
         (tester) async {
       final container = await riggedContainer(Log());
       await tester.pumpWidget(harnessedHome(container));
-      for (final label in ['Talk', 'Pictures', 'Lessons', 'Quiz', 'Notes', 'Settings', 'Quit']) {
+      for (final label in [
+        'Chat',
+        'Lessons',
+        'Quiz',
+        'Pictures',
+        'Notes',
+        'Profile',
+        'Settings',
+        'Quit'
+      ]) {
         expect(find.text(label), findsOneWidget);
       }
-      final style = tester.widget<Text>(find.text('Talk')).style!;
+      final style = tester.widget<Text>(find.text('Chat')).style!;
       expect(style.fontSize, 60);
       expect(style.fontWeight, FontWeight.w900);
     });
@@ -83,16 +85,73 @@ void main() {
       expect(log.events, contains('say: Opening Pictures.'));
     });
 
-    testWidgets('talk without a picture sends you to pictures', (tester) async {
+    testWidgets('chat opens without a picture', (tester) async {
       final log = Log();
       final container = await riggedContainer(log);
       await tester.pumpWidget(harnessedHome(container));
-      await tester.tap(find.text('Talk'));
+      await tester.tap(find.text('Chat'));
+      await flushNav(tester);
+      expect(find.byType(ChatScreen), findsOneWidget);
+      expect(
+        tester.widget<ChatScreen>(find.byType(ChatScreen)).analysis,
+        isNull,
+      );
+      expect(log.events, contains('say: Opening Chat.'));
+    });
+
+    testWidgets('chat carries the last picture', (tester) async {
+      final log = Log();
+      final container = await seededContainer(log);
+      await tester.pumpWidget(harnessedHome(container));
+      await tester.tap(find.text('Chat'));
+      await flushNav(tester);
+      final chat = tester.widget<ChatScreen>(find.byType(ChatScreen));
+      expect(chat.analysis, isNotNull);
+      expect(chat.analysis!.title, isNotEmpty);
+    });
+
+    testWidgets('lessons opens the library, no picture needed',
+        (tester) async {
+      final log = Log();
+      final container = await riggedContainer(log);
+      await tester.pumpWidget(harnessedHome(container));
+      await tester.tap(find.text('Lessons'));
+      await flushNav(tester);
+      expect(find.byType(LessonsScreen), findsOneWidget);
+      expect(log.events, contains('say: Opening Lessons.'));
+    });
+
+    testWidgets('quiz opens the browser', (tester) async {
+      final log = Log();
+      final container = await riggedContainer(log);
+      await tester.pumpWidget(harnessedHome(container));
+      await tester.tap(find.text('Quiz'));
+      await flushNav(tester);
+      expect(find.byType(QuizBrowserScreen), findsOneWidget);
+      expect(log.events, contains('say: Opening Quiz.'));
+    });
+
+    testWidgets('profile opens', (tester) async {
+      final log = Log();
+      final container = await riggedContainer(log);
+      await tester.pumpWidget(harnessedHome(container));
+      await tester.tap(find.text('Profile'));
+      await flushNav(tester);
+      expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(log.events, contains('say: Opening Profile.'));
+    });
+
+    testWidgets('notes without a picture sends you to pictures',
+        (tester) async {
+      final log = Log();
+      final container = await riggedContainer(log);
+      await tester.pumpWidget(harnessedHome(container));
+      await tester.tap(find.text('Notes'));
       await flushNav(tester);
       expect(find.byType(PicturesScreen), findsOneWidget);
       expect(
         log.events,
-        contains('say: Explore a picture first, then come back to talk.'),
+        contains('say: Explore a picture first, then come back to revise.'),
       );
     });
 
@@ -104,21 +163,6 @@ void main() {
       await flushNav(tester);
       expect(find.byType(StudyNotesScreen), findsOneWidget);
       expect(log.events, contains('say: Opening Notes.'));
-    });
-
-    testWidgets('lessons starts a lesson on the last picture', (tester) async {
-      final log = Log();
-      final container = await seededContainer(log);
-      await tester.pumpWidget(harnessedHome(container));
-      await tester.tap(find.text('Lessons'));
-      await flushNav(tester);
-      await flushNav(tester);
-      expect(find.byType(TouchScreen), findsOneWidget);
-      expect(
-        container.read(touchControllerProvider).mode,
-        ExploreMode.lesson,
-      );
-      expect(log.events, contains('say: Opening Lessons.'));
     });
 
     testWidgets('quit announces and leaves the app', (tester) async {
@@ -149,14 +193,14 @@ void main() {
       try {
         await tester.pumpWidget(harnessedHome(container));
         await tester.pumpAndSettle();
-        await tester.fling(find.text('Talk'), const Offset(0, -300), 800);
+        await tester.fling(find.text('Chat'), const Offset(0, -300), 800);
         await flushNav(tester);
-        expect(find.bySemanticsLabel('Pictures, focused'), findsOneWidget);
-        expect(log.events, contains('say: Pictures'));
+        expect(find.bySemanticsLabel('Lessons, focused'), findsOneWidget);
+        expect(log.events, contains('say: Lessons'));
         expect(log.events, contains('haptic:next'));
-        await tester.fling(find.text('Pictures'), const Offset(0, 300), 800);
+        await tester.fling(find.text('Lessons'), const Offset(0, 300), 800);
         await flushNav(tester);
-        expect(find.bySemanticsLabel('Talk, focused'), findsOneWidget);
+        expect(find.bySemanticsLabel('Chat, focused'), findsOneWidget);
         expect(log.events, contains('haptic:previous'));
       } finally {
         semantics.dispose();
@@ -169,7 +213,7 @@ void main() {
       await tester.pumpWidget(harnessedHome(container));
       await tester.pumpAndSettle();
       log.events.clear();
-      await tester.fling(find.text('Talk'), const Offset(0, 300), 800);
+      await tester.fling(find.text('Chat'), const Offset(0, 300), 800);
       await flushNav(tester);
       expect(log.events.where((e) => e.startsWith('say:')), isEmpty);
       expect(log.events.where((e) => e.startsWith('haptic:')), isEmpty);
