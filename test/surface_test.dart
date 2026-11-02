@@ -38,7 +38,7 @@ void main() {
 
     test('the surface gradient is the flat theme background', () {
       for (final p in Palettes.all) {
-        final g = surfaceGradient(p) as LinearGradient;
+        final g = surfaceGradient(p);
         expect(g.colors, [p.background, p.background]);
       }
     });
