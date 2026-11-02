@@ -42,13 +42,14 @@ Future<ProviderContainer> seededContainer(Log log) async {
 Widget harnessedHome(ProviderContainer container) =>
     UncontrolledProviderScope(
       container: container,
-      // The transparent Material the real app wraps every screen in: pushed
-      // screens with text fields need one to sit on.
-      child: const MaterialApp(
-        home: Material(
+      // The transparent Material the real app wraps its navigator in:
+      // pushed screens with text fields need one to sit on.
+      child: MaterialApp(
+        builder: (context, child) => Material(
           type: MaterialType.transparency,
-          child: HomeScreen(),
+          child: child!,
         ),
+        home: const HomeScreen(),
       ),
     );
 
