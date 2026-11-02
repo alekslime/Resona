@@ -103,6 +103,23 @@ void main() {
           await Clipboard.getData('text/plain');
       expect(pasted?.text, studyNotesText(analysis));
     });
+
+    testWidgets('roomy spacing loosens the reading text', (tester) async {
+      final container = await notesContainer(Log());
+      container.read(textSpacingProvider.notifier).next();
+      final analysis = loadSample();
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: StudyNotesScreen(analysis: analysis),
+          ),
+        ),
+      );
+      final text = tester.widget<Text>(find.text(analysis.overview));
+      expect(text.style!.letterSpacing, closeTo(24 * 0.04, 0.001));
+      expect(text.style!.height, closeTo(1.35 * 1.15, 0.001));
+    });
   });
 
   group('notes text', () {
