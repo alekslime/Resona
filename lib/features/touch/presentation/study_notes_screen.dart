@@ -30,12 +30,14 @@ class StudyNotesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final spacing = ref.watch(textSpacingProvider);
     final parts = readingOrder(analysis.regions);
     TextStyle body(double size) => TextStyle(
           fontSize: size,
           fontWeight: FontWeight.w600,
           color: palette.ink,
-          height: 1.35,
+          height: 1.35 * spacing.lineHeightScale,
+          letterSpacing: size * spacing.letterSpacingEm,
         );
     return ResonantScaffold(
       title: 'Study notes',

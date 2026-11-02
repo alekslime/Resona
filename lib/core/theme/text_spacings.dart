@@ -1,8 +1,7 @@
 /// Reading-text looseness, ported from Resonant's TextScale.kt's sibling TextSpacing.kt.
 ///
 /// Wider letter spacing and taller lines help some people track a line of
-/// text. Applied to lesson text and the quiz question, where there is the
-/// most to read.
+/// text. Applied to the study notes, where there is the most to read.
 library;
 
 /// How loosely reading text is set.
