@@ -258,5 +258,14 @@ void main() {
       );
       expect(names(g), ['Tap']);
     });
+
+    test('one finger swipes sideways: the settings preview needs it', () {
+      final g = run(
+        listEngine(),
+        [down(1, 200, 300, 0), move(1, 280, 300, 60), up(1, 280, 300, 120)],
+      );
+      expect(names(g), ['Swipe']);
+      expect((g.single as Swipe).direction, SwipeDirection.right);
+    });
   });
 }

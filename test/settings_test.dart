@@ -202,6 +202,7 @@ void main() {
       final container = await rigged(Log());
       await open(tester, container);
       await tester.tap(find.text('Your name'));
+      await tester.pump(const Duration(milliseconds: 100));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(NameSetupScreen), findsOneWidget);
     });
@@ -210,7 +211,7 @@ void main() {
       final log = Log();
       final container = await rigged(log);
       container.read(chatHistoryProvider.notifier).set(const [
-        ChatExchange('hi', const ['hello']),
+        ChatExchange('hi', ['hello']),
       ]);
       await open(tester, container);
       await tester.scrollUntilVisible(find.text('Clear chat history'), 200);
@@ -233,19 +234,21 @@ void main() {
       final log = Log();
       final container = await rigged(log);
       container.read(chatHistoryProvider.notifier).set(const [
-        ChatExchange('hi', const ['hello']),
+        ChatExchange('hi', ['hello']),
       ]);
       await open(tester, container);
       await tester.scrollUntilVisible(find.text('Clear chat history'), 200);
       await tester.tap(find.text('Clear chat history'));
       await tester.pump();
       // A two-finger swipe moves focus and drops the armed confirm.
+      // Upwards: the row sits at the bottom, a downward swipe would
+      // leave the screen.
       final center = tester.getCenter(find.text('Clear chat history'));
       final first = await tester.startGesture(center);
       final second =
           await tester.startGesture(center + const Offset(24, 0));
-      await first.moveBy(const Offset(0, 200));
-      await second.moveBy(const Offset(0, 200));
+      await first.moveBy(const Offset(0, -200));
+      await second.moveBy(const Offset(0, -200));
       await first.up();
       await second.up();
       await tester.pump();
@@ -267,17 +270,17 @@ void main() {
       expect(
         log.events,
         contains('say: Preview. Swipe left or right, tap to keep, '
-            'hold the right edge to cancel. Resonant native, 1 of 7.'),
+            'hold the right edge to cancel. Resonant native, 1 of 12'),
       );
       expect(
         find.text('Previewing: Resonant native. Tap to keep'),
         findsOneWidget,
       );
-      await tester.flingFrom(const Offset(400, 400), const Offset(-300, 0), 800);
+      await tester.flingFrom(const Offset(400, 400), const Offset(300, 0), 800);
       await tester.pump();
       expect(
         log.events,
-        contains('say: Low vision, enormous contrast, 2 of 7.'),
+        contains('say: Low vision, enormous contrast, 2 of 12'),
       );
       await tester.tapAt(const Offset(400, 200));
       await tester.pump();
@@ -298,13 +301,10 @@ void main() {
       await tester.scrollUntilVisible(find.text('Font: Metropolis'), 200);
       await holdCenter(
           tester, tester.getCenter(find.text('Font: Metropolis')));
-      await tester.flingFrom(const Offset(400, 400), const Offset(-300, 0), 800);
+      await tester.flingFrom(const Offset(400, 400), const Offset(300, 0), 800);
       await tester.pump();
       expect(container.read(fontProvider).label, 'Atkinson Hyperlegible');
-      final right = Offset(
-          tester.getTopRight(find.text('Font: Atkinson Hyperlegible')).dx + 10,
-          400);
-      final finger = await tester.startGesture(right);
+      final finger = await tester.startGesture(const Offset(790, 400));
       await holdFor(tester, const Duration(milliseconds: 650));
       await finger.up();
       await tester.pump();

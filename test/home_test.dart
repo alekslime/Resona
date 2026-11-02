@@ -74,6 +74,28 @@ Future<void> twoFingerSwipe(
   await second.up();
 }
 
+Future<void> holdFor(WidgetTester tester, Duration duration) async {
+  var left = duration;
+  while (left > Duration.zero) {
+    const step = Duration(milliseconds: 50);
+    final wait = left < step ? left : step;
+    await tester.runAsync(() => Future<void>.delayed(wait));
+    await tester.pump(wait);
+    left -= wait;
+  }
+}
+
+Future<void> holdThree(WidgetTester tester, Offset at) async {
+  final fingers = <TestGesture>[];
+  for (var i = 0; i < 3; i++) {
+    fingers.add(await tester.startGesture(at + Offset(24.0 * i, 0)));
+  }
+  await holdFor(tester, const Duration(milliseconds: 650));
+  for (final f in fingers) {
+    await f.up();
+  }
+}
+
 void main() {
   group('home menu', () {
     testWidgets('lists the old menu plus pictures and notes',
@@ -218,13 +240,14 @@ void main() {
       try {
         await tester.pumpWidget(harnessedHome(container));
         await tester.pumpAndSettle();
-        await twoFingerSwipe(tester, find.text('Chat'), const Offset(0, -300));
+        // Finger down is "next" on every list, home included.
+        await twoFingerSwipe(tester, find.text('Chat'), const Offset(0, 300));
         await flushNav(tester);
         expect(find.bySemanticsLabel('Lessons, focused'), findsOneWidget);
         expect(log.events, contains('say: Lessons'));
         expect(log.events, contains('haptic:next'));
         await twoFingerSwipe(
-            tester, find.text('Lessons'), const Offset(0, 300));
+            tester, find.text('Lessons'), const Offset(0, -150));
         await flushNav(tester);
         expect(find.bySemanticsLabel('Chat, focused'), findsOneWidget);
         expect(log.events, contains('haptic:previous'));
@@ -251,12 +274,41 @@ void main() {
       await tester.pumpWidget(harnessedHome(container));
       await tester.pumpAndSettle();
       log.events.clear();
-      await twoFingerSwipe(tester, find.text('Chat'), const Offset(0, 300));
+      // Previous from the first item: finger up, started low enough
+      // to stay on screen. Focus never leaves, so nothing is said.
+      await twoFingerSwipe(tester, find.text('Quiz'), const Offset(0, -150));
       await flushNav(tester);
       expect(log.events.where((e) => e.startsWith('say:')), isEmpty);
       expect(log.events.where((e) => e.startsWith('haptic:')), isEmpty);
     });
   });
+
+    testWidgets('a right-edge hold says you are already home',
+        (tester) async {
+      final log = Log();
+      final container = await riggedContainer(log);
+      await tester.pumpWidget(harnessedHome(container));
+      await tester.pumpAndSettle();
+      final finger = await tester.startGesture(const Offset(790, 400));
+      await holdFor(tester, const Duration(milliseconds: 650));
+      await finger.up();
+      await flushNav(tester);
+      expect(log.events, contains('haptic:back'));
+      expect(log.events,
+          contains('say: You are already on the Home screen.'));
+    });
+
+    testWidgets('a hold says where you are', (tester) async {
+      final log = Log();
+      final container = await riggedContainer(log);
+      await tester.pumpWidget(harnessedHome(container));
+      await tester.pumpAndSettle();
+      await holdThree(tester, const Offset(400, 300));
+      expect(
+        log.events,
+        contains('say: You are on the Home screen. Currently focused: Chat.'),
+      );
+    });
 
   group('go back', () {
     testWidgets('pops one entry', (tester) async {
