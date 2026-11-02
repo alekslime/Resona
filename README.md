@@ -30,14 +30,14 @@ Regenerate them with the golden-test generator in `tool/` (see `docs/screenshots
 <div align="center">
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/01-home.png" width="250" alt="Home: the braille-R dots, the word Resonant, three wide buttons (Choose a picture, Take a photo, Try the sample), a card explaining how exploring works, and the theme line"><br><b>Home</b><br><sub>Pick a picture, or try the sample</sub></td>
-<td align="center"><img src="docs/screenshots/02-explore.png" width="250" alt="Explore: the sample landscape with the sun outlined, its spoken caption below, gesture strips on both sides, and buttons for Overview, Previous and Next part, Lesson, Quiz me, Talk live and Study notes"><br><b>Explore</b><br><sub>The sun, outlined and captioned</sub></td>
+<td align="center"><img src="docs/screenshots/01-home.png" width="250" alt="Home: a seven-line menu on orange — Talk, Pictures, Lessons, Quiz, Notes, Settings, Quit — with Talk focused"><br><b>Home</b><br><sub>Talk, explore, study — in seven lines</sub></td>
+<td align="center"><img src="docs/screenshots/02-explore.png" width="250" alt="Explore: the sample landscape with the sun outlined, its spoken caption below, gesture strips on both sides, and buttons for Overview, Previous and Next part, Lesson, Quiz me and Study notes"><br><b>Explore</b><br><sub>The sun, outlined and captioned</sub></td>
 <td align="center"><img src="docs/screenshots/03-study-notes.png" width="250" alt="Study notes: the picture as plain text — title, a Copy notes to share button, overview, the map in words, and every part with its description and clock position"><br><b>Study notes</b><br><sub>The whole picture as readable text</sub></td>
 </tr>
 <tr>
 <td align="center"><img src="docs/screenshots/04-lesson.png" width="250" alt="Lesson mode: the picture above the caption 'Lesson. Welcome to the lesson.' and Previous step, Next step, Repeat and Back to exploring buttons"><br><b>Lesson</b><br><sub>A guided walk through the parts</sub></td>
 <td align="center"><img src="docs/screenshots/05-quiz.png" width="250" alt="Quiz mode: the caption asks 'Quiz. 2 questions. Question 1. Find the sun.' with Answer by voice, Repeat question, Skip and Back to exploring buttons"><br><b>Quiz</b><br><sub>Find it by touch, or answer out loud</sub></td>
-<td align="center"><img src="docs/screenshots/06-theme-low-vision.png" width="250" alt="Home in the Low vision theme: yellow dots, wordmark and text on a near-black background, black buttons with white text, and a dark card with a yellow outline"><br><b>Low vision theme</b><br><sub>One of twelve, a tap away</sub></td>
+<td align="center"><img src="docs/screenshots/06-theme-low-vision.png" width="250" alt="Home in the Low vision theme: the seven-line menu in yellow on a near-black background"><br><b>Low vision theme</b><br><sub>One of twelve, a tap away</sub></td>
 </tr>
 </table>
 </div>
