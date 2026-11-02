@@ -12,11 +12,15 @@ class AudioPlayersCues implements Cues {
   AudioPlayersCues({int voices = 4})
     : _pool = List.generate(voices, (_) => AudioPlayer()..setReleaseMode(ReleaseMode.stop));
 
+  @override
+  bool enabled = true;
+
   final List<AudioPlayer> _pool;
   final _cache = <String, Uint8List>{};
   int _next = 0;
 
   Future<void> _play(Uint8List wav) async {
+    if (!enabled) return;
     final p = _pool[_next++ % _pool.length];
     try {
       await p.stop();

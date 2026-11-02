@@ -118,6 +118,10 @@ Uint8List synthWav(List<CueNote> notes, {double gain = 1, double pan = 0}) {
 }
 
 abstract class Cues {
+  /// Off in settings: every cue stays silent. On by default.
+  bool get enabled;
+  set enabled(bool value);
+
   /// A named cue from [SoundCues.specs].
   Future<void> play(HapticPattern pattern);
 
@@ -132,6 +136,10 @@ abstract class Cues {
 
 class NoCues implements Cues {
   const NoCues();
+  @override
+  bool get enabled => true;
+  @override
+  set enabled(bool _) {}
   @override
   Future<void> play(HapticPattern pattern) async {}
   @override
