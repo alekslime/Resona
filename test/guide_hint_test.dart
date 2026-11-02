@@ -48,10 +48,12 @@ class HintRig {
     await ask('where is the sun?');
     now += 5000;
     await findSun();
+    session.handle(const ExploreStart(60, 60));
     await ask('where is the sun?');
     now += 5000;
     session.handle(const ExploreStart(60, 60));
     await findSun();
+    session.handle(const ExploreStart(60, 60));
     await ask('where is the sun?');
     expect(session.view.guideHelp, GuideHelp.none);
     log.events.clear();
@@ -75,6 +77,7 @@ void main() {
       expect(r.log.where('say').last.toLowerCase().contains('keep looking'), isTrue);
       r.now += 3000;
       await r.findSun();
+      r.session.handle(const ExploreStart(60, 60));
       await r.ask('where is the sun?');
       expect(r.session.view.guideHelp, GuideHelp.hints);
     });
@@ -139,6 +142,7 @@ void main() {
       r.session.handle(const ExploreMove(100, 60));
       expect(r.log.where('say').last, 'say: Say hint if you want help.');
       await r.findSun();
+      r.session.handle(const ExploreStart(60, 60));
       await r.ask('where is the sun?');
       r.log.events.clear();
       r.now += 25000;

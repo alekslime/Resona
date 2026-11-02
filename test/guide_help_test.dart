@@ -69,6 +69,7 @@ void main() {
       await r.ask('where is the sun?');
       r.now += 5000; // fast find, no wrong taps
       await r.findSun();
+      r.touchSky();
       await r.ask('where is the sun?');
       expect(r.session.view.guideHelp, GuideHelp.hints);
       r.log.events.clear();
@@ -86,6 +87,7 @@ void main() {
       await r.ask('where is the sun?');
       r.now += 5000;
       await r.findSun();
+      r.touchSky();
       await r.ask('where is the sun?'); // now hints only
       r.log.events.clear();
       await r.ask('give me a hint');
@@ -100,10 +102,12 @@ void main() {
       await r.ask('where is the sun?');
       r.now += 5000;
       await r.findSun();
+      r.touchSky();
       await r.ask('where is the sun?');
       r.now += 5000;
       r.touchSky();
       await r.findSun();
+      r.touchSky();
       await r.ask('where is the sun?');
       expect(r.session.view.guideHelp, GuideHelp.none);
       r.log.events.clear();
@@ -122,11 +126,13 @@ void main() {
       await r.ask('where is the sun?');
       r.now += 5000;
       await r.findSun(); // full -> hints
+      r.touchSky();
       await r.ask('where is the sun?');
       expect(r.session.view.guideHelp, GuideHelp.hints);
       r.now += 50000; // slow hunt
       r.touchSky();
       await r.findSun(); // hints -> full
+      r.touchSky();
       await r.ask('where is the sun?');
       expect(r.session.view.guideHelp, GuideHelp.full);
     });
@@ -137,6 +143,7 @@ void main() {
       await r.ask('where is the sun?');
       r.now += 5000;
       await r.findSun(); // full -> hints
+      r.touchSky();
       await r.ask('where is the sun?');
       // Tap the cloud while hunting the sun: a wrong guess.
       r.session.handle(ExploreStart(_cloud.$1, _cloud.$2));
@@ -145,6 +152,7 @@ void main() {
       r.now += 3000;
       r.touchSky();
       await r.findSun(); // quick but wrong -> back to full
+      r.touchSky();
       await r.ask('where is the sun?');
       expect(r.session.view.guideHelp, GuideHelp.full);
     });
