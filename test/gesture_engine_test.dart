@@ -225,4 +225,38 @@ void main() {
       expect(names(g).where((n) => n == 'ThreeFingerHold').length, 1);
     });
   });
+
+  group('two-finger swipe lists', () {
+    GestureEngine listEngine() =>
+        GestureEngine(exploreEnabled: false, twoFingerSwipe: true)..width = 400;
+
+    test('one finger scrolls in silence: no swipe, no tap', () {
+      final g = run(
+        listEngine(),
+        [down(1, 200, 200, 0), move(1, 200, 280, 60), up(1, 200, 280, 120)],
+      );
+      expect(g, isEmpty);
+    });
+
+    test('two fingers swiping together navigate', () {
+      final g = run(listEngine(), [
+        down(1, 190, 200, 0),
+        down(2, 210, 200, 10),
+        move(1, 190, 280, 60),
+        move(2, 210, 280, 70),
+        up(1, 190, 280, 120),
+        up(2, 210, 280, 130),
+      ]);
+      expect(names(g), ['Swipe']);
+      expect((g.single as Swipe).direction, SwipeDirection.up);
+    });
+
+    test('one-finger taps still land', () {
+      final g = run(
+        listEngine(),
+        [down(1, 200, 300, 0), up(1, 200, 300, 80)],
+      );
+      expect(names(g), ['Tap']);
+    });
+  });
 }
