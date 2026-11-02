@@ -4,6 +4,8 @@ import 'package:resonant/core/services/haptics.dart';
 import 'package:resonant/core/services/sound.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'fakes.dart';
+
 void main() {
   test('every cue stays short and audible on a phone speaker', () {
     for (final e in SoundCues.specs.entries) {
@@ -86,5 +88,25 @@ void main() {
     for (final p in HapticPattern.values) {
       expect(panFor(p) != 0, isTrue);
     }
+  });
+
+  test('a disabled cue player stays silent', () async {
+    final log = Log();
+    final cues = FakeCues(log)..enabled = false;
+    await cues.play(HapticPattern.next);
+    await cues.position(x01: 0.5, y01: 0.5);
+    await cues.proximity(closeness: 0.9);
+    expect(log.events, isEmpty);
+    cues.enabled = true;
+    await cues.play(HapticPattern.next);
+    expect(log.events, ['cue:next']);
+  });
+
+  test('silence is still silent when enabled was never touched', () async {
+    const cues = NoCues();
+    expect(cues.enabled, isTrue);
+    await cues.play(HapticPattern.next);
+    await cues.position(x01: 0, y01: 0);
+    await cues.proximity(closeness: 1);
   });
 }

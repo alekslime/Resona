@@ -49,18 +49,26 @@ class FakeHaptics implements Haptics {
 }
 
 class FakeCues implements Cues {
+  @override
+  bool enabled = true;
+
   FakeCues(this.log);
   final Log log;
   @override
-  Future<void> play(HapticPattern pattern) async =>
-      log.events.add('cue:${pattern.name}');
+  Future<void> play(HapticPattern pattern) async {
+    if (!enabled) return;
+    log.events.add('cue:${pattern.name}');
+  }
   @override
-  Future<void> position({required double x01, required double y01}) async =>
-      log.events
-          .add('tone:${x01.toStringAsFixed(2)},${y01.toStringAsFixed(2)}');
+  Future<void> position({required double x01, required double y01}) async {
+    if (!enabled) return;
+    log.events.add('tone:${x01.toStringAsFixed(2)},${y01.toStringAsFixed(2)}');
+  }
   @override
-  Future<void> proximity({required double closeness}) async =>
-      log.events.add('prox:${closeness.toStringAsFixed(2)}');
+  Future<void> proximity({required double closeness}) async {
+    if (!enabled) return;
+    log.events.add('prox:${closeness.toStringAsFixed(2)}');
+  }
 }
 
 class FakeInput implements SpeechInput {
