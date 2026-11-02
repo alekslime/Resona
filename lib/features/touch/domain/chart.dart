@@ -44,6 +44,13 @@ String chartSummary(Analysis a) {
   return '${bars.length} bars. Tallest: $hiWords. Shortest: $loWords.';
 }
 
+/// What sliding onto a bar says: "April bar, 80 millimetres." The bare
+/// label when the words carry no number.
+String barSlideWords(Region r) {
+  final v = _valueWords(r);
+  return v.isEmpty ? r.label : '${r.label}, $v.';
+}
+
 /// Where one bar stands: "The tallest bar, 1 of 5." or
 /// "Bar 2 of 5, about 70 percent of the tallest."
 String barRankWords(Region r, List<Region> regions) {

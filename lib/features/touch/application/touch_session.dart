@@ -419,7 +419,9 @@ class TouchSession {
         _labelTimer = Timer(labelDelay, () => _say(_arrivalWords(r)));
       } else {
         // A short pause so a finger sweeping across several parts does not stutter the voice.
-        _labelTimer = Timer(labelDelay, () => _say(r.label));
+        // On charts the label carries the value, so sliding reads values in order.
+        final words = isChart(_analysis!) ? barSlideWords(r) : r.label;
+        _labelTimer = Timer(labelDelay, () => _say(words));
       }
     } else {
       if (left != null) haptics.pulse(10);
