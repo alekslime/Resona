@@ -6,6 +6,7 @@
 | --- | --- | --- | --- |
 | Metropolis | Wordmark and headings | Chris Simpson ([source](https://github.com/dw5/Metropolis), via [Fontsource](https://fontsource.org/fonts/metropolis)) | The Unlicense (public domain). See `assets/fonts/UNLICENSE-Metropolis.txt` |
 | Atkinson Hyperlegible Next | Body text, made for low vision | Braille Institute and Applied Design Works | SIL Open Font License 1.1. See `assets/fonts/OFL-Atkinson-Hyperlegible-Next.txt` |
+| Lexend | Calm reading face for light-sensitive and warm themes | Bonnie Shaver-Troup, Thomas Jockin, Santiago Orozco and Hector Gomez (via [Google Fonts](https://fonts.google.com/specimen/Lexend)) | SIL Open Font License 1.1. See `assets/fonts/OFL-Lexend.txt` |
 
 Both were first used in the author's earlier app, Resonant, and are carried over unchanged.
 

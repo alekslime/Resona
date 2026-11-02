@@ -45,3 +45,11 @@ flutter:
           weight: 600
         - asset: assets/fonts/atkinson_extrabold.ttf
           weight: 800
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/lexend_regular.ttf
+          weight: 400
+        - asset: assets/fonts/lexend_semibold.ttf
+          weight: 600
+        - asset: assets/fonts/lexend_black.ttf
+          weight: 900
