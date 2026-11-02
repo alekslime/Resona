@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/app.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/theme/resonant_theme.dart';
+import 'package:resonant/core/ui/resonant_surface.dart';
 import 'package:resonant/features/touch/application/touch_controller.dart';
 import 'package:resonant/features/touch/data/http_touch_repository.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
@@ -52,7 +53,11 @@ void main() {
       'assets/fonts/atkinson_extrabold.ttf',
     ]);
     await load('MaterialIcons', ['fonts/MaterialIcons-Regular.otf']);
+    // The drift follows the wall clock: freeze it so every run matches.
+    ResonantSurface.debugFreezeDrift = true;
   });
+
+  tearDownAll(() => ResonantSurface.debugFreezeDrift = false);
 
   List<Override> fakes() {
     final log = Log();
@@ -70,7 +75,13 @@ void main() {
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(ProviderScope(overrides: fakes(), child: const ResonantApp()));
-    await tester.pump(const Duration(milliseconds: 300));
+    // The app boots through the splash: choreography, hold, exit fade, then
+    // the nav to Home.
+    await tester.pump(const Duration(milliseconds: 2900));
+    await tester.pump(const Duration(milliseconds: 1500));
+    await tester.pump(const Duration(milliseconds: 400));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 1000));
     return ProviderScope.containerOf(tester.element(find.byType(HomeScreen)));
   }
 
@@ -81,6 +92,9 @@ void main() {
 
   testWidgets('explore + study notes screenshots', (tester) async {
     final container = await pumpApp(tester);
+    await tester.tap(find.text('Pictures'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
     // Image decoding is real async work; let it finish outside the fake clock.
     await tester.runAsync(() async {
       await container.read(touchControllerProvider.notifier).openSample();
@@ -117,6 +131,9 @@ void main() {
 
   Future<ProviderContainer> openExplore(WidgetTester tester) async {
     final container = await pumpApp(tester);
+    await tester.tap(find.text('Pictures'));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
     await tester.runAsync(() async {
       await container.read(touchControllerProvider.notifier).openSample();
       await Future<void>.delayed(const Duration(milliseconds: 800));
