@@ -90,6 +90,7 @@ void main() {
       final container = await quizContainer(log);
       await tester.pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
       await tester.pump();
+      await tester.scrollUntilVisible(find.text('Cells and their parts'), 200);
       await tester.tap(find.text('Cells and their parts'));
       await settle(tester);
       expect(log.events, contains('say: Opening Cells and their parts.'));
@@ -103,6 +104,7 @@ void main() {
       await tester.pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
       await tester.pump();
       // One full pass of the smallest set marks it completed.
+      await tester.scrollUntilVisible(find.text('Plant adaptations'), 200);
       await tester.tap(find.text('Plant adaptations'));
       await settle(tester);
       for (var q = 0; q < 4; q++) {
