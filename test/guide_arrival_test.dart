@@ -69,6 +69,16 @@ void main() {
       expect(said.contains('Try Quiz me or Lesson below to keep studying.'), isTrue);
     });
 
+    test('arrival teaches the clock position', () async {
+      final r = ArrivalRig();
+      r.session.handle(const ExploreStart(60, 60));
+      await r.askGuide();
+      r.log.events.clear();
+      r.session.handle(const ExploreMove(700, 120)); // onto the sun
+      await settle();
+      expect(r.log.where('say').single.contains("It sits at 2 o'clock."), isTrue);
+    });
+
     test('arrival still celebrates with the correct cue (regression)', () async {
       final r = ArrivalRig();
       r.session.handle(const ExploreStart(60, 60));
