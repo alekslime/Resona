@@ -99,6 +99,7 @@ class TouchSession {
   bool _guideNudgeSaid = false;
   Region? _pendingFirst;
   Region? _pendingSecond;
+  Region? _offeredNext;
   Map<String, List<(double, double)>> _guideCache = const {};
   int? _guideSectorLast;
   int? _guideBucketLast;
@@ -134,6 +135,7 @@ class TouchSession {
     _currentHelp = GuideHelp.full;
     _guideHelped = _guideNudgeSaid = false;
     _pendingFirst = _pendingSecond = null;
+    _offeredNext = null;
     _guideCache = buildGuideCache(analysis.regions);
     _guideSectorLast = _guideBucketLast = null;
     _guideSpokenMs = 0;
@@ -344,6 +346,7 @@ class TouchSession {
       if (_guide?.id == r.id) {
         // Found it: celebrate instead of just naming it, and leave guide mode.
         _guide = null;
+        _offeredNext = _nextInOrder(r);
         final tookMs = nowMs() - _guideStartedMs;
         final level = _helpById[r.id] ?? GuideHelp.full;
         _currentHelp = _helpById[r.id] =
@@ -369,10 +372,15 @@ class TouchSession {
 
   /// What finding a part teaches: its spoken line, what sits around it
   /// (both already in the region's own words), then the next part to find.
-  String _arrivalWords(Region r) {
+  /// The part after [r] in reading order, offered when a hunt ends there.
+  Region? _nextInOrder(Region r) {
     final order = readingOrder(regions);
     final i = order.indexWhere((o) => o.id == r.id);
-    final next = i >= 0 && i + 1 < order.length ? order[i + 1] : null;
+    return i >= 0 && i + 1 < order.length ? order[i + 1] : null;
+  }
+
+  String _arrivalWords(Region r) {
+    final next = _nextInOrder(r);
     final offer = next == null
         ? ' That was the last part.'
         : ' Next is the ${next.label}. Say "where is the ${next.label}?" to keep going.';
@@ -491,6 +499,23 @@ class TouchSession {
         return;
       }
     }
+    // A standing "next is the X" offer lasts one answer: yes starts the hunt,
+    // no dismisses it quietly, anything else falls through (offer cleared).
+    if (_offeredNext != null) {
+      final next = _offeredNext!;
+      _offeredNext = null;
+      final lower = heard.toLowerCase();
+      if (RegExp(r'\b(no|nope)\b').hasMatch(lower) || lower.contains('not now')) {
+        _thinking = false;
+        _say('Okay.');
+        return;
+      }
+      if (RegExp(r'\b(yes|yeah|yep|yup|ok|okay|sure|next|continue|keep going)\b')
+          .hasMatch(lower)) {
+        _beginGuide(next);
+        return;
+      }
+    }
     // While guiding, "give me a hint" points the way without restarting the hunt.
     if (_guide != null && RegExp(r'\bhints?\b').hasMatch(heard.toLowerCase())) {
       _thinking = false;
@@ -550,6 +575,7 @@ class TouchSession {
     }
     _thinking = false;
     _guide = target;
+    _offeredNext = null;
     _currentHelp = _helpById[target.id] ?? GuideHelp.full;
     _guideStartedMs = nowMs();
     _guideWrong = 0;
