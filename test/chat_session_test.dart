@@ -70,16 +70,18 @@ class GatedRepo extends FakeRepository {
 }
 
 class Rig {
-  Rig(this.log, this.session, this.guided, this.backs);
+  Rig(this.log, this.session, this.input, this.guided, this.backs);
   final Log log;
   final ChatSession session;
+  final FakeInput input;
   final List<Region> guided;
   final List<bool> backs;
 }
 
 Rig rig({
   TouchRepository? repo,
-  FakeInput? input,
+  String heard = 'what is this?',
+  bool micAvailable = true,
   RecentPicture? recent,
   List<ChatExchange> previous = const [],
   Duration tick = const Duration(seconds: 2),
@@ -88,12 +90,13 @@ Rig rig({
   final log = Log();
   final guided = <Region>[];
   final backs = <bool>[];
+  final input = FakeInput(log, heard: heard, available: micAvailable);
   final session = ChatSession(
     repository: repo ?? FakeRepository(log),
     speech: FakeSpeech(log),
     haptics: FakeHaptics(log),
     cues: FakeCues(log),
-    input: input ?? FakeInput(log),
+    input: input,
     recent: recent,
     previous: previous,
     onGuide: guided.add,
@@ -102,8 +105,11 @@ Rig rig({
     thinkingSpokenEvery: spokenFor,
   );
   addTearDown(session.dispose);
-  return Rig(log, session, guided, backs);
+  return Rig(log, session, input, guided, backs);
 }
+
+/// Let an unawaited ask run until it parks (on the mic or the model).
+Future<void> flushAsk() => Future<void>.delayed(Duration.zero);
 
 void main() {
   group('sentences', () {
@@ -213,9 +219,11 @@ void main() {
       final repo = GatedRepo(log);
       final r = rig(repo: repo, recent: sunRecent());
       unawaited(r.session.askTyped('first'));
-      await r.session.askTyped('second');
+      await flushAsk();
+      unawaited(r.session.askTyped('second'));
+      await flushAsk();
       repo.gate.complete('Late answer.');
-      await Future<void>.delayed(Duration.zero);
+      await flushAsk();
       expect(r.session.view.exchanges, hasLength(1));
       expect(r.session.view.exchanges.single.userText, 'second');
     });
@@ -225,6 +233,7 @@ void main() {
       final repo = GatedRepo(log);
       final r = rig(repo: repo, recent: sunRecent());
       unawaited(r.session.askTyped('go'));
+      await flushAsk();
       await r.session.askTapped();
       expect(
         r.log.events,
@@ -283,9 +292,7 @@ void main() {
     });
 
     test('tapping twice asks by voice', () async {
-      final log = Log();
-      final input = FakeInput(log, heard: 'what is this?');
-      final r = rig(input: input, recent: sunRecent());
+      final r = rig(recent: sunRecent());
       await r.session.askTapped();
       expect(r.log.events, contains('haptic:listening'));
       expect(r.log.events, contains('say: Listening.'));
@@ -301,8 +308,7 @@ void main() {
     });
 
     test('a missing microphone says so', () async {
-      final log = Log();
-      final r = rig(input: FakeInput(log, available: false));
+      final r = rig(micAvailable: false);
       await r.session.askTapped();
       expect(
         r.log.events,
@@ -313,8 +319,7 @@ void main() {
     });
 
     test('silence is admitted, not asked about', () async {
-      final log = Log();
-      final r = rig(input: FakeInput(log, heard: '  '), recent: sunRecent());
+      final r = rig(heard: '  ', recent: sunRecent());
       await r.session.askTapped();
       await r.session.askTapped();
       expect(r.log.events, contains('say: I did not catch that.'));
@@ -399,9 +404,7 @@ void main() {
     });
 
     test('where-is hands the hunt to the picture', () async {
-      final log = Log();
-      final input = FakeInput(log, heard: 'where is the sun');
-      final r = rig(input: input, recent: sunRecent());
+      final r = rig(heard: 'where is the sun', recent: sunRecent());
       await r.session.askTapped();
       await r.session.askTapped();
       expect(
@@ -416,28 +419,24 @@ void main() {
     });
 
     test('a close pair asks, then takes the first', () async {
-      final log = Log();
-      final input = FakeInput(log, heard: 'where is the lung?');
-      final r = rig(input: input, recent: lungsRecent());
+      final r = rig(heard: 'where is the lung?', recent: lungsRecent());
       await r.session.askTapped();
       await r.session.askTapped();
       expect(
         r.log.events,
         contains('say: Did you mean left lung or right lung?'),
       );
-      input.heard = 'the first one';
+      r.input.heard = 'the first one';
       await r.session.askTapped();
       await r.session.askTapped();
       expect(r.guided.map((g) => g.label), ['left lung']);
     });
 
     test('an open did-you-mean lasts exactly one answer', () async {
-      final log = Log();
-      final input = FakeInput(log, heard: 'where is the lung?');
-      final r = rig(input: input, recent: lungsRecent());
+      final r = rig(heard: 'where is the lung?', recent: lungsRecent());
       await r.session.askTapped();
       await r.session.askTapped();
-      input.heard = 'what is this?';
+      r.input.heard = 'what is this?';
       await r.session.askTapped();
       await r.session.askTapped();
       expect(r.guided, isEmpty);
@@ -454,10 +453,11 @@ void main() {
         spokenFor: const Duration(milliseconds: 30),
       );
       unawaited(r.session.askTyped('go'));
+      await flushAsk();
       r.session.dispose();
-      log.events.clear();
+      r.log.events.clear();
       await Future<void>.delayed(const Duration(milliseconds: 50));
-      expect(log.events, isEmpty);
+      expect(r.log.events, isEmpty);
       repo.gate.complete('Late.');
       await Future<void>.delayed(Duration.zero);
     });
