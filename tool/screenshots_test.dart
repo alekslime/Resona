@@ -15,7 +15,11 @@ import 'package:resonant/features/touch/data/http_touch_repository.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
 import 'package:resonant/features/touch/domain/region.dart';
 import 'package:resonant/features/touch/gestures/gesture_types.dart';
+import 'package:resonant/features/touch/presentation/chat_screen.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
+import 'package:resonant/features/touch/presentation/lessons_screen.dart';
+import 'package:resonant/features/touch/presentation/profile_screen.dart';
+import 'package:resonant/features/touch/presentation/quiz_browser_screen.dart';
 import 'package:resonant/features/touch/presentation/study_notes_screen.dart';
 import 'package:resonant/features/touch/presentation/touch_screen.dart';
 
@@ -167,6 +171,50 @@ void main() {
     await expectLater(
       find.byType(HomeScreen),
       matchesGoldenFile('../docs/screenshots/06-theme-low-vision.png'),
+    );
+  });
+
+  Future<void> openFromHome(WidgetTester tester, String label) async {
+    await pumpApp(tester);
+    await tester.tap(find.text(label));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.pump(const Duration(milliseconds: 500));
+  }
+
+  testWidgets('chat screenshot', (tester) async {
+    await openFromHome(tester, 'Chat');
+    expect(find.byType(ChatScreen), findsOneWidget);
+    await expectLater(
+      find.byType(ChatScreen),
+      matchesGoldenFile('../docs/screenshots/07-chat.png'),
+    );
+  });
+
+  testWidgets('lessons screenshot', (tester) async {
+    await openFromHome(tester, 'Lessons');
+    expect(find.byType(LessonsScreen), findsOneWidget);
+    await expectLater(
+      find.byType(LessonsScreen),
+      matchesGoldenFile('../docs/screenshots/08-lessons.png'),
+    );
+  });
+
+  testWidgets('quiz browser screenshot', (tester) async {
+    await openFromHome(tester, 'Quiz');
+    expect(find.byType(QuizBrowserScreen), findsOneWidget);
+    await expectLater(
+      find.byType(QuizBrowserScreen),
+      matchesGoldenFile('../docs/screenshots/09-quiz.png'),
+    );
+  });
+
+  testWidgets('profile screenshot', (tester) async {
+    await openFromHome(tester, 'Profile');
+    expect(find.byType(ProfileScreen), findsOneWidget);
+    await expectLater(
+      find.byType(ProfileScreen),
+      matchesGoldenFile('../docs/screenshots/10-profile.png'),
     );
   });
 }
