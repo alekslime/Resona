@@ -6,6 +6,7 @@ import '../../../core/services/sound.dart';
 import '../../../core/services/speech.dart';
 import '../data/touch_repository.dart';
 import '../domain/chart.dart';
+import '../domain/guide_help.dart';
 import '../domain/guide_match.dart';
 import '../domain/guide_path.dart';
 import '../domain/hit_tester.dart';
@@ -33,11 +34,15 @@ class TouchView {
     this.caption = '',
     this.learnDone = false,
     this.missedCount = 0,
+    this.guideHelp = GuideHelp.full,
   });
   final Region? highlight;
   final bool listening;
   final bool thinking;
   final String caption;
+
+  /// Guide mode only: how much help the current (or last) target gets.
+  final GuideHelp guideHelp;
 
   /// Learn mode only: the quiz is finished, and how many questions were missed.
   final bool learnDone;
@@ -86,6 +91,10 @@ class TouchSession {
   Region? _focus; // under the finger right now
   Region? _endedOn; // where the finger was when it lifted (for taps)
   Region? _guide; // "guide me there": the part the student is hunting for
+  final Map<String, GuideHelp> _helpById = {}; // fading help, per part
+  GuideHelp _currentHelp = GuideHelp.full;
+  int _guideStartedMs = 0;
+  int _guideWrong = 0;
   Map<String, List<(double, double)>> _guideCache = const {};
   int? _guideSectorLast;
   int? _guideBucketLast;
@@ -103,6 +112,7 @@ class TouchSession {
     listening: _listening,
     thinking: _thinking,
     caption: _caption,
+    guideHelp: _currentHelp,
   );
   Analysis? get analysis => _analysis;
   List<Region> get regions => _analysis?.regions ?? const [];
@@ -113,6 +123,8 @@ class TouchSession {
     _history.clear();
     _highlight = _focus = _endedOn = null;
     _guide = null;
+    _helpById.clear();
+    _currentHelp = GuideHelp.full;
     _guideCache = buildGuideCache(analysis.regions);
     _guideSectorLast = _guideBucketLast = null;
     _guideSpokenMs = 0;
@@ -215,6 +227,7 @@ class TouchSession {
   void _guideLive() {
     final guide = _guide;
     if (guide == null || _focus?.id == guide.id) return;
+    if (_currentHelp != GuideHelp.full) return; // hints/none stay quiet while moving
     final a = _analysis!;
     final pts = _guideCache[guide.id];
     if (pts == null || pts.isEmpty) return;
@@ -229,6 +242,28 @@ class TouchSession {
     _guideBucketLast = bucket;
     _guideSpokenMs = now;
     _say(guideCue(sector, bucket));
+  }
+
+  /// One spoken pointer to the guide target, for rest, hint requests and
+  /// repeated questions. Silent about direction on a pure find.
+  void _guideHint() {
+    final guide = _guide;
+    if (guide == null) return;
+    if (_currentHelp == GuideHelp.none) {
+      _say('Keep looking for the ${guide.label}.');
+      return;
+    }
+    final a = _analysis!;
+    final (dx, dy, dist) = _guideVector(guide);
+    final on = _focus;
+    final prefix = on != null && on.id != guide.id ? 'That is the ${on.label}. ' : '';
+    cues.proximity(closeness: guideCloseness(dist, a.width.toDouble()));
+    _guideSectorLast = guideSector(dx, dy);
+    _guideBucketLast = guideBucket(dist, a.width.toDouble());
+    _guideSpokenMs = nowMs();
+    _say(
+      '${prefix}The ${guide.label} is ${directionWords(dx, dy)}, ${distanceWords(dist, a.width.toDouble())}.',
+    );
   }
 
   /// (dx, dy, dist) from the finger to the nearest point of [guide]'s mask.
@@ -256,6 +291,14 @@ class TouchSession {
       if (_guide?.id == r.id) {
         // Found it: celebrate instead of just naming it, and leave guide mode.
         _guide = null;
+        final tookMs = nowMs() - _guideStartedMs;
+        final level = _helpById[r.id] ?? GuideHelp.full;
+        _currentHelp = _helpById[r.id] =
+            (tookMs <= fastGuideMs && _guideWrong == 0)
+                ? lowerHelp(level)
+                : (_guideWrong > 0 || tookMs > slowGuideMs)
+                ? raiseHelp(level)
+                : level;
         haptics.play(HapticPattern.correct);
         cues.play(HapticPattern.correct);
         _labelTimer = Timer(labelDelay, () => _say(_arrivalWords(r)));
@@ -286,6 +329,10 @@ class TouchSession {
   void _rest() {
     final guide = _guide;
     if (guide != null) {
+      if (_currentHelp == GuideHelp.none) {
+        _say('Keep looking for the ${guide.label}.');
+        return;
+      }
       final a = _analysis!;
       final (dx, dy, dist) = _guideVector(guide);
       final on = _focus;
@@ -311,6 +358,7 @@ class TouchSession {
 
   void _describeTouched() {
     final r = _endedOn;
+    if (_guide != null && r != null && r.id != _guide!.id) _guideWrong++;
     if (r != null) {
       final rank = isChart(_analysis!) ? barRankWords(r, regions) : '';
       _say('${r.label}. ${r.spoken}${aroundWords(r, regions)}${rank.isEmpty ? '' : ' $rank'}');
@@ -377,6 +425,12 @@ class TouchSession {
       _say('I did not catch that.');
       return;
     }
+    // While guiding, "give me a hint" points the way without restarting the hunt.
+    if (_guide != null && RegExp(r'\bhints?\b').hasMatch(heard.toLowerCase())) {
+      _thinking = false;
+      _guideHint();
+      return;
+    }
     // "Where is the sun?" / "Find the sea" is not a tutor question: it starts guide mode.
     final match = matchGuideTarget(regions, heard);
     if (match is GuideAmbiguous) {
@@ -391,8 +445,17 @@ class TouchSession {
     }
     if (match is GuideFound) {
       final target = match.region;
+      if (target.id == _guide?.id) {
+        // Asking for the same part again is a hint, not a restart.
+        _thinking = false;
+        _guideHint();
+        return;
+      }
       _thinking = false;
       _guide = target;
+      _currentHelp = _helpById[target.id] ?? GuideHelp.full;
+      _guideStartedMs = nowMs();
+      _guideWrong = 0;
       haptics.play(HapticPattern.confirm);
       cues.play(HapticPattern.confirm);
       final a = _analysis!;
