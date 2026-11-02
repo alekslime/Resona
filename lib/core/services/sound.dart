@@ -124,6 +124,10 @@ abstract class Cues {
   /// A short tone for a spot in the picture: pitch follows height, stereo position follows
   /// left to right. Both are 0..1 across the picture.
   Future<void> position({required double x01, required double y01});
+
+  /// The guide-mode proximity tone: higher as the finger nears the part.
+  /// [closeness] is 0 (far) to 1 (on the part).
+  Future<void> proximity({required double closeness});
 }
 
 class NoCues implements Cues {
@@ -132,6 +136,8 @@ class NoCues implements Cues {
   Future<void> play(HapticPattern pattern) async {}
   @override
   Future<void> position({required double x01, required double y01}) async {}
+  @override
+  Future<void> proximity({required double closeness}) async {}
 }
 
 /// Where each named cue sits between the ears: back, slower and wrong go left, everything else

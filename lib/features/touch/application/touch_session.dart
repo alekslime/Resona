@@ -7,6 +7,7 @@ import '../../../core/services/speech.dart';
 import '../data/touch_repository.dart';
 import '../domain/chart.dart';
 import '../domain/guide_match.dart';
+import '../domain/guide_path.dart';
 import '../domain/hit_tester.dart';
 import '../domain/region.dart';
 import '../domain/spatial.dart';
@@ -57,6 +58,7 @@ class TouchSession {
     this.onChanged,
     this.onBack,
     this.labelDelay = const Duration(milliseconds: 110),
+    this.nowMs = _defaultNowMs,
   });
 
   final SpeechOutput speech;
@@ -67,6 +69,11 @@ class TouchSession {
   final void Function(TouchView view)? onChanged;
   final void Function()? onBack;
   final Duration labelDelay;
+
+  /// Clock for guide-cue throttling (milliseconds). Tests pin it; the app uses wall time.
+  final int Function() nowMs;
+
+  static int _defaultNowMs() => DateTime.now().millisecondsSinceEpoch;
 
   Analysis? _analysis;
   PictureBytes? _picture;
@@ -79,6 +86,10 @@ class TouchSession {
   Region? _focus; // under the finger right now
   Region? _endedOn; // where the finger was when it lifted (for taps)
   Region? _guide; // "guide me there": the part the student is hunting for
+  Map<String, List<(double, double)>> _guideCache = const {};
+  int? _guideSectorLast;
+  int? _guideBucketLast;
+  int _guideSpokenMs = 0;
   double _lastPx = 0, _lastPy = 0;
   bool _wasInside = false;
   bool _listening = false;
@@ -102,6 +113,9 @@ class TouchSession {
     _history.clear();
     _highlight = _focus = _endedOn = null;
     _guide = null;
+    _guideCache = buildGuideCache(analysis.regions);
+    _guideSectorLast = _guideBucketLast = null;
+    _guideSpokenMs = 0;
     _wasInside = _listening = _thinking = false;
     _lastSpoken = '';
     final note = analysis.synthetic
@@ -193,6 +207,40 @@ class TouchSession {
     }
     _wasInside = true;
     _setFocus(hitRegion(regions, px, py, tolerance: a.width * 0.006), px, py);
+    _guideLive();
+  }
+
+  /// Short live cues while the finger moves in guide mode, throttled so they
+  /// never chatter: only on a sector or bucket change, or after ~1.5 s.
+  void _guideLive() {
+    final guide = _guide;
+    if (guide == null || _focus?.id == guide.id) return;
+    final a = _analysis!;
+    final pts = _guideCache[guide.id];
+    if (pts == null || pts.isEmpty) return;
+    final (nx, ny, dist) = nearestGuidePoint(pts, _lastPx, _lastPy);
+    cues.proximity(closeness: guideCloseness(dist, a.width.toDouble()));
+    final sector = guideSector(nx - _lastPx, ny - _lastPy);
+    final bucket = guideBucket(dist, a.width.toDouble());
+    final now = nowMs();
+    final changed = sector != _guideSectorLast || bucket != _guideBucketLast;
+    if (!changed && now - _guideSpokenMs < 1500) return;
+    _guideSectorLast = sector;
+    _guideBucketLast = bucket;
+    _guideSpokenMs = now;
+    _say(guideCue(sector, bucket));
+  }
+
+  /// (dx, dy, dist) from the finger to the nearest point of [guide]'s mask.
+  (double, double, double) _guideVector(Region guide) {
+    final pts = _guideCache[guide.id];
+    if (pts == null || pts.isEmpty) {
+      final dx = guide.centerX - _lastPx;
+      final dy = guide.centerY - _lastPy;
+      return (dx, dy, math.sqrt(dx * dx + dy * dy));
+    }
+    final (nx, ny, dist) = nearestGuidePoint(pts, _lastPx, _lastPy);
+    return (nx - _lastPx, ny - _lastPy, dist);
   }
 
   void _setFocus(Region? r, double px, double py) {
@@ -227,11 +275,13 @@ class TouchSession {
     final guide = _guide;
     if (guide != null) {
       final a = _analysis!;
-      final dx = guide.centerX - _lastPx;
-      final dy = guide.centerY - _lastPy;
-      final dist = math.sqrt(dx * dx + dy * dy);
+      final (dx, dy, dist) = _guideVector(guide);
       final on = _focus;
       final prefix = on != null && on.id != guide.id ? 'That is the ${on.label}. ' : '';
+      cues.proximity(closeness: guideCloseness(dist, a.width.toDouble()));
+      _guideSectorLast = guideSector(dx, dy);
+      _guideBucketLast = guideBucket(dist, a.width.toDouble());
+      _guideSpokenMs = nowMs();
       _say(
         '${prefix}The ${guide.label} is ${directionWords(dx, dy)}, ${distanceWords(dist, a.width.toDouble())}.',
         queue: on != null,
@@ -334,12 +384,14 @@ class TouchSession {
       haptics.play(HapticPattern.confirm);
       cues.play(HapticPattern.confirm);
       final a = _analysis!;
-      final dx = target.centerX - _lastPx;
-      final dy = target.centerY - _lastPy;
+      final (dx, dy, dist) = _guideVector(target);
+      _guideSectorLast = guideSector(dx, dy);
+      _guideBucketLast = guideBucket(dist, a.width.toDouble());
+      _guideSpokenMs = nowMs();
       _say(
-        'Guide mode. Drag your finger slowly, then rest and I will point you. '
+        'Guide mode. Drag your finger slowly and I will guide you. '
         'The ${target.label} is ${directionWords(dx, dy)} from where you last touched, '
-        '${distanceWords(math.sqrt(dx * dx + dy * dy), a.width.toDouble())}.',
+        '${distanceWords(dist, a.width.toDouble())}.',
       );
       _emit();
       return;

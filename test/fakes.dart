@@ -57,6 +57,9 @@ class FakeCues implements Cues {
   Future<void> position({required double x01, required double y01}) async =>
       log.events
           .add('tone:${x01.toStringAsFixed(2)},${y01.toStringAsFixed(2)}');
+  @override
+  Future<void> proximity({required double closeness}) async =>
+      log.events.add('prox:${closeness.toStringAsFixed(2)}');
 }
 
 class FakeInput implements SpeechInput {

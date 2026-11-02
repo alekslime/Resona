@@ -47,4 +47,15 @@ class AudioPlayersCues implements Cues {
     );
     return _play(wav);
   }
+
+  @override
+  Future<void> proximity({required double closeness}) {
+    final step = (closeness.clamp(0.0, 1.0) * 4).round(); // 0..4: higher as it gets closer
+    final hz = 600 + step * 150;
+    final wav = _cache.putIfAbsent(
+      'g:$hz',
+      () => synthWav([CueNote(hz, 60)], gain: 0.6, pan: 0),
+    );
+    return _play(wav);
+  }
 }
