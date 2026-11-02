@@ -18,11 +18,18 @@ import 'gesture_types.dart';
 ///
 /// With [exploreEnabled] off, the centre behaves exactly like Resonant's lessons: swipes navigate.
 class GestureEngine {
-  GestureEngine({GestureConfig config = const GestureConfig(), this.exploreEnabled = true})
-    : _c = config;
+  GestureEngine({
+    GestureConfig config = const GestureConfig(),
+    this.exploreEnabled = true,
+    this.twoFingerSwipe = false,
+  }) : _c = config;
 
   final GestureConfig _c;
   bool exploreEnabled;
+
+  /// Lists (lessons, home): one finger scrolls in silence, and only a
+  /// two-finger drag navigates. Ported from Resonant's GestureSurface flag.
+  bool twoFingerSwipe;
 
   /// Screen width in logical pixels; decides which zone a touch starts in.
   double width = 0;
@@ -231,7 +238,9 @@ class GestureEngine {
     } else if (_maxPointers >= 3) {
       out.add(duration > _c.longPressMs ? const ThreeFingerHold() : const ThreeFingerTap());
     } else if (_moved()) {
-      if (dx.abs() > _c.swipeMinDistance || dy.abs() > _c.swipeMinDistance) {
+      final swipeable = !twoFingerSwipe || _maxPointers >= 2;
+      if (swipeable &&
+          (dx.abs() > _c.swipeMinDistance || dy.abs() > _c.swipeMinDistance)) {
         out.add(Swipe(_zone, _direction(dx, dy)));
       }
     } else if (duration <= _c.tapMaxDurationMs && _maxPointers == 1) {

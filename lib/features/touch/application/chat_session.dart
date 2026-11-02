@@ -384,7 +384,6 @@ class ChatSession {
       case ThreeFingerTap():
         _repeat();
       case ThreeFingerHold():
-        _buzz(HapticPattern.confirm);
         if (_exchanges.isEmpty) {
           _say('AI Chat. Tap the center of the screen to ask a question.');
         } else {

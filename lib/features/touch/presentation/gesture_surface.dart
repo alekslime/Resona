@@ -17,11 +17,13 @@ class GestureSurface extends StatefulWidget {
     required this.onGesture,
     required this.child,
     this.exploreEnabled = true,
+    this.twoFingerSwipe = false,
   });
 
   final void Function(Gesture gesture) onGesture;
   final Widget child;
   final bool exploreEnabled;
+  final bool twoFingerSwipe;
 
   @override
   State<GestureSurface> createState() => _GestureSurfaceState();
@@ -74,7 +76,8 @@ class _GestureSurfaceState extends State<GestureSurface> {
       builder: (context, box) {
         _engine
           ..width = box.maxWidth
-          ..exploreEnabled = widget.exploreEnabled;
+          ..exploreEnabled = widget.exploreEnabled
+          ..twoFingerSwipe = widget.twoFingerSwipe;
         return Listener(
           behavior: HitTestBehavior.opaque,
           onPointerDown: (e) => _feed(e, PointerPhase.down),
