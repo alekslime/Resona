@@ -274,6 +274,7 @@ class _PictureCard extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: EnterStagger(
@@ -319,7 +320,7 @@ class _PictureCard extends ConsumerWidget {
                               Text(
                                 'Explore picture',
                                 style: TextStyle(
-                                  fontFamily: 'Metropolis',
+                                  fontFamily: font.family,
                                   fontWeight: FontWeight.w600,
                                   fontSize: 22,
                                   color: palette.onButton,

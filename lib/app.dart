@@ -11,10 +11,11 @@ class ResonantApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     return MaterialApp(
       title: 'Resonant',
       debugShowCheckedModeBanner: false,
-      theme: buildTheme(palette),
+      theme: buildTheme(palette, font),
       home: const HomeScreen(),
     );
   }

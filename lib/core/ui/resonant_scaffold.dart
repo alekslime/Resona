@@ -38,6 +38,7 @@ class ResonantScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final textTheme = Theme.of(context).textTheme;
     return ResonantSurface(
       child: SafeArea(
@@ -64,7 +65,7 @@ class ResonantScaffold extends ConsumerWidget {
                     child: Text(
                       subtitle!,
                       style: TextStyle(
-                        fontFamily: 'Metropolis',
+                        fontFamily: font.family,
                         fontWeight: FontWeight.w600,
                         fontSize: 20,
                         color: palette.ink,

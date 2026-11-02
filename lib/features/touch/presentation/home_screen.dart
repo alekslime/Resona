@@ -10,8 +10,7 @@
 /// last explored picture, like old Chat answering from the material opened
 /// last; with no picture yet they say so and send you to Pictures.
 ///
-/// (Menu type hardcodes Metropolis for now; the chosen font, the text-size
-/// cap and the full gesture grammar arrive with Settings.)
+/// (The text-size cap and the full gesture grammar arrive with Settings.)
 library;
 
 import 'dart:async';
@@ -222,6 +221,7 @@ class _MenuItem extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     return EnterStagger(
       index: index,
       child: FocusLift(
@@ -240,8 +240,8 @@ class _MenuItem extends ConsumerWidget {
                 child: Text(
                   label,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontFamily: 'Metropolis',
+                  style: TextStyle(
+                    fontFamily: font.family,
                     fontWeight: FontWeight.w900,
                     fontSize: 60,
                     height: 83 / 60,

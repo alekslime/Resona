@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'app_fonts.dart';
 import 'palettes.dart';
 
 /// Gesture-zone width and the smallest thing you tap, both from Resonant's Dimens.kt.
@@ -10,7 +11,8 @@ const double minTouchTarget = 56;
 const double screenHorizontalPadding = 40;
 const double screenTopPadding = 48;
 
-ThemeData buildTheme(ResonantPalette p) {
+ThemeData buildTheme(ResonantPalette p, [AppFont? font]) {
+  final family = (font ?? AppFonts.metropolis).family;
   final scheme = ColorScheme(
     brightness: p.background.computeLuminance() > 0.4 ? Brightness.light : Brightness.dark,
     primary: p.button,
@@ -30,17 +32,17 @@ ThemeData buildTheme(ResonantPalette p) {
     // runs ~1.3-1.55x so lines stay trackable, and the smallest role is
     // still 20 because nothing here is a disposable caption. Heights are
     // exact pixel ratios.
-    fontFamily: 'Metropolis',
+    fontFamily: family,
     textTheme: TextTheme(
-      displayLarge: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w900, fontSize: 56, height: 64 / 56),
-      headlineLarge: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w700, fontSize: 44, height: 52 / 44),
-      headlineMedium: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w700, fontSize: 34, height: 42 / 34),
-      headlineSmall: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w700, fontSize: 30, height: 38 / 30),
-      titleLarge: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w600, fontSize: 28, height: 36 / 28),
-      bodyLarge: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w400, fontSize: 26, height: 38 / 26),
-      bodyMedium: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w400, fontSize: 22, height: 32 / 22),
-      labelLarge: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w700, fontSize: 22, height: 28 / 22),
-      labelMedium: TextStyle(color: p.ink, fontFamily: 'Metropolis', fontWeight: FontWeight.w500, fontSize: 20, height: 26 / 20),
+      displayLarge: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w900, fontSize: 56, height: 64 / 56),
+      headlineLarge: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w700, fontSize: 44, height: 52 / 44),
+      headlineMedium: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w700, fontSize: 34, height: 42 / 34),
+      headlineSmall: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w700, fontSize: 30, height: 38 / 30),
+      titleLarge: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w600, fontSize: 28, height: 36 / 28),
+      bodyLarge: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w400, fontSize: 26, height: 38 / 26),
+      bodyMedium: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w400, fontSize: 22, height: 32 / 22),
+      labelLarge: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w700, fontSize: 22, height: 28 / 22),
+      labelMedium: TextStyle(color: p.ink, fontFamily: family, fontWeight: FontWeight.w500, fontSize: 20, height: 26 / 20),
     ),
     filledButtonTheme: FilledButtonThemeData(
       style: FilledButton.styleFrom(
@@ -58,13 +60,3 @@ ThemeData buildTheme(ResonantPalette p) {
     ),
   );
 }
-
-/// The big heading face Resonant uses on Home.
-TextStyle brandStyle(double size, Color color) => TextStyle(
-  fontFamily: 'Metropolis',
-  fontWeight: FontWeight.w900,
-  fontSize: size,
-  color: color,
-  height: 1.0,
-  letterSpacing: -1,
-);

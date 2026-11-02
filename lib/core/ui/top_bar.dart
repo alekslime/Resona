@@ -37,6 +37,7 @@ class LessonsTopBar extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final shape = controlShape(palette);
     void goBack() {
       ref.read(hapticsProvider).play(HapticPattern.back);
@@ -82,7 +83,7 @@ class LessonsTopBar extends ConsumerWidget {
                             Text(
                               title,
                               style: TextStyle(
-                                fontFamily: 'Metropolis',
+                                fontFamily: font.family,
                                 fontWeight: FontWeight.w600,
                                 fontSize: 22,
                                 color: palette.onBar,
@@ -168,8 +169,9 @@ class FittedTitle extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ink = color ?? ref.watch(paletteProvider).ink;
+    final font = ref.watch(fontProvider);
     final style = TextStyle(
-      fontFamily: 'Metropolis',
+      fontFamily: font.family,
       fontWeight: FontWeight.w600,
       color: ink,
     );

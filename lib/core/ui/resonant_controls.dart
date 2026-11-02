@@ -32,6 +32,7 @@ class ResonantButton extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final shape = controlShape(palette);
     return Opacity(
       opacity: enabled ? 1 : 0.5,
@@ -60,7 +61,7 @@ class ResonantButton extends ConsumerWidget {
                   child: Text(
                     text,
                     style: TextStyle(
-                      fontFamily: 'Metropolis',
+                      fontFamily: font.family,
                       fontWeight: FontWeight.w600,
                       fontSize: 22,
                       color: filled ? palette.onButton : palette.ink,
@@ -137,8 +138,9 @@ class _ResonantTextFieldState extends ConsumerState<ResonantTextField> {
   @override
   Widget build(BuildContext context) {
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final valueStyle = TextStyle(
-      fontFamily: 'Metropolis',
+      fontFamily: font.family,
       fontWeight: FontWeight.w600,
       fontSize: 26,
       color: palette.ink,
@@ -158,7 +160,7 @@ class _ResonantTextFieldState extends ConsumerState<ResonantTextField> {
             Text(
               widget.label,
               style: TextStyle(
-                fontFamily: 'Metropolis',
+                fontFamily: font.family,
                 fontWeight: FontWeight.w600,
                 fontSize: 16,
                 color: palette.ink,

@@ -72,6 +72,7 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
   Widget build(BuildContext context) {
     final state = ref.watch(touchControllerProvider);
     final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
     final controller = ref.read(touchControllerProvider.notifier);
     final analysis = state.analysis;
     final picture = state.picture;
@@ -196,7 +197,7 @@ class _TouchScreenState extends ConsumerState<TouchScreen> {
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontFamily: 'Metropolis',
+                      fontFamily: font.family,
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: palette.ink,
