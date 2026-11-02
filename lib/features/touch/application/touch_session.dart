@@ -443,7 +443,7 @@ class TouchSession {
   String _arrivalWords(Region r) {
     final next = _nextInOrder(r);
     final offer = next == null
-        ? ' That was the last part.'
+        ? ' That was the last part. Try Quiz me or Lesson below to keep studying.'
         : ' Next is the ${next.label}. Say "where is the ${next.label}?" to keep going.';
     return 'You found the ${r.label}. ${r.spoken}${aroundWords(r, regions)}$offer';
   }
