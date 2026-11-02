@@ -125,6 +125,16 @@ class TouchSession {
   Analysis? get analysis => _analysis;
   List<Region> get regions => _analysis?.regions ?? const [];
 
+  /// Fading-help levels by part id, for the recents shelf to keep.
+  Map<String, GuideHelp> get helpLevels => Map.of(_helpById);
+
+  /// Restore levels kept for this picture (see [helpLevels]).
+  void restoreHelpLevels(Map<String, GuideHelp> saved) {
+    _helpById
+      ..clear()
+      ..addAll(saved);
+  }
+
   void load(Analysis analysis, PictureBytes picture) {
     _analysis = analysis;
     _picture = picture;
