@@ -2,23 +2,29 @@
 
 # Resonant
 
-**Learn by sound and touch.** Drag a finger across a picture and feel its parts.
+**A voice tutor for pictures.** Talk, explore, lesson, quiz, notes — one study loop. Spark teaches, SAM places.
 
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3%20%2B%20SAM%203.1-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-343%20Flutter%20%2B%2044%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-343%20Flutter%20%2B%2054%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
 </div>
 
 Diagrams, charts and photos are the part of school that screen readers cannot reach. Alt text says
-"a diagram of the water cycle" and stops. Resonant turns the picture itself into something a blind
-student can explore. Each part speaks its name, buzzes under the fingertip (bigger parts buzz longer,
-so size can be felt), and plays a tone whose **pitch is its height** on the page and whose **stereo
-position is left to right**, so the whole picture can be heard as well as felt. Rest on empty space and
-it says which way to walk to the nearest part.
+"a diagram of the water cycle" and stops. Resonant turns the picture into a study loop: **Talk**
+asks the tutor anything, **Explore** feels every part by touch, **Lessons** walks through them in
+order, **Quiz** checks they stuck, and **Notes** keeps the whole picture as text for revision.
+**Spark teaches, SAM places** — Muse Spark names the parts, writes the lessons and does the
+tutoring; SAM 3.1 draws the exact outline of each part, so a finger can land on a river or a lung,
+not just a rectangle.
+
+Each part speaks its name, buzzes under the fingertip (bigger parts buzz longer, so size can be
+felt), and plays a tone whose **pitch is its height** on the page and whose **stereo position is
+left to right**, so the whole picture can be heard as well as felt. Rest on empty space and it
+says which way to walk to the nearest part.
 
 The logo is the letter R in braille (⠗: dots 1-2-3-5), because sound and touch resonate through everything.
 
@@ -100,7 +106,7 @@ no old code copied; inventoried in `docs/HACKATHON.md`):
 - **Study notes**: the whole picture as plain text (overview, map, every part with its clock-face
   position) for revision with a screen reader — and **Copy notes to share** pastes them anywhere.
 - Screen-reader buttons for every gesture, twelve themes, a show-all-outlines view for sighted helpers,
-  chart value readout with bar ranks, 343 Flutter tests + 44 backend tests, all green.
+  chart value readout with bar ranks, 343 Flutter tests + 54 backend tests, all green.
 
 **Built, one step from proven:**
 
@@ -204,7 +210,7 @@ Carried over from the earlier app, plus finger exploration:
 | Centre | Hold still 0.5 s, speak, lift | Ask a question about the picture, or ask "Where is the …?" to be guided to it |
 | Explore screen | Lesson / Quiz me / Talk live buttons | Guided lesson, a quiz (touch the part it names, answer out loud), or a live conversation |
 | Lesson / Quiz | Left-edge swipe, buttons below | Next / previous step or question; hold right edge to go back to exploring |
-| Left edge | Tap / double tap | Stop and resume talking / repeat |
+| Left edge | Tap / double tap | Stop and resume talking / repeat (a hint while guiding) |
 | Left edge | Swipe (finger down = next) | Step through the parts without dragging |
 | Right edge | Hold, then drag up or down | Speech faster or slower |
 | Right edge | Hold without dragging | Back |
@@ -270,7 +276,7 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 
 ```bash
 flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound, dots, shell, nav, home, gallery, talk, notes, touch, settings, splash, hints, shell (343 tests)
-cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (44 tests)
+cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (54 tests)
 ```
 
 ## Known limits
