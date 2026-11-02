@@ -715,21 +715,8 @@ class TouchSession {
 
   /// Which side of the open "did you mean" the student picked: 0, 1, or null
   /// when the answer picks neither (both names at once counts as neither).
-  int? _resolvePending(String heard) {
-    final lower = heard.toLowerCase();
-    if (RegExp(r'\bfirst\b').hasMatch(lower)) return 0;
-    if (RegExp(r'\bsecond\b').hasMatch(lower)) return 1;
-    final text = ' ${lower.replaceAll(RegExp(r'[^a-z ]'), ' ')} ';
-    if (text.contains(' option a ') || text.trim() == 'a') return 0;
-    if (text.contains(' option b ') || text.trim() == 'b') return 1;
-    final first = ' ${_pendingFirst!.label.toLowerCase()} ';
-    final second = ' ${_pendingSecond!.label.toLowerCase()} ';
-    final hasFirst = text.contains(first);
-    final hasSecond = text.contains(second);
-    if (hasFirst && !hasSecond) return 0;
-    if (hasSecond && !hasFirst) return 1;
-    return null;
-  }
+  int? _resolvePending(String heard) =>
+      resolveGuidePick(_pendingFirst!, _pendingSecond!, heard);
 
   // ---- speaking ----
 

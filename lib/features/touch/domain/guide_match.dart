@@ -168,3 +168,22 @@ GuideMatch matchGuideTarget(List<Region> regions, String heard) {
   }
   return GuideFound(best.$1, best.$2);
 }
+
+/// Which side of an open "did you mean" the student's answer picks: 0 for
+/// [first], 1 for [second], or null when it picks neither (both names at
+/// once counts as neither).
+int? resolveGuidePick(Region first, Region second, String heard) {
+  final lower = heard.toLowerCase();
+  if (RegExp(r'\bfirst\b').hasMatch(lower)) return 0;
+  if (RegExp(r'\bsecond\b').hasMatch(lower)) return 1;
+  final text = ' ${lower.replaceAll(RegExp(r'[^a-z ]'), ' ')} ';
+  if (text.contains(' option a ') || text.trim() == 'a') return 0;
+  if (text.contains(' option b ') || text.trim() == 'b') return 1;
+  final a = ' ${first.label.toLowerCase()} ';
+  final b = ' ${second.label.toLowerCase()} ';
+  final hasFirst = text.contains(a);
+  final hasSecond = text.contains(b);
+  if (hasFirst && !hasSecond) return 0;
+  if (hasSecond && !hasFirst) return 1;
+  return null;
+}
