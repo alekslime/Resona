@@ -13,6 +13,7 @@ import 'theme/palettes.dart';
 import 'theme/text_scale.dart';
 import 'theme/text_spacings.dart';
 import '../features/learn/domain/library.dart';
+import '../features/learn/domain/progress.dart';
 import '../features/touch/data/http_touch_repository.dart';
 import '../features/touch/data/touch_repository.dart';
 
@@ -145,3 +146,56 @@ class ChatHistoryNotifier extends Notifier<List<ChatExchange>> {
 final chatHistoryProvider =
     NotifierProvider<ChatHistoryNotifier, List<ChatExchange>>(
         ChatHistoryNotifier.new);
+
+/// Per-quiz progress for the browser and the profile. Session-only for now.
+class QuizBookNotifier extends Notifier<Map<String, QuizProgress>> {
+  @override
+  Map<String, QuizProgress> build() => const {};
+
+  QuizProgress of(String quizId) => state[quizId] ?? const QuizProgress();
+
+  void markInProgress(String quizId, int totalQuestions) {
+    final book = QuizProgressBook(state);
+    book.markInProgress(quizId, totalQuestions);
+    state = book.progress;
+  }
+
+  void markCompleted(String quizId, int correct, int total) {
+    final book = QuizProgressBook(state);
+    book.markCompleted(quizId, correct, total);
+    state = book.progress;
+  }
+
+  void clear() => state = const {};
+}
+
+final quizBookProvider =
+    NotifierProvider<QuizBookNotifier, Map<String, QuizProgress>>(
+        QuizBookNotifier.new);
+
+/// What the person has done: streak days, listening time, finished lessons.
+/// Session-only for now. Days are epoch days in the phone's own time zone.
+class ActivityNotifier extends Notifier<ActivityLog> {
+  @override
+  ActivityLog build() => const ActivityLog();
+
+  int get today =>
+      DateTime.now().millisecondsSinceEpoch ~/ Duration.millisecondsPerDay;
+
+  void quizFinished() {
+    state = Streaks.withDayActive(state, today);
+  }
+
+  void lessonFinished(String id) {
+    state = Streaks.withLessonFinished(state, id, today);
+  }
+
+  void listened(int seconds) {
+    state = Streaks.withListening(state, seconds, today);
+  }
+
+  void clear() => state = const ActivityLog();
+}
+
+final activityProvider =
+    NotifierProvider<ActivityNotifier, ActivityLog>(ActivityNotifier.new);

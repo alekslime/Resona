@@ -17,6 +17,10 @@ enum HapticPattern {
   holdEngaged,
   thinking,
   edge,
+  optionA,
+  optionB,
+  optionC,
+  optionD,
 }
 
 const Map<HapticPattern, List<int>> hapticTimings = {
@@ -35,7 +39,26 @@ const Map<HapticPattern, List<int>> hapticTimings = {
   HapticPattern.holdEngaged: [0, 15, 30, 15, 30, 15],
   HapticPattern.thinking: [0, 12],
   HapticPattern.edge: [0, 20, 50, 20],
+  HapticPattern.optionA: [0, 90],
+  HapticPattern.optionB: [0, 90, 80, 90],
+  HapticPattern.optionC: [0, 90, 80, 90, 80, 90],
+  HapticPattern.optionD: [0, 90, 80, 90, 80, 90, 80, 90],
 };
+
+/// The per-option buzz while browsing answers: one buzz for A, two for
+/// B, and so on. Mirrors the old HapticManager.playOption.
+HapticPattern optionPattern(int letterIndex) {
+  switch (letterIndex) {
+    case 0:
+      return HapticPattern.optionA;
+    case 1:
+      return HapticPattern.optionB;
+    case 2:
+      return HapticPattern.optionC;
+    default:
+      return HapticPattern.optionD;
+  }
+}
 
 abstract class Haptics {
   /// Play one of the named patterns.

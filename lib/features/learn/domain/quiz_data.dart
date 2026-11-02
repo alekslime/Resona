@@ -353,3 +353,74 @@ String quizRetryLabel(int missedCount) => 'Retry $missedCount missed';
 /// What the three-finger hold says on the results screen.
 String quizResultsHoldSummary(int correct, int total, int missedCount) =>
     'Quiz Results. You scored $correct out of $total. ${quizResultsInstructions(missedCount)}';
+
+/// One answer in the reader's queue: "Option B. The cell membrane."
+String quizOptionUnit(String letter, String text) => 'Option $letter. $text.';
+
+/// Announced when an option is tapped.
+String quizSelectSpoken(String letter) =>
+    'Option $letter selected. Swipe right to submit.';
+
+/// Announced on submit: the verdict plus the explanation.
+String quizSubmitSpoken(bool correct, String explanation) =>
+    '${correct ? 'Correct' : 'Incorrect'}. $explanation';
+
+/// Announced when submit is swiped with nothing chosen.
+const String quizNoSelectionSpoken =
+    'No option selected. Swipe up or down to browse, then tap to select.';
+
+/// What the three-finger hold says on the reader.
+String quizHoldSummary({
+  required int questionIndex,
+  required int total,
+  required bool submitted,
+  bool? correct,
+  String? selectedLetter,
+}) {
+  final String status;
+  if (submitted) {
+    status = 'Submitted. ${correct == true ? 'Correct' : 'Incorrect'}. Swipe up to continue.';
+  } else if (selectedLetter != null) {
+    status = 'Option $selectedLetter selected. Swipe right to submit.';
+  } else {
+    status =
+        'No option selected. Swipe up or down to browse, tap to select, swipe right to submit.';
+  }
+  return 'Quiz, question ${questionIndex + 1} of $total. $status';
+}
+
+/// One quiz in the browser's queue.
+String quizBrowserUnit({
+  required String title,
+  required String category,
+  required int questions,
+  required String status,
+  required int percent,
+}) =>
+    '$title. $category. $questions questions. $status. $percent percent complete.';
+
+/// What the three-finger hold says on the browser.
+String quizBrowserHold({
+  required String currentTitle,
+  required String status,
+  required int done,
+  required int total,
+}) =>
+    'Quizzes. $done of $total completed. Currently focused: $currentTitle. $status.';
+
+/// Announced when a quiz is opened.
+String quizOpenSpoken(String title) => 'Opening $title.';
+
+/// The card button shows the status label title-cased: "Start Quiz".
+String quizButtonTitle(String buttonLabel) => buttonLabel
+    .split(' ')
+    .map((String w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1)}')
+    .join(' ');
+
+/// The retry round as its own quiz: the missed questions under a review title.
+LibraryQuizSet reviewSet(List<LibraryQuizQuestion> missed) => LibraryQuizSet(
+      id: 'quiz_review',
+      title: 'Review: Missed Questions',
+      category: '',
+      questions: missed,
+    );

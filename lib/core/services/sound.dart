@@ -52,6 +52,24 @@ abstract final class SoundCues {
       CueNote(988, 30),
     ], gain: 0.8),
     HapticPattern.thinking: CueSpec([CueNote(523, 25)], gain: 0.4),
+    HapticPattern.optionA: CueSpec([CueNote(587, 70)]),
+    HapticPattern.optionB: CueSpec([CueNote(587, 70), CueNote(0, 50), CueNote(587, 70)]),
+    HapticPattern.optionC: CueSpec([
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+    ]),
+    HapticPattern.optionD: CueSpec([
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+    ]),
   };
 }
 
