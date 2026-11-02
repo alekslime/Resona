@@ -43,6 +43,12 @@ function httpError(status, message) {
 
 export function createApp(meta) {
   const app = express();
+  app.disable("x-powered-by");
+  // Behind Fly.io/Railway the client IP arrives in X-Forwarded-For; without
+  // this the limiter would put every visitor in one bucket. Off unless the
+  // deploy says otherwise, so a directly exposed server never trusts a
+  // client-spoofed header.
+  app.set("trust proxy", Number(process.env.TRUST_PROXY ?? 0) || 0);
   // One analyze costs 1 Spark + up to 8 SAM calls. Cache by picture so lesson,
   // quiz and chat demos re-opening the same picture never pay for it twice.
   const analyzeCache = new Map();
@@ -65,6 +71,13 @@ export function createApp(meta) {
     };
   };
   app.use(express.json({ limit: "12mb" }));
+  app.use((_req, res, next) => {
+    res.set({
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+    });
+    next();
+  });
   // The mobile app and a separately hosted web build call this API from other origins.
   app.use((req, res, next) => {
     res.set({
@@ -287,6 +300,9 @@ export function createApp(meta) {
     }
   });
 
+  // Unknown API routes answer JSON like the rest of the API; anything else
+  // keeps Express's default page for browsers.
+  app.use("/api", (_req, res) => res.status(404).json({ error: "No such API route." }));
   // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {
     if (err?.type === "entity.too.large") return res.status(413).json({ error: "That picture is too large. Try one under 8 MB." });
