@@ -228,7 +228,9 @@ void main() {
           child: const ResonantApp(),
         ),
       );
-      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pump(const Duration(milliseconds: 100));
       final context = tester.element(find.byType(HomeScreen));
       expect(
           MediaQuery.textScalerOf(context), const TextScaler.linear(1.25));

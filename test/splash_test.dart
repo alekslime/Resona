@@ -1,8 +1,16 @@
 import 'dart:typed_data';
 
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:resonant/app.dart';
+import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/services/sound.dart';
 import 'package:resonant/core/ui/splash_motion.dart';
+import 'package:resonant/features/touch/presentation/home_screen.dart';
+import 'package:resonant/features/touch/presentation/splash_screen.dart';
+
+import 'fakes.dart';
 
 void main() {
   group('splash motion', () {
@@ -121,6 +129,109 @@ void main() {
         if (data.getInt16(i, Endian.little).abs() > 1000) loud++;
       }
       expect(loud, greaterThan(1000));
+    });
+  });
+  group('splash screen', () {
+    Future<ProviderContainer> rigged(Log log) async {
+      final container = ProviderContainer(
+        overrides: [
+          speechProvider.overrideWithValue(FakeSpeech(log)),
+          hapticsProvider.overrideWithValue(FakeHaptics(log)),
+          cuesProvider.overrideWithValue(FakeCues(log)),
+          speechInputProvider.overrideWithValue(FakeInput(log)),
+          repositoryProvider.overrideWithValue(FakeRepository(log)),
+        ],
+      );
+      addTearDown(container.dispose);
+      return container;
+    }
+
+    testWidgets('shows the wordmark, tagline and spoken label', (tester) async {
+      final container = await rigged(Log());
+      var finished = false;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: SplashScreen(onFinished: () => finished = true),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.text('R'), findsOneWidget);
+      expect(find.text('N'), findsNWidgets(2));
+      expect(find.text('Learn by listening.'), findsOneWidget);
+      expect(
+        find.bySemanticsLabel('Resonant. Learn by listening.'),
+        findsOneWidget,
+      );
+      expect(finished, isFalse);
+    });
+
+    testWidgets('the still splash ends quietly', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      var finished = false;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: MediaQuery(
+              data: const MediaQueryData(disableAnimations: true),
+              child: SplashScreen(onFinished: () => finished = true),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 1500));
+      expect(finished, isFalse);
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(finished, isTrue);
+      expect(log.events, isEmpty);
+    });
+
+    testWidgets('the full splash plays, ticks and exits in order', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      final order = <String>[];
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: SplashScreen(
+              onExitStart: () => order.add('exit'),
+              onFinished: () => order.add('finished'),
+            ),
+          ),
+        ),
+      );
+      await tester.pump(const Duration(milliseconds: 2900));
+      await tester.pump(const Duration(milliseconds: 1400));
+      expect(order, isEmpty);
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(order, ['exit']);
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(order, ['exit', 'finished']);
+      expect(log.events, contains('splash'));
+      expect(log.where('haptic:confirm').length, 4);
+    });
+
+    testWidgets('the app boots through the splash into home', (tester) async {
+      final log = Log();
+      final container = await rigged(log);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const ResonantApp(),
+        ),
+      );
+      expect(find.text('Learn by listening.'), findsOneWidget);
+      expect(find.byType(HomeScreen), findsNothing);
+      await tester.pump(const Duration(milliseconds: 2900));
+      await tester.pump(const Duration(milliseconds: 1500));
+      await tester.pump(const Duration(milliseconds: 400));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(HomeScreen), findsOneWidget);
     });
   });
 }
