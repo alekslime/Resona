@@ -1,10 +1,53 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:livekit_client/livekit_client.dart';
 
 import '../../../core/providers.dart';
-import '../../../core/theme/resonant_theme.dart';
+import '../../../core/ui/resonant_controls.dart';
+import '../../../core/ui/resonant_dots.dart';
+import '../../../core/ui/resonant_scaffold.dart';
 import '../data/touch_repository.dart';
+
+/// Which dots the live room shows: orbiting while the call sets up, the
+/// speaking wave while the tutor talks, the listening lean otherwise.
+DotsState talkDotsState({
+  required bool connecting,
+  required bool agentSpeaking,
+  required bool micOn,
+}) {
+  if (connecting) return DotsState.thinking;
+  if (agentSpeaking) return DotsState.speaking;
+  if (micOn) return DotsState.listening;
+  return DotsState.idle;
+}
+
+/// One caption from the student, right-aligned like old Chat's user lines.
+/// The speaker stays in the spoken label, so screen readers keep what the
+/// old "You: …" prefix said.
+class UserLine extends ConsumerWidget {
+  const UserLine(this.text, {super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ink = ref.watch(paletteProvider).ink;
+    return Semantics(
+      label: 'You: $text',
+      child: Text(
+        text,
+        textAlign: TextAlign.right,
+        style: TextStyle(
+          fontSize: 19,
+          fontWeight: FontWeight.w600,
+          color: ink,
+        ),
+      ),
+    );
+  }
+}
 
 /// Talk live: a real conversation with the tutor about this picture.
 /// The phone joins a LiveKit room; the agent (agent/) listens, thinks with
@@ -25,6 +68,7 @@ class _LiveTalkScreenState extends ConsumerState<LiveTalkScreen> {
   String _status = 'Connecting…';
   bool _micOn = true;
   bool _agentSpeaking = false;
+  bool _connecting = true;
   final List<({String who, String text})> _lines = [];
 
   @override
@@ -38,11 +82,20 @@ class _LiveTalkScreenState extends ConsumerState<LiveTalkScreen> {
     _room = room;
     _listener = room.createListener()
       ..on<RoomDisconnectedEvent>((_) {
-        if (mounted) setState(() => _status = 'Call ended.');
+        if (mounted) {
+          setState(() {
+            _status = 'Call ended.';
+            _connecting = false;
+            _agentSpeaking = false;
+          });
+        }
       })
       ..on<ParticipantConnectedEvent>((e) {
         if (e.participant.identity.startsWith('agent') && mounted) {
-          setState(() => _status = 'Tutor joined. Just talk — you can interrupt.');
+          setState(() {
+            _status = 'Tutor joined. Just talk — you can interrupt.';
+            _connecting = false;
+          });
         }
       })
       ..on<ActiveSpeakersChangedEvent>((e) {
@@ -71,7 +124,12 @@ class _LiveTalkScreenState extends ConsumerState<LiveTalkScreen> {
       if (mounted) setState(() => _status = 'Connected. Waiting for the tutor…');
       ref.read(speechProvider).speak('Live tutor. Just talk, and you can interrupt it.');
     } catch (_) {
-      if (mounted) setState(() => _status = 'Could not connect. Check the connection and try again.');
+      if (mounted) {
+        setState(() {
+          _status = 'Could not connect. Check the connection and try again.';
+          _connecting = false;
+        });
+      }
     }
   }
 
@@ -90,75 +148,108 @@ class _LiveTalkScreenState extends ConsumerState<LiveTalkScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final p = ref.watch(paletteProvider);
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Align(
-                alignment: Alignment.centerLeft,
-                child: IconButton(
-                  onPressed: _end,
-                  tooltip: 'End live talk',
-                  icon: Icon(Icons.arrow_back, color: p.ink),
-                  iconSize: 28,
-                  constraints: const BoxConstraints(minWidth: minTouchTarget, minHeight: minTouchTarget),
+    final palette = ref.watch(paletteProvider);
+    final dots = talkDotsState(
+      connecting: _connecting,
+      agentSpeaking: _agentSpeaking,
+      micOn: _micOn,
+    );
+    return ResonantScaffold(
+      title: 'Talk live',
+      subtitle: widget.title,
+      onBack: () {
+        unawaited(_end());
+      },
+      bottomBar: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+        child: Column(
+          children: [
+            Center(
+              child: DotsPing(
+                state: dots,
+                child: ResonantDots(
+                  state: dots,
+                  size: 88,
+                  color: palette.ink,
                 ),
               ),
-              Semantics(header: true, child: Text('Talk live', style: brandStyle(36, p.ink))),
-              const SizedBox(height: 4),
-              Text(widget.title, style: TextStyle(fontSize: 19, color: p.ink, fontWeight: FontWeight.w600)),
-              const SizedBox(height: 12),
-              Semantics(
-                liveRegion: true,
-                child: Text(
-                  _status,
-                  style: TextStyle(fontSize: 20, color: p.ink, fontWeight: FontWeight.w700, height: 1.3),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView(
-                  children: [
-                    for (final line in _lines)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: Text(
-                          '${line.who}: ${line.text}',
-                          style: TextStyle(fontSize: 19, color: p.ink, height: 1.35),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton(
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: ResonantButton(
+                    text: _micOn ? 'Mute' : 'Unmute',
                     onPressed: () async {
                       final on = !_micOn;
                       await _room?.localParticipant?.setMicrophoneEnabled(on);
                       if (mounted) setState(() => _micOn = on);
                     },
-                    child: Text(_micOn ? 'Mute' : 'Unmute'),
                   ),
-                  FilledButton(onPressed: _end, child: const Text('End talk')),
-                ],
-              ),
-              if (_agentSpeaking) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Tip: just start talking to interrupt the tutor.',
-                  style: TextStyle(fontSize: 16, color: p.ink),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ResonantButton(
+                    text: 'End talk',
+                    filled: false,
+                    onPressed: () {
+                      unawaited(_end());
+                    },
+                  ),
                 ),
               ],
+            ),
+          ],
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+        child: Column(
+          children: [
+            Semantics(
+              liveRegion: true,
+              child: Text(
+                _status,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: palette.ink,
+                    ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: ListView(
+                children: [
+                  for (final line in _lines)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: line.who == 'You'
+                          ? UserLine(line.text)
+                          : Semantics(
+                              label: 'Tutor: ${line.text}',
+                              child: Text(
+                                line.text,
+                                style: TextStyle(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w600,
+                                  color: palette.ink,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                    ),
+                ],
+              ),
+            ),
+            if (_agentSpeaking) ...[
+              const SizedBox(height: 8),
+              Text(
+                'Tip: just start talking to interrupt the tutor.',
+                style: TextStyle(fontSize: 16, color: palette.ink),
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
