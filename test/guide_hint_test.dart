@@ -91,7 +91,7 @@ void main() {
       r.log.events.clear();
       r.now += 21000;
       r.session.handle(const ExploreMove(100, 60));
-      expect(r.log.where('say').single, 'say: Say hint if you want help.');
+      expect(r.log.where('say').single, 'say: Say hint, or double-tap the left edge, if you want help.');
       r.session.handle(const ExploreMove(110, 70)); // said once only
       expect(r.log.where('say').length, 1);
       r.now += 700; // past the live-cue gap the nudge also arms
@@ -107,7 +107,7 @@ void main() {
       expect(r.log.where('say').isEmpty, isTrue);
       r.now += 1;
       r.session.handle(const ExploreMove(105, 65));
-      expect(r.log.where('say').single, 'say: Say hint if you want help.');
+      expect(r.log.where('say').single, 'say: Say hint, or double-tap the left edge, if you want help.');
     });
 
     test('resting in a long hunt nudges instead of pointing, once', () async {
@@ -117,7 +117,7 @@ void main() {
       r.log.events.clear();
       r.now += 25000;
       r.session.handle(const ExploreRest(60, 60));
-      expect(r.log.where('say').single, 'say: Say hint if you want help.');
+      expect(r.log.where('say').single, 'say: Say hint, or double-tap the left edge, if you want help.');
       r.session.handle(const ExploreRest(60, 60));
       expect(r.log.where('say').last.contains('The sun is'), isTrue);
     });
@@ -140,14 +140,70 @@ void main() {
       await r.ask('where is the sun?');
       r.now += 25000;
       r.session.handle(const ExploreMove(100, 60));
-      expect(r.log.where('say').last, 'say: Say hint if you want help.');
+      expect(r.log.where('say').last, 'say: Say hint, or double-tap the left edge, if you want help.');
       await r.findSun();
       r.session.handle(const ExploreStart(60, 60));
       await r.ask('where is the sun?');
       r.log.events.clear();
       r.now += 25000;
       r.session.handle(const ExploreMove(100, 60));
-      expect(r.log.where('say').single, 'say: Say hint if you want help.');
+      expect(r.log.where('say').single, 'say: Say hint, or double-tap the left edge, if you want help.');
+    });
+  });
+
+  group('hint gesture', () {
+    test('double-tap gives a spoken pointer during a hunt', () async {
+      final r = HintRig();
+      r.session.handle(const ExploreStart(60, 60));
+      await r.ask('where is the sun?');
+      r.log.events.clear();
+      r.session.handle(const DoubleTap(Zone.leftEdge));
+      expect(
+        r.log.where('say').single.contains('The sun is to the right, far.'),
+        isTrue,
+      );
+    });
+
+    test('a tapped hint teaches the mechanism, so no nudge follows', () async {
+      final r = HintRig();
+      r.session.handle(const ExploreStart(60, 60));
+      await r.ask('where is the sun?');
+      r.log.events.clear();
+      r.now += 25000;
+      r.session.handle(const DoubleTap(Zone.leftEdge));
+      expect(r.log.where('say').last.contains('The sun is'), isTrue);
+      r.session.handle(const ExploreMove(100, 60));
+      expect(
+        r.log.where('say').where((s) => s.contains('Say hint')).isEmpty,
+        isTrue,
+      );
+    });
+
+    test('without a hunt it still repeats', () async {
+      final r = HintRig();
+      r.session.handle(const ExploreStart(60, 60));
+      await r.findSun();
+      final said = r.log.where('say').last;
+      r.log.events.clear();
+      r.session.handle(const DoubleTap(Zone.leftEdge));
+      expect(r.log.where('say').single, said);
+    });
+
+    test('a tapped hint on a pure find raises next time', () async {
+      final r = HintRig();
+      await r.reachPureFind();
+      r.session.handle(const ExploreStart(60, 60));
+      r.session.handle(const DoubleTap(Zone.leftEdge));
+      expect(r.session.view.guideHelp, GuideHelp.none);
+      expect(
+        r.log.where('say').last.contains('The sun is to the right, far.'),
+        isTrue,
+      );
+      r.now += 3000;
+      await r.findSun();
+      r.session.handle(const ExploreStart(60, 60));
+      await r.ask('where is the sun?');
+      expect(r.session.view.guideHelp, GuideHelp.hints);
     });
   });
 }
