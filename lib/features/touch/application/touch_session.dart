@@ -196,7 +196,14 @@ class TouchSession {
       case Tap(zone: Zone.leftEdge):
         speech.isSpeaking ? speech.stop() : _repeat();
       case DoubleTap(zone: Zone.leftEdge):
-        _repeat();
+        if (_guide != null) {
+          // The non-voice hint: same pointer as saying "hint", for fingers
+          // without a microphone.
+          _guideNudgeSaid = true; // they know about hints; no nudge needed
+          _guideHint();
+        } else {
+          _repeat();
+        }
       case DoubleTap(zone: Zone.center):
         _startTrace();
       case Swipe(zone: Zone.leftEdge, direction: SwipeDirection.up):
@@ -321,7 +328,7 @@ class TouchSession {
     _guideNudgeSaid = true;
     _guideSpokenMs = nowMs();
     _guideGapMs = _guideSpokenMs;
-    _say('Say hint if you want help.');
+    _say('Say hint, or double-tap the left edge, if you want help.');
     return true;
   }
 
