@@ -44,7 +44,7 @@ void main() {
       expect(find.text('Choose a picture'), findsOneWidget);
       expect(find.text('Take a photo'), findsOneWidget);
       expect(find.text('How exploring works'), findsOneWidget);
-      expect(find.text('Theme: Standard'), findsOneWidget);
+      expect(find.text('Theme: Resonant native'), findsOneWidget);
       expect(find.text('Explore picture'), findsWidgets);
     });
 
@@ -76,6 +76,10 @@ void main() {
         ),
       );
       await flushPictures(tester);
+      await tester.scrollUntilVisible(
+        find.text('Explore picture').first,
+        200,
+      );
       await tester.tap(find.text('Explore picture').first);
       await flushPictures(tester);
       expect(find.byType(TouchScreen), findsOneWidget);
@@ -114,7 +118,11 @@ void main() {
         ),
       );
       await flushPictures(tester);
-      await tester.tap(find.text('Theme: Standard'));
+      await tester.scrollUntilVisible(
+        find.text('Theme: Resonant native'),
+        200,
+      );
+      await tester.tap(find.text('Theme: Resonant native'));
       await flushPictures(tester);
       expect(find.textContaining('Theme: '), findsOneWidget);
       expect(
