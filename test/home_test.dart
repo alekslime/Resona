@@ -42,7 +42,14 @@ Future<ProviderContainer> seededContainer(Log log) async {
 Widget harnessedHome(ProviderContainer container) =>
     UncontrolledProviderScope(
       container: container,
-      child: const MaterialApp(home: HomeScreen()),
+      // The transparent Material the real app wraps every screen in: pushed
+      // screens with text fields need one to sit on.
+      child: const MaterialApp(
+        home: Material(
+          type: MaterialType.transparency,
+          child: HomeScreen(),
+        ),
+      ),
     );
 
 /// Pushed routes build a frame late in the test harness: flush twice.
