@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/ui/resonant_dots.dart';
 import 'package:resonant/features/touch/presentation/live_talk_screen.dart';
@@ -31,8 +32,10 @@ void main() {
   group('user line', () {
     testWidgets('a caption speaks right-aligned', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(body: UserLine('hello there')),
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(body: UserLine('hello there')),
+          ),
         ),
       );
       final text = tester.widget<Text>(find.text('hello there'));
