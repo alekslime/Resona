@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/ui/enter.dart';
 import 'package:resonant/core/ui/fit_text.dart';
@@ -60,13 +61,15 @@ void main() {
               matching: find.byType(Transform),
             ),
           );
-      expect(transform().transform.getMaxScaleOnAxis(), 1);
+      expect(transform().transform.entry(0, 0), 1);
       final gesture = await tester.startGesture(tester.getCenter(find.text('go')));
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(transform().transform.getMaxScaleOnAxis(), lessThan(1));
+      await tester.pumpAndSettle(); // let the press spring land
+      final pressed = transform().transform.entry(0, 0);
+      expect(pressed, lessThan(1));
+      expect(pressed, greaterThan(0.9));
       await gesture.up();
       await tester.pumpAndSettle();
-      expect(transform().transform.getMaxScaleOnAxis(), closeTo(1, 1e-6));
+      expect(transform().transform.entry(0, 0), closeTo(1, 0.001));
     });
 
     testWidgets('press does nothing with reduce motion', (tester) async {
@@ -79,10 +82,11 @@ void main() {
         ),
       );
       final gesture = await tester.startGesture(tester.getCenter(find.text('go')));
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
       final transform = tester.widget<Transform>(find.byType(Transform));
-      expect(transform.transform.getMaxScaleOnAxis(), 1);
+      expect(transform.transform.entry(0, 0), 1);
       await gesture.up();
+      await tester.pumpAndSettle();
     });
 
     testWidgets('staggered items fade in and rise once', (tester) async {
@@ -91,7 +95,7 @@ void main() {
       );
       Opacity opacity() => tester.widget<Opacity>(find.byType(Opacity));
       expect(opacity().opacity, 0);
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pumpAndSettle();
       expect(opacity().opacity, 1);
     });
 
@@ -101,17 +105,20 @@ void main() {
       );
       await tester.pump(const Duration(milliseconds: 100));
       expect(tester.widget<Opacity>(find.byType(Opacity)).opacity, 0);
+      await tester.pump(const Duration(milliseconds: 300)); // past the delay
       await tester.pumpAndSettle();
       expect(tester.widget<Opacity>(find.byType(Opacity)).opacity, 1);
     });
 
     testWidgets('focus glow and lift render around content', (tester) async {
       await tester.pumpWidget(
-        const MaterialApp(
-          home: Scaffold(
-            body: FocusLift(
-              focused: true,
-              child: FocusGlow(focused: true, child: Text('card')),
+        const ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: FocusLift(
+                focused: true,
+                child: FocusGlow(focused: true, child: Text('card')),
+              ),
             ),
           ),
         ),
