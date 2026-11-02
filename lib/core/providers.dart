@@ -12,6 +12,7 @@ import 'theme/app_fonts.dart';
 import 'theme/palettes.dart';
 import 'theme/text_scale.dart';
 import 'theme/text_spacings.dart';
+import '../features/learn/domain/library.dart';
 import '../features/touch/data/http_touch_repository.dart';
 import '../features/touch/data/touch_repository.dart';
 
@@ -124,3 +125,23 @@ class SpeechRateNotifier extends Notifier<double> {
 
 final speechRateProvider =
     NotifierProvider<SpeechRateNotifier, double>(SpeechRateNotifier.new);
+
+/// The running chat conversation, newest last. ChatScreen loads it on open
+/// and saves it on close, so the conversation survives navigation; settings
+/// clears it. Session-only for now, like the recents shelf.
+class ChatHistoryNotifier extends Notifier<List<ChatExchange>> {
+  @override
+  List<ChatExchange> build() => const [];
+
+  void set(List<ChatExchange> exchanges) {
+    state = exchanges.length > maxChatExchanges
+        ? exchanges.sublist(exchanges.length - maxChatExchanges)
+        : List.of(exchanges);
+  }
+
+  void clear() => state = const [];
+}
+
+final chatHistoryProvider =
+    NotifierProvider<ChatHistoryNotifier, List<ChatExchange>>(
+        ChatHistoryNotifier.new);

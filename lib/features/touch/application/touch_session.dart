@@ -172,6 +172,10 @@ class TouchSession {
 
   void dispose() => _labelTimer?.cancel();
 
+  /// Start a guide hunt from outside the touch flow (Chat's "where is"
+  /// handoff). The picture must already be loaded.
+  void startGuide(Region target) => _beginGuide(target);
+
   void handle(Gesture g) {
     if (_analysis == null) return;
     switch (g) {

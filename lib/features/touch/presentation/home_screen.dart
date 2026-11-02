@@ -145,7 +145,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(speechProvider).speak('Opening ${item.label}.');
     switch (item.route) {
       case Routes.chat:
-        _push(ChatScreen(analysis: _last?.analysis));
+        _push(ChatScreen(recent: _last));
       case Routes.lessons:
         _push(const LessonsScreen());
       case Routes.quiz:

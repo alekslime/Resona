@@ -147,6 +147,9 @@ class TouchController extends Notifier<TouchState> {
   void openRecent(RecentPicture recent) =>
       _open(recent.analysis, recent.picture);
 
+  /// Start a guide hunt on the open picture (Chat's "where is" handoff).
+  void guideTo(Region region) => _session?.startGuide(region);
+
   void _open(Analysis analysis, PictureBytes picture) {
     _shelveHelp();
     _session?.dispose();
