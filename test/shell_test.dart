@@ -166,6 +166,21 @@ void main() {
       expect(log.events, contains('say: Back.'));
     });
 
+    testWidgets('a long title ellipsizes instead of overflowing', (tester) async {
+      tester.view.physicalSize = const Size(1170, 2532);
+      tester.view.devicePixelRatio = 3.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+      await tester.pumpWidget(shellHarness(
+        Log(),
+        LessonsTopBar(onBack: () {}, title: 'The water cycle photographs', showSettings: false),
+      ));
+      await tester.pump();
+      expect(find.text('The water cycle photographs'), findsOneWidget);
+    });
+
     testWidgets('a custom header wins over both', (tester) async {
       await tester.pumpWidget(shellHarness(
         Log(),
