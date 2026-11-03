@@ -110,7 +110,9 @@ class LessonsTopBar extends ConsumerWidget {
                 ),
               ),
             ),
-            if (showSettings)
+            // No action, no gear: a button that does nothing should
+            // not exist, for sight or for a screen reader.
+            if (showSettings && onSettings != null)
               Container(
                 width: minTouchTarget,
                 height: minTouchTarget,
@@ -119,27 +121,23 @@ class LessonsTopBar extends ConsumerWidget {
                   color: palette.bar,
                   border: controlBorder(palette),
                 ),
-                child: onSettings == null
-                    ? Center(
+                child: Material(
+                  color: Colors.transparent,
+                  shape: const CircleBorder(),
+                  child: InkWell(
+                    customBorder: const CircleBorder(),
+                    onTap: onSettings,
+                    // The gear icon is decorative by contract, so
+                    // the button carries the name itself.
+                    child: Semantics(
+                      label: 'Settings',
+                      button: true,
+                      child: Center(
                         child: SettingsIcon(tint: palette.onBar),
-                      )
-                    : Material(
-                        color: Colors.transparent,
-                        shape: const CircleBorder(),
-                        child: InkWell(
-                          customBorder: const CircleBorder(),
-                          onTap: onSettings,
-                          // The gear icon is decorative by contract, so
-                          // the button carries the name itself.
-                          child: Semantics(
-                            label: 'Settings',
-                            button: true,
-                            child: Center(
-                              child: SettingsIcon(tint: palette.onBar),
-                            ),
-                          ),
-                        ),
                       ),
+                    ),
+                  ),
+                ),
               ),
           ],
         ),

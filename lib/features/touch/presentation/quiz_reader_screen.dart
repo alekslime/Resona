@@ -258,14 +258,27 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Text(
-                        _session.question.prompt,
-                        style: TextStyle(
-                          fontFamily: font.family,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 35,
-                          height: 48 / 35,
-                          color: textColor,
+                      // The prompt takes what it needs up to a third of
+                      // the screen, then scrolls inside its box: at the
+                      // largest text an unbounded prompt would crush the
+                      // option card below it. One finger already scrolls
+                      // past the gesture surface.
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxHeight:
+                              MediaQuery.sizeOf(context).height * 0.35,
+                        ),
+                        child: SingleChildScrollView(
+                          child: Text(
+                            _session.question.prompt,
+                            style: TextStyle(
+                              fontFamily: font.family,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 35,
+                              height: 48 / 35,
+                              color: textColor,
+                            ),
+                          ),
                         ),
                       ),
                     ),
