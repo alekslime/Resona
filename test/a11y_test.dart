@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/providers.dart';
@@ -99,7 +98,7 @@ void main() {
         expect(gear, findsOneWidget);
         final node = tester.getSemantics(gear);
         expect(node.label, 'Settings');
-        expect(node.hasFlag(SemanticsFlag.isButton), isTrue);
+        expect(node.flagsCollection.isButton, isTrue);
       } finally {
         handle.dispose();
       }
