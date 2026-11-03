@@ -18,9 +18,5 @@ services:
         sync: false
       - key: SPARK_MODEL
         value: muse-spark-1.3
-      - key: SAM_MODEL
-        value: sam-3.1
       - key: SPARK_REASONING_EFFORT
         value: low
-      - key: SAM_CONCURRENCY
-        value: "5"
