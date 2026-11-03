@@ -11,6 +11,7 @@ import 'package:resonant/features/learn/domain/library.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/name_setup_screen.dart';
 import 'package:resonant/features/touch/presentation/settings_screen.dart';
+import 'package:resonant/features/touch/presentation/tour_screen.dart';
 
 import 'fakes.dart';
 
@@ -141,6 +142,7 @@ void main() {
       final container = await rigged(Log());
       await open(tester, container);
       for (final row in [
+        'Replay Tutorial',
         'Your name',
         'Sound cues: on',
         'Color theme: Resonant native',
@@ -196,6 +198,15 @@ void main() {
       expect(container.read(speechRateProvider), 1.25);
       expect(container.read(speechProvider).rate, 1.25);
       expect(log.events, contains('say: Speech rate: 125 percent.'));
+    });
+
+    testWidgets('the tutorial row opens the tour', (tester) async {
+      final container = await rigged(Log());
+      await open(tester, container);
+      await tester.tap(find.text('Replay Tutorial'));
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 500));
+      expect(find.byType(TourScreen), findsOneWidget);
     });
 
     testWidgets('the name row opens name setup', (tester) async {
@@ -322,7 +333,7 @@ void main() {
         log.events,
         contains('say: Settings. Speaking at normal speed. '
             'Hold the right edge and drag up to speed up, down to slow down. '
-            'Currently focused: Your name.'),
+            'Currently focused: Replay Tutorial.'),
       );
     });
 
