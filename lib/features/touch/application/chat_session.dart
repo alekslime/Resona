@@ -98,6 +98,7 @@ class ChatSession {
   final List<ChatExchange> _exchanges;
   bool _thinking = false;
   bool _listening = false;
+  bool _picturedHintGiven = false;
   String _status = '';
   int _flatIndex = 0;
   int _requestId = 0;
@@ -273,6 +274,13 @@ class ChatSession {
     for (final s in sentences) {
       _say(s, queue: !first);
       first = false;
+    }
+    // Lesson answers without a picture point at Pictures once a visit,
+    // so a fresh chat still teaches where pictures live.
+    if (_recent == null && !_picturedHintGiven) {
+      _picturedHintGiven = true;
+      _say('Open a picture in Pictures, and I can answer about that too.',
+          queue: true);
     }
     _emit();
   }

@@ -154,6 +154,19 @@ class _PicturesScreenState extends ConsumerState<PicturesScreen> {
                             .openGallery(
                                 (_gallery ?? bundledSamples)[i]),
                       ),
+                    if (state.recents.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 20),
+                        child: Text(
+                          'Your recent pictures will appear here.',
+                          style: TextStyle(
+                            fontFamily: font.family,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: palette.dim,
+                          ),
+                        ),
+                      ),
                     if (state.recents.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       _SectionHead('Recent pictures', palette.ink),
