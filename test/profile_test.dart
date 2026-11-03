@@ -92,6 +92,21 @@ void main() {
       expect(find.text('Your progress'), findsOneWidget);
     });
 
+    testWidgets('the weekly line counts study days', (tester) async {
+      final container = await profileContainer(Log());
+      await tester.pumpWidget(harnessedProfile(container, const ProfileScreen()));
+      await settle(tester);
+      await tester.scrollUntilVisible(
+          find.text('This week: no study days yet'), 200);
+      expect(find.text('This week: no study days yet'), findsOneWidget);
+      container.read(activityProvider.notifier).quizFinished();
+      await tester.pumpWidget(harnessedProfile(container, const ProfileScreen()));
+      await settle(tester);
+      await tester.scrollUntilVisible(
+          find.text('This week: 1 of 7 days'), 200);
+      expect(find.text('This week: 1 of 7 days'), findsOneWidget);
+    });
+
     testWidgets('tapping How am I doing speaks the summary', (tester) async {
       final log = Log();
       final container = await profileContainer(log);

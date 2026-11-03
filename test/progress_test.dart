@@ -112,6 +112,22 @@ void main() {
       expect(ActivityText.listening(7260), '2 hours 1 minute');
       expect(ActivityText.listeningLine(90), 'Listening: 1 minute');
     });
+
+    test('weekly line counts study days in the last seven', () {
+      expect(ActivityText.weeklyLine(const {}, 100),
+          'This week: no study days yet');
+      expect(ActivityText.weeklyLine(const {100}, 100),
+          'This week: 1 of 7 days');
+      expect(ActivityText.weeklyLine(const {94, 98, 100}, 100),
+          'This week: 3 of 7 days');
+      // Eight days ago is last week, not this one.
+      expect(ActivityText.weeklyLine(const {92}, 100),
+          'This week: no study days yet');
+      expect(
+          ActivityText.weeklyLine(
+              const {94, 95, 96, 97, 98, 99, 100}, 100),
+          'This week: every day!');
+    });
   });
 
   group('profile summary', () {
