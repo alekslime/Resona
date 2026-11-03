@@ -55,8 +55,9 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _buzz(HapticPattern.confirm);
-      ref.read(speechProvider).speak(
-          quizResultsSpoken(widget.correct, widget.total, widget.missedCount));
+      ref.read(speechProvider).speak(quizResultsSpoken(
+          widget.correct, widget.total, widget.missedCount,
+          name: ref.read(userNameProvider)));
       // A perfect score gets a fanfare and a burst of dots just after
       // the first tap. Nothing else changes, and the spoken result
       // is never delayed.
@@ -95,8 +96,9 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
     widget.onDone();
   }
 
-  void _repeat() => ref.read(speechProvider).speak(
-      quizResultsSpoken(widget.correct, widget.total, widget.missedCount));
+  void _repeat() => ref.read(speechProvider).speak(quizResultsSpoken(
+      widget.correct, widget.total, widget.missedCount,
+      name: ref.read(userNameProvider)));
 
   void _speed(double delta) {
     final speech = ref.read(speechProvider);

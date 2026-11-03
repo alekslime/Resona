@@ -89,7 +89,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           Timer(const Duration(milliseconds: 1800), () {
         if (!mounted) return;
         _buzz(HapticPattern.correct);
-        _speak(milestoneAnnouncement(fresh));
+        _speak(milestoneAnnouncement(fresh, name: _name));
         setState(() => _cheering = true);
         ref
             .read(milestoneSeenProvider.notifier)

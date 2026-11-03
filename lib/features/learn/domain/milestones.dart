@@ -80,18 +80,25 @@ String milestoneSpoken(List<Milestone> reached) {
 }
 
 /// What is said once when new ones are reached. Never a long list.
-String milestoneAnnouncement(List<Milestone> fresh) {
+/// What is said once when new ones are reached. Never a long list.
+/// A named learner gets a cheer after the old line, which stays word
+/// for word.
+String milestoneAnnouncement(List<Milestone> fresh, {String? name}) {
+  final String line;
   switch (fresh.length) {
     case 0:
       return '';
     case 1:
-      return 'New milestone: ${fresh[0].title}.';
+      line = 'New milestone: ${fresh[0].title}.';
     case 2:
     case 3:
       final String head =
           fresh.sublist(0, fresh.length - 1).map((Milestone m) => m.title).join(', ');
-      return 'New milestones: $head and ${fresh.last.title}.';
+      line = 'New milestones: $head and ${fresh.last.title}.';
     default:
-      return 'You have reached ${fresh.length} new milestones, including ${fresh.last.title}.';
+      line =
+          'You have reached ${fresh.length} new milestones, including ${fresh.last.title}.';
   }
+  final who = (name ?? '').trim();
+  return who.isEmpty ? line : '$line Way to go, $who.';
 }

@@ -329,8 +329,25 @@ String quizResultsSubtitle(int correct, int total) => '$correct of $total correc
 
 /// What the results screen says on arrival. [missedCount] is empty on a
 /// perfect score or on a retry round, so there is nothing to offer a retry of.
-String quizResultsSpoken(int correct, int total, int missedCount) =>
-    'You scored $correct out of $total. ${quizResultsInstructions(missedCount)}';
+/// A named learner gets a personal cheer after the old line, which stays
+/// word for word.
+String quizResultsSpoken(int correct, int total, int missedCount,
+    {String? name}) {
+  final line =
+      'You scored $correct out of $total. ${quizResultsInstructions(missedCount)}';
+  final who = (name ?? '').trim();
+  if (who.isEmpty) return line;
+  final percent = quizPercent(correct, total);
+  final String cheer;
+  if (percent == 100) {
+    cheer = 'Take a bow, $who.';
+  } else if (percent >= 60) {
+    cheer = 'Nice work, $who.';
+  } else {
+    cheer = 'You will get them next time, $who.';
+  }
+  return '$line $cheer';
+}
 
 /// The instructions after the score. A perfect score gets no dangling
 /// "tap right edge" that does nothing.
