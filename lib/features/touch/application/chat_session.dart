@@ -216,6 +216,14 @@ class ChatSession {
   }
 
   Future<void> _ask(String question) async {
+    // The cave word: answered on the spot, never sent anywhere. A real
+    // question is never exactly this.
+    if (question.trim().toLowerCase() == 'xyzzy') {
+      _addExchange(const ChatExchange('xyzzy', ['Nothing happens.']));
+      _say('Nothing happens.');
+      _emit();
+      return;
+    }
     // An open "did you mean A or B?" lasts exactly one answer: anything
     // that does not pick a side dismisses it.
     if (_pendingFirst != null && _pendingSecond != null) {
