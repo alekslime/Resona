@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/providers.dart';
@@ -315,6 +316,41 @@ void main() {
       expect(log.events, contains('say: Retrying 2 missed questions.'));
       await tester.tap(find.text('Back to quizzes'));
       expect(done, isTrue);
+    });
+
+    testWidgets('copy score copies the share text and says so',
+        (tester) async {
+      // The test binding answers no platform channels: catch the
+      // clipboard write with a mock instead of reading it back.
+      Map<Object?, Object?>? clipboard;
+      final messenger = TestDefaultBinaryMessengerBinding
+          .instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(
+          SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          clipboard = Map<Object?, Object?>.from(call.arguments as Map);
+        }
+        return null;
+      });
+      addTearDown(() =>
+          messenger.setMockMethodCallHandler(SystemChannels.platform, null));
+      final log = Log();
+      final container = await quizContainer(log);
+      await tester.pumpWidget(harnessedQuiz(
+          container,
+          QuizResultsScreen(
+              correct: 4,
+              total: 5,
+              missedCount: 1,
+              quizTitle: 'Binary Search',
+              onRetryMissed: () {},
+              onDone: () {})));
+      await settle(tester);
+      await tester.tap(find.text('Copy score'));
+      await tester.pump();
+      expect(clipboard?['text'],
+          'I scored 4 out of 5 on Binary Search with Resonant!');
+      expect(log.events, contains('say: Score copied.'));
     });
   });
 }

@@ -129,5 +129,16 @@ void main() {
         'Quiz Results. You scored 5 out of 5. Tap to return home.',
       );
     });
+
+    test('share text names the quiz, or stays generic', () {
+      expect(
+        quizScoreShareText(8, 10, 'Binary Search'),
+        'I scored 8 out of 10 on Binary Search with Resonant!',
+      );
+      expect(
+        quizScoreShareText(8, 10, ''),
+        'I scored 8 out of 10 on a Resonant quiz!',
+      );
+    });
   });
 }
