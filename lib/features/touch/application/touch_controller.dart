@@ -128,6 +128,9 @@ class TouchController extends Notifier<TouchState> {
   }
 
   Future<void> openGallery(GallerySample entry) async {
+    state = state.copyWith(
+        phase: Phase.busy, progress: 'Loading ${entry.title}.');
+    ref.read(speechProvider).speak('Loading ${entry.title}.');
     try {
       final (analysis, picture) =
           await ref.read(repositoryProvider).openGallery(entry);

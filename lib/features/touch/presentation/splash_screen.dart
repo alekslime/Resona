@@ -49,6 +49,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   final _ticks = <Timer>[];
   bool _started = false;
   bool _reduce = false;
+  bool _done = false;
+
+  /// A tap skips the show: judges should never wait. Guards the
+  /// natural ending too, so onFinished fires exactly once.
+  void _skip() {
+    if (_done) return;
+    _done = true;
+    for (final tick in _ticks) {
+      tick.cancel();
+    }
+    _ticks.clear();
+    widget.onFinished();
+  }
+
+  void _finish() {
+    if (_done) return;
+    _done = true;
+    widget.onFinished();
+  }
 
   @override
   void initState() {
@@ -106,7 +125,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     widget.onExitStart?.call();
     await _exit.forward();
     if (!mounted) return;
-    widget.onFinished();
+    _finish();
   }
 
   Future<void> _runStill() async {
@@ -118,7 +137,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         const Duration(milliseconds: SplashTiming.stillExitMs);
     await _exit.forward();
     if (!mounted) return;
-    widget.onFinished();
+    _finish();
   }
 
   @override
@@ -135,13 +154,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         final wordDp = (size.width * 0.07).clamp(24.0, 44.0);
         final tagDp = (size.width * 0.036).clamp(14.0, 20.0);
         final top = geo.cy + 490 * geo.scale + 34;
-        return Opacity(
-          opacity: 1 - e,
-          child: Transform.scale(
-            scale: _reduce ? 1 : 1 + e * 0.14,
-            child: Container(
-              color: palette.background,
-              child: Stack(
+        return GestureDetector(
+          onTap: _skip,
+          child: Opacity(
+            opacity: 1 - e,
+            child: Transform.scale(
+              scale: _reduce ? 1 : 1 + e * 0.14,
+              child: Container(
+                color: palette.background,
+                child: Stack(
                 children: [
                   Positioned.fill(
                     child: ExcludeSemantics(
@@ -195,6 +216,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                 ],
               ),
             ),
+          ),
           ),
         );
       },
