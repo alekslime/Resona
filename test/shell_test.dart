@@ -77,6 +77,14 @@ void main() {
         LessonsTopBar(onBack: () {}, showSettings: false),
       ));
       expect(find.byType(SettingsIcon), findsNothing);
+
+      // A gear with no action hides too: a button that does nothing
+      // should not exist, for sight or for a screen reader.
+      await tester.pumpWidget(shellHarness(
+        log,
+        LessonsTopBar(onBack: () {}),
+      ));
+      expect(find.byType(SettingsIcon), findsNothing);
     });
   });
 

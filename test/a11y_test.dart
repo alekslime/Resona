@@ -4,10 +4,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/ui/icons.dart';
 import 'package:resonant/core/ui/top_bar.dart';
+import 'package:resonant/features/learn/domain/quiz_data.dart';
 import 'package:resonant/features/touch/presentation/chat_screen.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/lessons_screen.dart';
 import 'package:resonant/features/touch/presentation/quiz_browser_screen.dart';
+import 'package:resonant/features/touch/presentation/quiz_reader_screen.dart';
 import 'package:resonant/features/touch/presentation/settings_screen.dart';
 
 import 'fakes.dart';
@@ -141,6 +143,21 @@ void main() {
           hugeText(container, const QuizBrowserScreen()));
       await settle(tester);
       expect(find.text('Quizzes'), findsWidgets);
+    });
+
+    testWidgets('quiz reader fits, prompt and option', (tester) async {
+      final container = await a11yContainer(Log());
+      await tester.pumpWidget(hugeText(
+          container,
+          QuizReaderScreen(
+              quiz: quizCells, onFinished: (_, __, ___) {})));
+      await settle(tester);
+      expect(find.text('What controls what enters and leaves the cell?'),
+          findsOneWidget);
+      await tester.flingFrom(
+          const Offset(400, 400), const Offset(0, 300), 800);
+      await settle(tester);
+      expect(find.text('The nucleus'), findsOneWidget);
     });
 
     testWidgets('fitted titles shrink against the real scale', (tester) async {
