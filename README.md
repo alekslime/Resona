@@ -7,7 +7,7 @@
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3%20%2B%20SAM%203.1-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-570%20Flutter%20%2B%2054%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-571%20Flutter%20%2B%2054%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -115,7 +115,7 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 - **Study notes**: the whole picture as plain text (overview, map, every part with its clock-face
   position) for revision with a screen reader — and **Copy notes to share** pastes them anywhere.
 - Screen-reader buttons for every gesture, twelve themes, a show-all-outlines view for sighted helpers,
-  chart value readout with bar ranks, 570 Flutter tests + 54 backend tests, all green.
+  chart value readout with bar ranks, 571 Flutter tests + 54 backend tests, all green.
 - **Study library**: six built-in lessons that read themselves, four quiz sets with retry rounds, a
   profile with streaks and milestones, and settings that preview each theme, font and size before
   keeping it — all working offline, with progress kept for the session.
