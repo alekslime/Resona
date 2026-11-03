@@ -272,6 +272,23 @@ void main() {
       expect(find.byType(CelebrationOverlay), findsNothing);
     });
 
+    testWidgets('a named learner hears a personal cheer', (tester) async {
+      final log = Log();
+      final container = await quizContainer(log);
+      container.read(userNameProvider.notifier).set('Ana');
+      await tester.pumpWidget(harnessedQuiz(
+          container,
+          QuizResultsScreen(
+              correct: 4, total: 5, missedCount: 1, onRetryMissed: () {}, onDone: () {})));
+      await settle(tester);
+      expect(
+        log.events,
+        contains('say: You scored 4 out of 5. 1 missed. '
+            'Tap the right edge to retry those, or tap center to return home. '
+            'Nice work, Ana.'),
+      );
+    });
+
     testWidgets('missed questions offer a retry round', (tester) async {
       var retried = false;
       var done = false;

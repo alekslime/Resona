@@ -86,6 +86,29 @@ void main() {
       expect(quizResultsSpoken(5, 5, 0), 'You scored 5 out of 5. Tap to return home.');
     });
 
+    test('a named learner gets a personal cheer', () {
+      expect(
+        quizResultsSpoken(5, 5, 0, name: 'Ana'),
+        'You scored 5 out of 5. Tap to return home. Take a bow, Ana.',
+      );
+      expect(
+        quizResultsSpoken(4, 5, 1, name: 'Ana'),
+        'You scored 4 out of 5. 1 missed. '
+        'Tap the right edge to retry those, or tap center to return home. '
+        'Nice work, Ana.',
+      );
+      expect(
+        quizResultsSpoken(1, 5, 4, name: 'Ana'),
+        'You scored 1 out of 5. 4 missed. '
+        'Tap the right edge to retry those, or tap center to return home. '
+        'You will get them next time, Ana.',
+      );
+      expect(
+        quizResultsSpoken(5, 5, 0, name: '  '),
+        'You scored 5 out of 5. Tap to return home.',
+      );
+    });
+
     test('hint line mirrors the instructions', () {
       expect(
         quizResultsHint(2),

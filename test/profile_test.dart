@@ -187,6 +187,7 @@ void main() {
     testWidgets('new milestones are celebrated once', (tester) async {
       final log = Log();
       final container = await profileContainer(log);
+      container.read(userNameProvider.notifier).set('Ana');
       container.read(quizBookProvider.notifier).markCompleted('quiz_cells', 6, 6);
       container.read(activityProvider.notifier).lessonFinished('lesson_cells');
       await tester.pumpWidget(harnessedProfile(container, const ProfileScreen()));
@@ -196,7 +197,7 @@ void main() {
       expect(log.events, contains('haptic:correct'));
       expect(
         log.events,
-        contains('say: New milestones: First lesson finished and First quiz finished.'),
+        contains('say: New milestones: First lesson finished and First quiz finished. Way to go, Ana.'),
       );
       expect(find.byType(CelebrationOverlay), findsOneWidget);
       await tester.pump(const Duration(milliseconds: 2000));

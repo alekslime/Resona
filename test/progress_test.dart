@@ -305,6 +305,11 @@ void main() {
               quizzesDone: 0, quizzesTotal: 4, averagePercent: null, materials: 1),
           const {});
       expect(milestoneAnnouncement(one), 'New milestone: First material of your own.');
+      expect(
+        milestoneAnnouncement(one, name: 'Ana'),
+        'New milestone: First material of your own. Way to go, Ana.',
+      );
+      expect(milestoneAnnouncement(const [], name: 'Ana'), '');
     });
   });
 }
