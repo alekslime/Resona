@@ -99,6 +99,37 @@ void main() {
       expect(log.events, contains('say: It is the sun.'));
     });
 
+    testWidgets('a dead server shows the offline banner', (tester) async {
+      final log = Log();
+      final repo = FakeRepository(log)..fail = TouchApiException('Down.');
+      final container = await chatContainer(log, repo: repo);
+      await tester.pumpWidget(harnessedChat(container, sunRecent()));
+      await tester.pump();
+      expect(find.text(offlineBanner), findsNothing);
+      await tester.enterText(find.byType(TextField), 'matters');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await settle(tester);
+      expect(find.text(offlineBanner), findsOneWidget);
+    });
+
+    testWidgets('a fresh answer clears the offline banner', (tester) async {
+      final log = Log();
+      final repo = FakeRepository(log)..fail = TouchApiException('Down.');
+      final container = await chatContainer(log, repo: repo);
+      await tester.pumpWidget(harnessedChat(container, sunRecent()));
+      await tester.pump();
+      await tester.enterText(find.byType(TextField), 'matters');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await settle(tester);
+      expect(find.text(offlineBanner), findsOneWidget);
+      repo.fail = null;
+      await tester.enterText(find.byType(TextField), 'what is this?');
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await settle(tester);
+      expect(find.text(offlineBanner), findsNothing);
+      expect(log.events, contains('say: The AI server is back.'));
+    });
+
     testWidgets('the mic asks by voice', (tester) async {
       final log = Log();
       final container = await chatContainer(log);

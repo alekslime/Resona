@@ -303,6 +303,42 @@ void main() {
       );
     });
 
+    test('a failed answer marks the chat offline', () async {
+      final log = Log();
+      final repo = FakeRepository(log)..fail = TouchApiException('Down.');
+      final r = rig(repo: repo, recent: sunRecent());
+      expect(r.session.view.offline, isFalse);
+      await r.session.askTyped('matters');
+      expect(r.session.view.offline, isTrue);
+    });
+
+    test('lesson answers without a picture are not offline', () async {
+      final r = rig();
+      await r.session.askTyped('matters');
+      expect(r.session.view.offline, isFalse);
+    });
+
+    test('a fresh answer after a failure says the server is back', () async {
+      final log = Log();
+      final repo = FakeRepository(log,
+          answer: 'It is the sun.',)..fail = TouchApiException('Down.');
+      final r = rig(repo: repo, recent: sunRecent());
+      await r.session.askTyped('matters');
+      expect(r.session.view.offline, isTrue);
+      repo.fail = null;
+      await r.session.askTyped('what is this?');
+      expect(r.session.view.offline, isFalse);
+      final events = r.log.events;
+      expect(events, contains('say: The AI server is back.'));
+      // The news cuts in first; the answer queues behind it.
+      expect(
+        events.indexOf('say: The AI server is back.'),
+        lessThan(events.indexOf('say+: It is the sun.')),
+      );
+      // Spoken, not stored: the exchange keeps the model's own answer.
+      expect(r.session.view.exchanges.last.sentences, ['It is the sun.']);
+    });
+
     test('tapping twice asks by voice', () async {
       final r = rig(recent: sunRecent());
       await r.session.askTapped();
