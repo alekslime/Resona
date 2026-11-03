@@ -69,32 +69,40 @@ class LessonsTopBar extends ConsumerWidget {
                     color: Colors.transparent,
                     child: InkWell(
                       onTap: goBack,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: Row(
-                          mainAxisAlignment:
-                              MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            ArrowIcon(
-                              pointRight: false,
-                              tint: palette.onBar,
-                            ),
-                            Flexible(
-                              child: Text(
-                                title,
-                                style: TextStyle(
-                                  fontFamily: font.family,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 22,
-                                  color: palette.onBar,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                      child: Semantics(
+                        // The pill reads as its action first, then its
+                        // title: "Back to Home. Chat." A bare title would
+                        // never say it goes back.
+                        label: backAnnouncement,
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 20),
+                          child: Row(
+                            mainAxisAlignment:
+                                MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.center,
+                            children: [
+                              ArrowIcon(
+                                pointRight: false,
+                                tint: palette.onBar,
                               ),
-                            ),
-                          ],
+                              Flexible(
+                                child: Text(
+                                  title,
+                                  style: TextStyle(
+                                    fontFamily: font.family,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 22,
+                                    color: palette.onBar,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -121,8 +129,14 @@ class LessonsTopBar extends ConsumerWidget {
                         child: InkWell(
                           customBorder: const CircleBorder(),
                           onTap: onSettings,
-                          child: Center(
-                            child: SettingsIcon(tint: palette.onBar),
+                          // The gear icon is decorative by contract, so
+                          // the button carries the name itself.
+                          child: Semantics(
+                            label: 'Settings',
+                            button: true,
+                            child: Center(
+                              child: SettingsIcon(tint: palette.onBar),
+                            ),
                           ),
                         ),
                       ),
@@ -157,11 +171,15 @@ class FittedTitle extends ConsumerWidget {
 
   double _widestWord(
       BuildContext context, TextStyle style, double size, double maxWidth) {
+    // Against the phone's real text scale: measuring at 1x picks a size
+    // the scaled render then overflows.
+    final scaler = MediaQuery.textScalerOf(context);
     var widest = 0.0;
     for (final word in title.split(' ')) {
       final painter = TextPainter(
         text: TextSpan(text: word, style: style.copyWith(fontSize: size)),
         textDirection: Directionality.of(context),
+        textScaler: scaler,
       )..layout();
       widest = math.max(widest, painter.width);
       painter.dispose();

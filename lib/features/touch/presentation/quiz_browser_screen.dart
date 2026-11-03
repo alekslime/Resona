@@ -374,15 +374,19 @@ class _QuizCard extends ConsumerWidget {
                           mainAxisAlignment:
                               MainAxisAlignment.spaceBetween,
                           children: [
-                            Text(
-                              quizButtonTitle(progress.buttonLabel),
-                              style: TextStyle(
-                                fontFamily: font.family,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 22,
-                                color: focused
-                                    ? palette.ink
-                                    : palette.onButton,
+                            Flexible(
+                              child: Text(
+                                quizButtonTitle(progress.buttonLabel),
+                                style: TextStyle(
+                                  fontFamily: font.family,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 22,
+                                  color: focused
+                                      ? palette.ink
+                                      : palette.onButton,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             ArrowIcon(

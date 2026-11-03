@@ -209,48 +209,58 @@ class _Hero extends StatelessWidget {
         : view.thinking
             ? DotsState.thinking
             : DotsState.idle;
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Center(
-          child: DotsPing(
-            state: dots,
-            child: ResonantDots(state: dots, size: 240, color: ink),
-          ),
-        ),
-        EnterStagger(
-          index: 1,
-          child: Text(
-            chatGreeting(name),
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: fontFamily,
-              fontWeight: FontWeight.w600,
-              fontSize: 40,
-              height: 48 / 40,
-              color: ink,
-            ),
-          ),
-        ),
-        SizedBox(
-          height: 32,
-          child: Center(
-            child: view.statusText.isEmpty
-                ? null
-                : Text(
-                    view.statusText,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: fontFamily,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 17,
-                      color: ink,
-                    ),
+    // Centered while it fits, scrollable once the largest text outgrows
+    // the screen: the greeting must never clip. One finger already
+    // scrolls past the gesture surface, so this stays reachable.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Center(
+                child: DotsPing(
+                  state: dots,
+                  child: ResonantDots(state: dots, size: 240, color: ink),
+                ),
+              ),
+              EnterStagger(
+                index: 1,
+                child: Text(
+                  chatGreeting(name),
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: fontFamily,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 40,
+                    height: 48 / 40,
+                    color: ink,
                   ),
+                ),
+              ),
+              SizedBox(
+                height: 32,
+                child: Center(
+                  child: view.statusText.isEmpty
+                      ? null
+                      : Text(
+                          view.statusText,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: fontFamily,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 17,
+                            color: ink,
+                          ),
+                        ),
+                ),
+              ),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
