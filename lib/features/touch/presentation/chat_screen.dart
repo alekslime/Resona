@@ -145,6 +145,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 }
 
+/// The hero greeting, with the daypart: "Good evening, Ana!".
+/// Blank names get the generic "there".
+String chatGreeting(String? name, {DateTime? now}) {
+  final hour = (now ?? DateTime.now()).hour;
+  final String daypart;
+  if (hour >= 5 && hour < 12) {
+    daypart = 'Good morning';
+  } else if (hour >= 12 && hour < 18) {
+    daypart = 'Good afternoon';
+  } else if (hour >= 18 && hour < 23) {
+    daypart = 'Good evening';
+  } else {
+    daypart = 'Good night';
+  }
+  final who = (name ?? '').trim();
+  return '$daypart, ${who.isEmpty ? 'there' : who}!';
+}
+
 /// Empty chat: the hero from the design — dots, greeting, prompt. The
 /// prompt slot only shows Listening… / Thinking…, and is reserved so the
 /// layout doesn't jump.
@@ -180,7 +198,7 @@ class _Hero extends StatelessWidget {
         EnterStagger(
           index: 1,
           child: Text(
-            'Hi ${name ?? 'there'}!',
+            chatGreeting(name),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: fontFamily,

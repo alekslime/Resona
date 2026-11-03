@@ -178,7 +178,7 @@ void main() {
       container.read(userNameProvider.notifier).set('Ana');
       await tester.pumpWidget(harnessedProfile(container, const ChatScreen()));
       await settle(tester);
-      expect(find.text('Hi Ana!'), findsOneWidget);
+      expect(find.text(chatGreeting('Ana')), findsOneWidget);
     });
   });
 

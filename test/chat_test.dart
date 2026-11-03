@@ -75,7 +75,7 @@ void main() {
       final container = await chatContainer(log);
       await tester.pumpWidget(harnessedChat(container, null));
       await tester.pump();
-      expect(find.text('Hi there!'), findsOneWidget);
+      expect(find.text(chatGreeting(null)), findsOneWidget);
       expect(find.text('Ask anything...'), findsOneWidget);
       expect(find.byType(ResonantDots), findsOneWidget);
       expect(
@@ -178,7 +178,7 @@ void main() {
           'Swipe up or down to review them, or tap center to ask something new.',
         ),
       );
-      expect(find.text('Hi there!'), findsNothing);
+      expect(find.text(chatGreeting(null)), findsNothing);
       expect(find.text('a.'), findsOneWidget);
     });
 
