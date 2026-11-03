@@ -6,9 +6,9 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { imageSize } from "image-size";
-import { createMeta, mapLimit } from "./meta.js";
+import { createMeta } from "./meta.js";
 import { createLimiter } from "./limit.js";
-import { buildRegions, conceptVariants, dedupeRegions } from "./regions.js";
+import { buildRegions, dedupeRegions } from "./regions.js";
 import { orientedSize } from "./orient.js";
 import { cleanRegions } from "./learn.js";
 import { liveKitConfig, liveKitSession } from "./livekit.js";
@@ -49,8 +49,8 @@ export function createApp(meta) {
   // deploy says otherwise, so a directly exposed server never trusts a
   // client-spoofed header.
   app.set("trust proxy", Number(process.env.TRUST_PROXY ?? 0) || 0);
-  // One analyze costs 1 Spark + up to 8 SAM calls. Cache by picture so lesson,
-  // quiz and chat demos re-opening the same picture never pay for it twice.
+  // One analyze is one Spark call. Cache by picture so lesson, quiz and chat
+  // demos re-opening the same picture never pay for it twice.
   const analyzeCache = new Map();
   const cacheGet = (image) => analyzeCache.get(crypto.createHash("sha256").update(image).digest("hex"));
   const cachePut = (image, value) => {
@@ -126,42 +126,18 @@ export function createApp(meta) {
     res.json({ samples });
   });
 
-  // The full pipeline: Spark names the parts, SAM outlines each one in parallel.
-  // onPart fires after every part finishes, so callers can stream progress.
+  // The full pipeline: one Spark call names the parts and places a tight box
+  // around each one. onPart fires per part, so callers can stream progress.
   const analyzeImage = async (dataUrl, width, height, onPart) => {
-    // 1. Muse Spark reads the picture and names its parts.
     const described = await meta.describeParts(dataUrl);
-
-    // 2. SAM 3.1 finds the exact pixels of each part (one request per concept).
-    //    Labels SAM cannot ground ("orthodontic braces row") get retried with
-    //    simpler concepts ("braces") before we give up on the mask.
-    const segmentPart = async (part) => {
-      for (const variant of conceptVariants(part.label)) {
-        try {
-          const records = (await meta.segment(dataUrl, variant)).records;
-          if (records.length) return records;
-        } catch (err) {
-          console.error(`segment "${variant}" failed:`, err?.message ?? err);
-        }
-      }
-      return [];
-    };
-    const limit = Math.min(8, Math.max(1, Number.parseInt(process.env.SAM_CONCURRENCY ?? "5", 10) || 5));
-    let done = 0;
-    const results = await mapLimit(described.parts, limit, async (part) => {
-      const records = await segmentPart(part);
-      done += 1;
-      onPart?.({ done, total: described.parts.length, label: part.label });
-      return { part, records };
+    const perPart = described.parts.map((part, partIndex) => {
+      const regions = buildRegions({ part, partIndex, imgW: width, imgH: height });
+      onPart?.({ done: partIndex + 1, total: described.parts.length, label: part.label });
+      return { part, regions };
     });
-
-    const perPart = results.map(({ part, records }, partIndex) => ({
-      part,
-      regions: buildRegions({ part, partIndex, records, imgW: width, imgH: height }),
-    }));
     const regions = dedupeRegions(perPart.flatMap((p) => p.regions));
     if (!regions.length) {
-      throw httpError(422, "No parts could be outlined in this picture. Try a clearer picture with distinct shapes.");
+      throw httpError(422, "No parts could be placed in this picture. Try a clearer picture with distinct shapes.");
     }
     return {
       width,
@@ -190,9 +166,8 @@ export function createApp(meta) {
   });
 
   // Same pipeline as /api/analyze, as server-sent events: one "progress" event
-  // per outlined part ({done, total, label}), then "done" with the full payload
-  // or "error" with {error}. The phone speaks the progress, so a 30-second
-  // analysis feels alive instead of frozen.
+  // per part ({done, total, label}), then "done" with the full payload
+  // or "error" with {error}. The phone speaks the progress instead of sitting silent.
   app.post("/api/analyze-stream", createLimiter({ max: 6, windowMs: 60_000 }), async (req, res, next) => {
     try {
       if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env, or try the sample picture.");
@@ -345,7 +320,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         apiKey,
         baseURL: process.env.MODEL_BASE_URL || undefined,
         sparkModel: process.env.SPARK_MODEL || undefined,
-        samModel: process.env.SAM_MODEL || undefined,
         effort: process.env.SPARK_REASONING_EFFORT || undefined,
       })
     : null;

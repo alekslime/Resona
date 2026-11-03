@@ -1,8 +1,6 @@
 // Everything that talks to the Meta Model API lives here.
 //   Muse Spark (muse-spark-1.3): looks at the picture, names its parts, answers questions.
-//   SAM 3.1   (sam-3.1)        : returns the exact pixels of each named part.
 import OpenAI from "openai";
-import { parseImageStream } from "@meta-sam/parser";
 import { extractJson } from "./json.js";
 import { fallbackLesson, fallbackQuiz, gradePrompt, lessonPrompt, parseGrade, parseLesson, parseQuiz, quizPrompt } from "./learn.js";
 
@@ -14,11 +12,11 @@ Return only JSON in this shape:
 Rules:
 - overview: two or three plain sentences saying what the picture is and how it is laid out (what is at the top, bottom, left and right).
 - parts: 3 to 8, in reading order (top to bottom, left to right). Fewer is better than padding.
-- label: a short, concrete noun phrase of 1 to 4 words naming something you can see, such as "red bar" or "left lung". It is sent to an image segmentation model, so describe what the thing looks like. No verbs, questions, lists or abstract ideas. One thing per label. If several things look alike, separate them with a visible attribute or position in the label.
+- label: a short, concrete noun phrase of 1 to 4 words naming something you can see, such as "red bar" or "left lung". Name it by what it looks like. No verbs, questions, lists or abstract ideas. One thing per label. If several things look alike, separate them with a visible attribute or position in the label.
 - spoken: one short sentence read aloud the moment a finger rests on the part.
 - detail: two to four sentences: what it is, why it matters, and any numbers or words printed on or beside it. Plain words.
 - Never invent text or numbers that are not in the picture.
-- where: a rough box around the part as fractions of the whole picture, [left, top, right, bottom], each from 0 to 1, with 0,0 at the top left corner. It only needs to be roughly right.
+- where: a tight box around the part as fractions of the whole picture, [left, top, right, bottom], each from 0 to 1, with 0,0 at the top left corner. Hug the part's edges with no empty margins: the box is the touch target, so a loose box makes the wrong part speak. Boxes must not overlap unless the parts truly overlap.
 - Pages with several photographs or panels (textbook spreads, figure grids, collages): treat each whole photograph or panel as ONE part. Its label names what the whole photo shows (such as "teeth with braces photo"), its where box covers the whole photo, not one tooth or detail inside it.
 - Avoid labels ending in row, pair, group, set or close-up, and never name a single small repeated item (one tooth, one bar, one dot) when the student needs the whole group it belongs to.`;
 
@@ -49,19 +47,6 @@ async function withRetry(fn, tries = 2) {
   throw last;
 }
 
-export async function mapLimit(items, limit, fn) {
-  const out = new Array(items.length);
-  let next = 0;
-  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
-    while (next < items.length) {
-      const i = next++;
-      out[i] = await fn(items[i], i);
-    }
-  });
-  await Promise.all(workers);
-  return out;
-}
-
 export function normBox(v) {
   if (!Array.isArray(v) || v.length !== 4) return null;
   const n = v.map(Number);
@@ -69,7 +54,7 @@ export function normBox(v) {
   const [l, t, r, b] = n;
   return r > l && b > t ? [l, t, r, b] : null;
 }
-export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkModel = "muse-spark-1.3", samModel = "sam-3.1", effort = "low" }) {
+export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkModel = "muse-spark-1.3", effort = "low" }) {
   const client = new OpenAI({ apiKey, baseURL });
 
   // Muse Spark is a reasoning model. Try with our preferred options first, then drop any the API rejects.
@@ -94,7 +79,6 @@ export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkMo
 
   return {
     sparkModel,
-    samModel,
 
     async describeParts(dataUrl) {
       const text = await spark(
@@ -121,34 +105,6 @@ export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkMo
         overview: String(json.overview ?? "").trim(),
         parts,
       };
-    },
-
-    /** One concept per request: SAM 3.1 does not accept lists. Zero matches is a normal result. */
-    async segment(dataUrl, concept) {
-      return withRetry(async () => {
-        const events = await client.responses.create({
-          model: samModel,
-          input: [
-            {
-              type: "message",
-              role: "user",
-              content: [
-                { type: "input_text", text: concept },
-                { type: "input_image", image_url: dataUrl },
-              ],
-            },
-          ],
-          stream: true,
-          metadata: { mask_encoding: "one_bit", include_confidence: "true" },
-        });
-        try {
-          return await parseImageStream(events).finalResult;
-        } catch (err) {
-          // Zero matches can arrive as a stream with no output text at all. That is a normal result.
-          if (err?.code === "response_lane") return { records: [], diagnostics: [], outcome: { status: "completed" } };
-          throw err;
-        }
-      });
     },
 
     async ask(dataUrl, question, { title, regionLabel }) {
