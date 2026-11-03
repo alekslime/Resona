@@ -1,14 +1,13 @@
 // Runs one local picture through the same steps as /api/analyze and shows what came back.
 // Usage (from backend/):  node scripts/try-image.js path/to/picture.jpg
-// It makes real API calls: one Spark call plus one SAM call per part.
+// It makes one real Muse Spark call.
 import "dotenv/config";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { imageSize } from "image-size";
-import { createMeta, mapLimit } from "../server/meta.js";
-import { buildRegions, conceptVariants, dedupeRegions } from "../server/regions.js";
-import { recordsOfKind } from "@meta-sam/parser";
+import { createMeta } from "../server/meta.js";
+import { buildRegions, dedupeRegions } from "../server/regions.js";
 
 const file = process.argv[2];
 if (!file) {
@@ -30,46 +29,23 @@ const meta = createMeta({
   apiKey,
   baseURL: process.env.MODEL_BASE_URL,
   sparkModel: process.env.SPARK_MODEL,
-  samModel: process.env.SAM_MODEL,
   effort: process.env.SPARK_REASONING_EFFORT,
 });
 
 console.log(`Picture ${imgW}x${imgH}. Asking ${meta.sparkModel} to name the parts...`);
-const li = process.argv.indexOf("--labels"); const described = li > -1 ? { title: "Custom labels", kind: "other", overview: "", parts: process.argv[li + 1].split(",").map((s) => s.trim()).filter(Boolean).map((l) => ({ label: l, spoken: l, detail: l })) } : await meta.describeParts(dataUrl);
+const described = await meta.describeParts(dataUrl);
 console.log(`\n${described.title} (${described.kind})\n${described.overview}\n`);
 console.log("Parts named: " + described.parts.map((p) => p.label + (p.where ? " " + JSON.stringify(p.where.map((x) => +x.toFixed(2))) : " (no box)")).join(" | ") + "\n");
 
-const regions = [];
-const missing = [];
-const failed = [];
-await mapLimit(described.parts, 3, async (part, i) => {
-  try {
-    let seg = { records: [] };
-    let usedConcept = part.label;
-    for (const variant of conceptVariants(part.label)) {
-      usedConcept = variant;
-      seg = await meta.segment(dataUrl, variant);
-      if (seg.records.length) break;
-    }
-    if (usedConcept !== part.label.toLowerCase()) console.log(part.label + ": retried as \"" + usedConcept + "\"");
-    const raw = recordsOfKind(seg.records, "mask"); console.log(part.label + ": SAM returned " + raw.length + " match(es): " + raw.map((m) => "conf " + (m.confidence ?? "n/a") + " at " + m.bounds.left + "," + m.bounds.top + "," + m.bounds.right + "," + m.bounds.bottom).join(" | ")); if (part.where) { const [l, t, r, b] = part.where; const inside = raw.filter((m) => { const cx = (m.bounds.left + m.bounds.right) / 2 / imgW, cy = (m.bounds.top + m.bounds.bottom) / 2 / imgH; return cx >= l - 0.05 && cx <= r + 0.05 && cy >= t - 0.05 && cy <= b + 0.05; }); console.log("  inside Spark box (+5%): " + inside.length + " of " + raw.length); } const found = buildRegions({ part, partIndex: i, records: seg.records, imgW, imgH });
-    if (!found.length) missing.push(part.label);
-    regions.push(...found);
-  } catch (err) {
-    failed.push(`${part.label} (${err?.message ?? err})`);
-  }
-});
-
-const deduped = dedupeRegions(regions);
-regions.length = 0;
-regions.push(...deduped);
+const perPart = described.parts.map((part, i) => ({ part, regions: buildRegions({ part, partIndex: i, imgW, imgH }) }));
+const missing = perPart.filter((p) => !p.regions.length).map((p) => p.part.label);
+const regions = dedupeRegions(perPart.flatMap((p) => p.regions));
 regions.sort((a, b) => a.order - b.order);
 for (const r of regions) {
   const pct = ((r.area / (imgW * imgH)) * 100).toFixed(1);
-  console.log(`${String(r.order + 1).padStart(2)}. ${r.label} | ${pct}% of picture | box ${r.box.join(",")} | mask ${r.mask.w}x${r.mask.h} | confidence ${r.confidence ?? "n/a"}${r.approximate ? " | APPROXIMATE (Spark box)" : ""}${r.merged ? ` | merged ${r.merged} matches` : ""}`);
+  console.log(`${String(r.order + 1).padStart(2)}. ${r.label} | ${pct}% of picture | box ${r.box.join(",")} | mask ${r.mask.w}x${r.mask.h}`);
 }
-if (missing.length) console.log(`\nSAM found nothing for: ${missing.join(", ")}`);
-if (failed.length) console.log(`\nFailed: ${failed.join("; ")}`);
+if (missing.length) console.log(`\nNo usable box for: ${missing.join(", ")}`);
 
 const json = JSON.stringify(regions).replace(/</g, "\\u003c");
 const html = `<!doctype html><meta charset="utf-8"><title>try-image</title>
