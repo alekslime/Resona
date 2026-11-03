@@ -279,6 +279,18 @@ void main() {
       expect(r.log.events, contains('say+: Why sorting matters.'));
     });
 
+    test('the first answer without a picture points at Pictures, once',
+        () async {
+      final r = rig();
+      await r.session.askTyped('matters');
+      await r.session.askTyped('matters');
+      expect(
+        r.log.events.where((e) =>
+            e == 'say+: Open a picture in Pictures, and I can answer about that too.'),
+        hasLength(1),
+      );
+    });
+
     test('when the server fails, the lessons step in', () async {
       final log = Log();
       final repo = FakeRepository(log)..fail = TouchApiException('Down.');

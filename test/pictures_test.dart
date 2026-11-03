@@ -48,6 +48,23 @@ void main() {
       expect(find.text('Explore picture'), findsWidgets);
     });
 
+    testWidgets('empty recents say where they will appear', (tester) async {
+      final container = await picturesContainer(Log());
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: const MaterialApp(home: PicturesScreen()),
+        ),
+      );
+      await flushPictures(tester);
+      await tester.scrollUntilVisible(
+        find.text('Your recent pictures will appear here.'),
+        200,
+      );
+      expect(find.text('Your recent pictures will appear here.'),
+          findsOneWidget);
+    });
+
     testWidgets('back returns home', (tester) async {
       final log = Log();
       final container = await picturesContainer(log);
