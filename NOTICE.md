@@ -12,9 +12,7 @@ Both were first used in the author's earlier app, Resonant, and are carried over
 
 ## Meta Model API
 
-Muse Spark 1.3 and SAM 3.1 are used through the Meta Model API under Meta's terms: <https://dev.meta.ai>.
-Mask parsing uses `@meta-sam/parser` (see `backend/package.json`).
-The one frame of SAM output used as a test fixture (`backend/test/helpers.js`) is copied from Meta's SAM documentation.
+Muse Spark 1.3 is used through the Meta Model API under Meta's terms: <https://dev.meta.ai>.
 
 ## Other libraries
 

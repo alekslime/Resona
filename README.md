@@ -2,12 +2,12 @@
 
 # Resonant
 
-**A voice tutor for pictures.** Chat, explore, lesson, quiz, notes — one study loop. Spark teaches, SAM places.
+**A voice tutor for pictures.** Chat, explore, lesson, quiz, notes — one study loop.
 
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
-![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3%20%2B%20SAM%203.1-FFAE00?style=flat-square&labelColor=0A0A0A)
+![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-573%20Flutter%20%2B%2054%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-573%20Flutter%20%2B%2043%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -17,9 +17,8 @@ Diagrams, charts and photos are the part of school that screen readers cannot re
 "a diagram of the water cycle" and stops. Resonant turns the picture into a study loop: **Chat**
 asks the tutor anything, **Explore** feels every part by touch, **Lessons** walks through them in
 order, **Quiz** checks they stuck, and **Notes** keeps the whole picture as text for revision.
-**Spark teaches, SAM places** — Muse Spark names the parts, writes the lessons and does the
-tutoring; SAM 3.1 draws the exact outline of each part, so a finger can land on a river or a lung,
-not just a rectangle.
+Muse Spark names the parts, draws a box around each one, writes the lessons and does the
+tutoring — so a finger can land on a river or a lung and hear what it is.
 
 Each part speaks its name, buzzes under the fingertip (bigger parts buzz longer, so size can be
 felt), and plays a tone whose **pitch is its height** on the page and whose **stereo position is
@@ -75,7 +74,7 @@ Dart**:
 | Gesture grammar: zones, timings, swipe inversion, hold-to-adjust-speed, three-finger gestures | `lib/features/touch/gestures/` |
 | The haptic vocabulary and its matching sound cues, and the stereo-panning rule | `lib/core/services/haptics.dart`, `sound.dart` |
 
-**Built during the hackathon** (everything else): the Muse Spark + SAM 3.1 backend that turns any
+**Built during the hackathon** (everything else): the Muse Spark backend that turns any
 picture into touchable regions; exploring a picture with one finger (the explore gestures, mask
 hit-testing, the fingertip-size haptic, rest-to-read, nearest-part directions); the height-to-pitch and
 left-right-to-stereo sound mapping; hold-to-ask questions about the part under your finger; stepping
@@ -98,7 +97,7 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 **Working today, on a real phone:**
 
 - **Pick a picture** (gallery, camera, or two built-in samples), get it back as touchable parts in
-  about half a minute, with spoken progress as each part lands. Analysis is cached on the backend,
+  several seconds, with spoken progress as each part lands. Analysis is cached on the backend,
   and the recents shelf reopens the session's pictures instantly.
 - **Explore by touch**: each part speaks, buzzes (bigger parts buzz longer), and plays a tone whose
   pitch is its height and whose stereo position is left–right. Rest to hear the description; tap to
@@ -107,7 +106,7 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
   spoken direction + distance as you drag, with a celebration when you land on it).
 - **Lesson mode**: Muse Spark writes a guided walk through the parts (with a built-from-the-parts
   fallback lesson, so it can never fail to start); swipe or tap through the steps.
-- **Quiz me**: "find-it" questions graded on the phone against the SAM mask (instant, free), and
+- **Quiz me**: "find-it" questions graded on the phone by hit-testing the finger (instant, free), and
   "say-it" questions graded by Muse Spark. Correct/incorrect buzzes, one gentle retry, then the
   answer — and a **Practise missed** round with only the questions you got wrong.
 - **Voice tutor**: hold, ask, lift — then follow up ("and why?"). The tutor remembers the
@@ -136,29 +135,27 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
   session, with no accounts and no progress carried over. Practise-missed lasts for the quiz you are in.
 - New pictures need the backend, a Meta API key and internet. Once a picture is analysed, exploring,
   the map and guiding work on the phone alone.
-- SAM is honest but imperfect: a part it cannot outline stays touchable as an approximate rectangle,
-  and the app says so out loud.
+- Every part is a box, not a traced outline: near the edge of an irregular shape a fingertip can
+  read a neighbour. Tight boxes and smallest-wins overlap keep this rare, and the app always
+  says what it reads, so nothing is silent.
 
 ## How it works
 
 ```
  picture ──► Muse Spark 1.3 ──► title, overview, and a list of parts
-                                (short noun phrases + what to say about each)
-        │
-        └──► SAM 3.1, once per part ──► exact pixel mask of every match
-                                          │  shrunk to a 96-cell grid per part
+                                (short noun phrases + a tight box + what to say about each)
+                                          │  one box per part, sent as a 96-cell grid
                                           ▼
-   phone: finger position → which mask is under it → speak, vibrate, play a tone, outline the part
+   phone: finger position → which box is under it → speak, vibrate, play a tone, outline the part
 ```
 
 - **Muse Spark** (`muse-spark-1.3`) reads the picture and decides what its parts are, in reading
-  order. It also writes the guided lesson and the quiz from those parts (text-only calls, so they
-  cost a fraction of an analysis), grades spoken answers, and answers spoken questions as a
-  multi-turn tutor, using the part you last touched and the conversation so far as context.
-- **SAM 3.1** (`sam-3.1`) turns each part name into pixel-accurate masks. The mask is what lets a finger
-  land on a river or a lung, not just a rectangle. It is also what grades "find-it" quiz questions:
-  the app hit-tests your finger against the mask, on the phone, for free.
-- The two chain the way Meta's docs suggest: Muse Spark decides what to segment, SAM returns the geometry.
+  order, with a tight box around each one. It also writes the guided lesson and the quiz from those
+  parts (text-only calls, so they cost a fraction of an analysis), grades spoken answers, and answers
+  spoken questions as a multi-turn tutor, using the part you last touched and the conversation so far
+  as context.
+- The box is what lets a finger land on a river or a lung. It is also what grades "find-it" quiz
+  questions: the app hit-tests your finger against the regions, on the phone, for free.
 - The Meta key lives only on the backend. The app never holds it. Re-analyzing a picture you already
   opened is served from the backend's cache, not paid for twice.
 
@@ -254,7 +251,7 @@ lib/
   features/learn/
     domain/        Lesson, Quiz, Grade                     (pure Dart)
     application/   LearnSession: lesson steps + quiz grading (pure Dart)
-backend/           Node: Muse Spark + SAM 3.1 -> regions; Spark -> lesson, quiz, tutor chat; LiveKit tokens
+backend/           Node: Muse Spark -> regions, lesson, quiz, tutor chat; LiveKit tokens
 agent/             Python: the Talk live tutor (Silero, faster-whisper, Muse Spark, Piper)
 ```
 
@@ -268,7 +265,7 @@ Needs the [Flutter SDK](https://docs.flutter.dev/get-started/install), Node 20.1
 ```bash
 # 1. Backend (holds your key)
 cd backend && npm install && cp .env.example .env     # put your key in MODEL_API_KEY
-npm run check:api                                      # one Muse Spark call and one SAM call: confirms the key works
+npm run check:api                                      # one Muse Spark call: confirms the key works
 npm start                                              # http://localhost:3000
 
 # 2. App (new terminal, from the repo root)
@@ -290,16 +287,15 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound, dots, shell, nav, home, gallery, talk, notes, touch, settings, splash, hints, shell, chat, lessons, quizzes, profile (527 tests)
-cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (54 tests)
+flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound, dots, shell, nav, home, gallery, talk, notes, touch, settings, splash, hints, shell, chat, lessons, quizzes, profile (573 tests)
+cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (43 tests)
 ```
 
 ## Known limits
 
-- Analysis takes roughly half a minute because every part is its own SAM request (five run at a
-  time, with spoken progress; raise `SAM_CONCURRENCY` for more). The recents shelf keeps the session's
-  pictures so going back is instant.
-- SAM 3.1 matches one concept per request, so a vaguely phrased label can match nothing. The backend retries with simpler concepts; if it still finds nothing but Muse Spark gave a rough box, the part stays touchable as an approximate rectangle (the app says so), and many tiny matches in one photo (every tooth in a close-up) are merged into one region.
+- Analysis is one Muse Spark call, so a new picture takes several seconds, with spoken progress
+  as each part lands. The recents shelf keeps the session's pictures so going back is instant.
+- A part whose box is missing or unusable is left out and named in the study notes, so nothing is silently missing. Overlapping boxes resolve smallest-first, so the most specific part wins the finger.
 - Vibration is timed on Android. On iPhone it is a series of taps, and none at all in the browser.
 - With TalkBack or VoiceOver on, the screen reader takes over one-finger touch, so use the buttons under the picture.
 - Talk live needs the agent running on a computer on the same network, and its first on-phone call is still to be made.
@@ -310,7 +306,7 @@ Resonant stands on a lot of generous work. Each of these keeps its own license.
 
 | What | Used for | License |
 | --- | --- | --- |
-| Meta Model API (Muse Spark 1.3, SAM 3.1) | Naming parts, lessons, quizzes, grading, the tutor's brain; exact picture masks | Meta Model API terms |
+| Meta Model API (Muse Spark 1.3) | Naming and placing parts, lessons, quizzes, grading, the tutor's brain | Meta Model API terms |
 | [LiveKit](https://livekit.io) + LiveKit Agents | Carrying live voice between the phone and the PC agent (free tier) | Apache-2.0 |
 | [Silero VAD](https://github.com/snakers4/silero-vad) | Hearing when you start and stop talking | MIT |
 | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | Writing down what you said, on your own PC | MIT |

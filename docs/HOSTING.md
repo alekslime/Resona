@@ -13,9 +13,8 @@ Copy `backend/.env.example` to `.env`, or set these on the host:
 | `MODEL_API_KEY` | yes for new pictures | Meta Model API key from <https://dev.meta.ai/platform> |
 | `LIVEKIT_URL`, `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET` | only for Talk live | LiveKit Cloud free tier is enough |
 | `MODEL_BASE_URL` | no | Defaults to `https://api.meta.ai/v1` |
-| `SPARK_MODEL` / `SAM_MODEL` | no | Defaults to `muse-spark-1.3` / `sam-3.1` |
+| `SPARK_MODEL` | no | Defaults to `muse-spark-1.3` |
 | `SPARK_REASONING_EFFORT` | no | `low` by default; raise for harder pictures |
-| `SAM_CONCURRENCY` | no | Parallel SAM requests, default 5 |
 | `PORT` | no | Defaults to 3000 |
 
 Without `MODEL_API_KEY` the server still runs: `/api/health` reports
@@ -84,5 +83,5 @@ See `docs/IPHONE.md`.
   re-opening a demo picture is free.
 - Per-IP rate limits: 6 analyzes/minute, 10 lessons+quizzes/minute, 20 chats/minute.
 - Lesson, quiz, grade and chat reuse the regions already on the phone — no second
-  image read, no SAM calls.
+  image read.
 - `GET /api/health` shows what is configured without leaking keys.
