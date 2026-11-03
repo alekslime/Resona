@@ -89,7 +89,7 @@ class TouchController extends Notifier<TouchState> {
   Future<void> analyze(PictureBytes picture) async {
     final speech = ref.read(speechProvider);
     state = const TouchState(phase: Phase.busy);
-    speech.speak('Reading the picture. This takes about half a minute.');
+    speech.speak('Reading the picture. This takes a few seconds.');
     // Silence feels like a freeze to someone who cannot see a spinner.
     _keepAlive = Timer.periodic(const Duration(seconds: 12), (_) {
       ref.read(hapticsProvider).pulse(30);

@@ -75,9 +75,9 @@ class ServerHealth {
 }
 
 abstract class TouchRepository {
-  /// Muse Spark names the parts, SAM 3.1 outlines them (see backend/).
-  /// [onProgress] fires after every part is outlined, so the phone can speak
-  /// the progress instead of sitting silent for half a minute.
+  /// Muse Spark names the parts and places a box around each one (see backend/).
+  /// [onProgress] fires after every part is placed, so the phone can speak
+  /// the progress instead of sitting silent while it works.
   Future<Analysis> analyze(PictureBytes picture,
       {void Function(AnalyzeProgress progress)? onProgress});
 

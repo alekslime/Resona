@@ -2,7 +2,7 @@ import 'dart:math' as math;
 
 import 'region.dart';
 
-/// Live guide measurements against the part's exact outline, not its box.
+/// Live guide measurements against the part's outline.
 ///
 /// Thin parts (an artery, a river) have box centres that sit off the part, so
 /// guiding to the centre points the finger at empty space. Instead the session
