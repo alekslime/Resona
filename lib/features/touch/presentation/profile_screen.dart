@@ -141,6 +141,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         _speak(ProfileSummary.spoken(name, stats));
       }),
       _ProfileRow(ActivityText.streakLine(stats.streak), counts: true),
+      _ProfileRow(
+          ActivityText.weeklyLine(ref.read(activityProvider).activeDays,
+              ref.read(activityProvider.notifier).today),
+          counts: true),
       if (stats.longestStreak > stats.streak)
         _ProfileRow(ActivityText.longestLine(stats.longestStreak),
             counts: true),

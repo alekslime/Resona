@@ -235,6 +235,15 @@ class ActivityText {
   }
 
   static String listeningLine(int seconds) => 'Listening: ${listening(seconds)}';
+
+  /// Study days in the seven days ending today, inclusive on both ends.
+  static String weeklyLine(Set<int> activeDays, int today) {
+    final int n =
+        activeDays.where((int d) => d >= today - 6 && d <= today).length;
+    if (n <= 0) return 'This week: no study days yet';
+    if (n >= 7) return 'This week: every day!';
+    return 'This week: $n of 7 days';
+  }
 }
 
 // ---------------------------------------------------------------------------
