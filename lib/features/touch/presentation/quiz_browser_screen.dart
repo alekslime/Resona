@@ -108,10 +108,15 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
     List<String> missedIds,
   ) {
     List<LibraryQuizQuestion> pool = _lastMissed;
+    var title = '';
     if (quizId != 'quiz_review') {
       pool = sampleQuiz.questions;
+      title = sampleQuiz.title;
       for (final q in allQuizSets) {
-        if (q.id == quizId) pool = q.questions;
+        if (q.id == quizId) {
+          pool = q.questions;
+          title = q.title;
+        }
       }
     }
     _lastMissed = [
@@ -130,6 +135,7 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
         correct: correct,
         total: total,
         missedCount: _lastMissed.length,
+        quizTitle: title,
         onRetryMissed: _retry,
         onDone: _done,
       ),

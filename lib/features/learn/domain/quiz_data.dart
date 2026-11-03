@@ -371,6 +371,13 @@ String quizRetryLabel(int missedCount) => 'Retry $missedCount missed';
 String quizResultsHoldSummary(int correct, int total, int missedCount) =>
     'Quiz Results. You scored $correct out of $total. ${quizResultsInstructions(missedCount)}';
 
+/// The "Copy score" clipboard text. The retry round has no quiz of its
+/// own, so an empty title stays generic.
+String quizScoreShareText(int correct, int total, String quizTitle) =>
+    quizTitle.isEmpty
+        ? 'I scored $correct out of $total on a Resonant quiz!'
+        : 'I scored $correct out of $total on $quizTitle with Resonant!';
+
 /// One answer in the reader's queue: "Option B. The cell membrane."
 String quizOptionUnit(String letter, String text) => 'Option $letter. $text.';
 

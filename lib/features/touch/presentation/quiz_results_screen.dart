@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/nav/resonant_nav.dart';
@@ -27,6 +28,7 @@ class QuizResultsScreen extends ConsumerStatefulWidget {
     required this.correct,
     required this.total,
     required this.missedCount,
+    this.quizTitle = '',
     required this.onRetryMissed,
     required this.onDone,
   });
@@ -36,6 +38,9 @@ class QuizResultsScreen extends ConsumerStatefulWidget {
 
   /// Empty on a perfect score or a retry round: nothing left to retry.
   final int missedCount;
+
+  /// Names the quiz in the copied score line; empty for a retry round.
+  final String quizTitle;
   final VoidCallback onRetryMissed;
   final VoidCallback onDone;
 
@@ -94,6 +99,16 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
   void _done() {
     _buzz(HapticPattern.confirm);
     widget.onDone();
+  }
+
+  Future<void> _copy() async {
+    // Direct platform call, like paintSystemBars: copying is a leaf
+    // action with nothing behind it to fake.
+    await Clipboard.setData(ClipboardData(
+        text: quizScoreShareText(
+            widget.correct, widget.total, widget.quizTitle)));
+    _buzz(HapticPattern.select);
+    ref.read(speechProvider).speak('Score copied.');
   }
 
   void _repeat() => ref.read(speechProvider).speak(quizResultsSpoken(
@@ -181,67 +196,79 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
                 child: Padding(
                   padding:
                       const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      EnterStagger(
-                        index: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 32),
-                          decoration: BoxDecoration(
-                            color: palette.card,
-                            borderRadius: cardShape(palette),
-                            border: cardBorder(palette),
-                          ),
-                          child: Column(
-                            children: [
-                              Text(
-                                '${widget.correct} / ${widget.total}',
-                                style: TextStyle(
-                                  fontFamily: font.family,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 72,
-                                  height: 78 / 72,
-                                  color: palette.ink,
+                  // Centered while it fits, scrollable once the buttons
+                  // below (or the largest text) squeeze it: the score
+                  // must never clip.
+                  child: LayoutBuilder(
+                    builder: (context, constraints) =>
+                        SingleChildScrollView(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                            minHeight: constraints.maxHeight),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            EnterStagger(
+                              index: 0,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 24, vertical: 32),
+                                decoration: BoxDecoration(
+                                  color: palette.card,
+                                  borderRadius: cardShape(palette),
+                                  border: cardBorder(palette),
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                quizResultLabel(
-                                    widget.correct, widget.total),
-                                style: TextStyle(
-                                  fontFamily: font.family,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 26,
-                                  color: palette.ink,
+                                child: Column(
+                                  children: [
+                                    Text(
+                                      '${widget.correct} / ${widget.total}',
+                                      style: TextStyle(
+                                        fontFamily: font.family,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 72,
+                                        height: 78 / 72,
+                                        color: palette.ink,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      quizResultLabel(
+                                          widget.correct, widget.total),
+                                      style: TextStyle(
+                                        fontFamily: font.family,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 26,
+                                        color: palette.ink,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
                                 ),
-                                textAlign: TextAlign.center,
                               ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      EnterStagger(
-                        index: 2,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 24),
-                          child: Text(
-                            quizResultsHint(widget.missedCount),
-                            style: TextStyle(
-                              fontFamily: font.family,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 18,
-                              height: 24 / 18,
-                              color: palette.ink,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
+                            EnterStagger(
+                              index: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.only(top: 24),
+                                child: Text(
+                                  quizResultsHint(widget.missedCount),
+                                  style: TextStyle(
+                                    fontFamily: font.family,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 18,
+                                    height: 24 / 18,
+                                    color: palette.ink,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ),
               ),
@@ -259,6 +286,12 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
                     ),
                     const SizedBox(height: 12),
                   ],
+                  _ResultsButton(
+                    label: 'Copy score',
+                    filled: false,
+                    onTap: () => unawaited(_copy()),
+                  ),
+                  const SizedBox(height: 12),
                   _ResultsButton(
                     label: 'Back to quizzes',
                     filled: !_canRetry,
