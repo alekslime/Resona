@@ -22,6 +22,7 @@ class ChatView {
     this.listening = false,
     this.statusText = '',
     this.flatIndex = 0,
+    this.offline = false,
   });
 
   final List<ChatExchange> exchanges;
@@ -29,6 +30,11 @@ class ChatView {
   final bool listening;
   final String statusText;
   final int flatIndex;
+
+  /// True once an answer has failed, until a fresh one lands. The screen
+  /// shows the offline banner for this; without a picture the lessons are
+  /// the plan, not a fallback, so it stays false there.
+  final bool offline;
 
   bool get hero => exchanges.isEmpty;
 
@@ -99,6 +105,7 @@ class ChatSession {
   bool _thinking = false;
   bool _listening = false;
   bool _picturedHintGiven = false;
+  bool _offline = false;
   String _status = '';
   int _flatIndex = 0;
   int _requestId = 0;
@@ -113,6 +120,7 @@ class ChatSession {
         listening: _listening,
         statusText: _status,
         flatIndex: _flatIndex,
+        offline: _offline,
       );
 
   List<String> get _flat => [
@@ -241,6 +249,7 @@ class ChatSession {
     final myId = _requestId;
     _startTicker(myId);
     List<String> sentences;
+    var cameBack = false;
     if (_recent == null) {
       sentences = offlineAnswer(question, lessons, serverDown: false).sentences;
     } else {
@@ -258,9 +267,14 @@ class ChatSession {
           history: history,
         );
         sentences = splitSentences(answer);
+        cameBack = _offline;
+        _offline = false;
       } catch (_) {
         // When the AI server can't answer, the lesson text does: a
-        // degraded chat, not a dead one.
+        // degraded chat, not a dead one. The answer's own preface says
+        // the server is unreachable, so no extra spoken line here — the
+        // banner carries the persistent state instead.
+        _offline = true;
         sentences = offlineAnswer(question, lessons).sentences;
       }
     }
@@ -269,8 +283,14 @@ class ChatSession {
     _thinking = false;
     _status = '';
     _addExchange(ChatExchange(question, sentences));
+    if (cameBack) {
+      // The server just returned: lead with the news, queue the answer
+      // behind it. Spoken, not stored — the exchange keeps the model's
+      // own answer.
+      _say('The AI server is back.');
+    }
     // The first sentence cuts in; the rest queue behind the announcement.
-    var first = true;
+    var first = !cameBack;
     for (final s in sentences) {
       _say(s, queue: !first);
       first = false;

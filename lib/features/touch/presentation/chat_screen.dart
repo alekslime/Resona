@@ -18,6 +18,13 @@ import 'home_screen.dart';
 import 'pictures_screen.dart';
 import 'settings_screen.dart';
 
+/// The strip under the top bar while the AI server is known to be down:
+/// lesson answers, honestly labelled. The transitions are already spoken
+/// (the fallback preface on failure, "The AI server is back." on
+/// recovery), so this is plain text with no live region — announcing it
+/// again would double-speak.
+const offlineBanner = 'Offline — answers come from the lessons.';
+
 /// The voice tutor's chat, ported from Resonant's ChatScreen.
 ///
 /// [recent] is the picture it answers from — the old active material —
@@ -111,6 +118,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               },
               onSettings: () => _openSettings(context),
             ),
+            if (view.offline)
+              Container(
+                width: double.infinity,
+                color: palette.bar,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 24, vertical: 10),
+                child: Text(
+                  offlineBanner,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: font.family,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: palette.onBar,
+                  ),
+                ),
+              ),
             Expanded(
               child: GestureSurface(
                 exploreEnabled: false,
