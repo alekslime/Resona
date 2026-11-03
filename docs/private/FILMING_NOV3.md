@@ -31,7 +31,9 @@ Submissions close **Nov 4, 9:00 PM ET** — filming Nov 3 leaves Nov 4 for editi
 ## Roll checklist (day of, before each take)
 - [ ] Do Not Disturb on, ringer up (screen recording must capture app audio), brightness up.
 - [ ] Headphones plugged in and worn; clap once on mic so audio sync can be checked.
-- [ ] Backend reachable: Home shows the green server dot. Hero picture pre-analyzed.
+- [ ] Backend reachable: ask one throwaway question in Chat — no "Offline" banner
+      means the backend is live (there is no server dot; the banner is the
+      only connectivity signal). Hero picture pre-analyzed.
 - [ ] Screen cover (cloth) within reach for the eyes-closed segment.
 - [ ] 2 s of silence before the disclosure line; room tone 10 s at the end.
 
