@@ -70,6 +70,15 @@ abstract final class SoundCues {
       CueNote(0, 50),
       CueNote(587, 70),
     ]),
+    // The perfect-score fanfare: climbs past correct's top note and
+    // lands an octave shimmer. Stays under the 500 ms cue cap.
+    HapticPattern.celebration: CueSpec([
+      CueNote(523, 60),
+      CueNote(659, 60),
+      CueNote(784, 60),
+      CueNote(1047, 60),
+      CueNote(1319, 160),
+    ]),
   };
 }
 

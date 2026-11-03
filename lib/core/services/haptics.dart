@@ -21,6 +21,7 @@ enum HapticPattern {
   optionB,
   optionC,
   optionD,
+  celebration,
 }
 
 const Map<HapticPattern, List<int>> hapticTimings = {
@@ -43,6 +44,7 @@ const Map<HapticPattern, List<int>> hapticTimings = {
   HapticPattern.optionB: [0, 90, 80, 90],
   HapticPattern.optionC: [0, 90, 80, 90, 80, 90],
   HapticPattern.optionD: [0, 90, 80, 90, 80, 90, 80, 90],
+  HapticPattern.celebration: [0, 60, 60, 60, 60, 60, 60, 180],
 };
 
 /// The per-option buzz while browsing answers: one buzz for A, two for

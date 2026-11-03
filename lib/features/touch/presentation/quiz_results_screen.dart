@@ -8,6 +8,7 @@ import '../../../core/providers.dart';
 import '../../../core/services/haptics.dart';
 import '../../../core/theme/resonant_theme.dart';
 import '../../../core/theme/shapes.dart';
+import '../../../core/ui/celebration.dart';
 import '../../../core/ui/enter.dart';
 import '../../../core/ui/system_bars.dart';
 import '../../../core/ui/top_bar.dart';
@@ -45,6 +46,8 @@ class QuizResultsScreen extends ConsumerStatefulWidget {
 
 class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
   bool get _canRetry => widget.missedCount > 0;
+  bool _cheering = false;
+  Timer? _cheerWait;
 
   @override
   void initState() {
@@ -54,16 +57,24 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
       _buzz(HapticPattern.confirm);
       ref.read(speechProvider).speak(
           quizResultsSpoken(widget.correct, widget.total, widget.missedCount));
-      // A perfect score gets a second, brighter tap just after the first.
-      // Nothing else changes, and the spoken result is never delayed.
+      // A perfect score gets a fanfare and a burst of dots just after
+      // the first tap. Nothing else changes, and the spoken result
+      // is never delayed.
       if (widget.total > 0 &&
           quizPercent(widget.correct, widget.total) == 100) {
-        unawaited(Future<void>.delayed(const Duration(milliseconds: 650))
-            .then((_) {
-          if (mounted) _buzz(HapticPattern.correct);
-        }));
+        _cheerWait = Timer(const Duration(milliseconds: 650), () {
+          if (!mounted) return;
+          _buzz(HapticPattern.celebration);
+          setState(() => _cheering = true);
+        });
       }
     });
+  }
+
+  @override
+  void dispose() {
+    _cheerWait?.cancel();
+    super.dispose();
   }
 
   void _buzz(HapticPattern pattern) {
@@ -136,17 +147,19 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
     final palette = ref.watch(paletteProvider);
     final font = ref.watch(fontProvider);
     paintSystemBars(palette.background);
-    return Container(
-      color: palette.background,
-      child: SafeArea(
-        child: Column(
-          children: [
-            LessonsTopBar(
-              title: 'Results',
-              onBack: widget.onDone,
-              backAnnouncement: 'Back to quizzes.',
-              onSettings: () => _openSettings(context),
-            ),
+    return Stack(
+      children: [
+        Container(
+          color: palette.background,
+          child: SafeArea(
+            child: Column(
+              children: [
+                LessonsTopBar(
+                  title: 'Results',
+                  onBack: widget.onDone,
+                  backAnnouncement: 'Back to quizzes.',
+                  onSettings: () => _openSettings(context),
+                ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(
@@ -254,7 +267,16 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
             ),
           ],
         ),
-      ),
+        ),
+        ),
+        if (_cheering)
+          CelebrationOverlay(
+            color: palette.ink,
+            onDone: () {
+              if (mounted) setState(() => _cheering = false);
+            },
+          ),
+      ],
     );
   }
 }

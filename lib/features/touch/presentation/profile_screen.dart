@@ -11,6 +11,7 @@ import '../../../core/services/speech.dart';
 import '../../../core/theme/motion.dart';
 import '../../../core/theme/shapes.dart';
 import '../../../core/ui/enter.dart';
+import '../../../core/ui/celebration.dart';
 import '../../../core/ui/focus_fade.dart';
 import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/resonant_dots.dart';
@@ -55,6 +56,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
   int _rowCount = 0;
   bool _celebrationArmed = false;
   Timer? _celebration;
+  bool _cheering = false;
 
   @override
   void initState() {
@@ -88,6 +90,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
         if (!mounted) return;
         _buzz(HapticPattern.correct);
         _speak(milestoneAnnouncement(fresh));
+        setState(() => _cheering = true);
         ref
             .read(milestoneSeenProvider.notifier)
             .markSeen(fresh.map((m) => m.id));
@@ -308,11 +311,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
     final name = ref.watch(userNameProvider);
     final rows = _rows();
     _syncFocus(rows.length);
-    return ResonantScaffold(
-      title: 'Profile',
-      subtitle: name ?? 'Your progress',
-      onBack: () => unawaited(goBack(context, home: const HomeScreen())),
-      backAnnouncement: 'Back to Home.',
+    return Stack(
+      children: [
+        ResonantScaffold(
+          title: 'Profile',
+          subtitle: name ?? 'Your progress',
+          onBack: () => unawaited(goBack(context, home: const HomeScreen())),
+          backAnnouncement: 'Back to Home.',
       child: ListShortcuts(
         onMove: (d) => _move(d, rows),
         onActivate: () => _activate(rows),
@@ -348,7 +353,16 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
           ),
         ),
         ),
-      ),
+        ),
+        ),
+        if (_cheering)
+          CelebrationOverlay(
+            color: ref.watch(paletteProvider).ink,
+            onDone: () {
+              if (mounted) setState(() => _cheering = false);
+            },
+          ),
+      ],
     );
   }
 }
