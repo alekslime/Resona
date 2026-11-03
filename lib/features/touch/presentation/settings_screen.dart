@@ -23,6 +23,7 @@ import '../gestures/gesture_types.dart';
 import 'gesture_surface.dart';
 import 'home_screen.dart';
 import 'name_setup_screen.dart';
+import 'tour_screen.dart';
 
 /// A preview in progress: [item] is the row, [start] what was in use
 /// when it opened (so cancelling can put it back), [index] what shows.
@@ -41,11 +42,11 @@ class _Pick {
 /// new value; a hold on a theme, font, size or spacing row previews
 /// each option on screen before keeping one.
 ///
-/// Only the rows this app can honour yet. The old screen's tutorial
-/// replay, material import, voice engine, live voice rows, model
-/// downloads and debug row belong to systems that have not been
-/// ported; the speech-rate row is this app's own, driving the same
-/// rate the edge drag adjusts freely.
+/// Only the rows this app can honour yet. The old screen's material
+/// import, voice engine, live voice rows, model downloads and debug
+/// row belong to systems that have not been ported; the speech-rate
+/// row is this app's own, driving the same rate the edge drag
+/// adjusts freely.
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
@@ -55,6 +56,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static const _items = [
+    'Replay Tutorial',
     'Your name',
     'Sound cues',
     'Color theme',
@@ -143,6 +145,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   /// disagree.
   void _activate(String item) {
     switch (item) {
+      case 'Replay Tutorial':
+        _awaitingClearConfirm = false;
+        Navigator.of(context).push(resonantRoute(
+          const TourScreen(),
+          reduce: MediaQuery.of(context).disableAnimations,
+        ));
       case 'Your name':
         _awaitingClearConfirm = false;
         Navigator.of(context).push(resonantRoute(
