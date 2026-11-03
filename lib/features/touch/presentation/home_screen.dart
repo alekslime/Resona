@@ -16,6 +16,7 @@ library;
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
@@ -29,6 +30,7 @@ import '../../../core/theme/motion.dart';
 import '../../../core/ui/capped_text.dart';
 import '../../../core/ui/enter.dart';
 import '../../../core/ui/focus_fade.dart';
+import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/system_bars.dart';
 import '../application/touch_controller.dart';
 import '../gestures/gesture_types.dart';
@@ -60,7 +62,11 @@ const _items = [
 ];
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.showKeyHint = kIsWeb});
+
+  /// A one-line keyboard hint for desktop browsers. On by default on
+  /// web, where there is no touchscreen to discover gestures with.
+  final bool showKeyHint;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
@@ -169,16 +175,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ref.read(speechProvider).speak(_items[_focus.index].label);
   }
 
+  void _alreadyHome() {
+    _buzz(HapticPattern.back);
+    ref
+        .read(speechProvider)
+        .speak('You are already on the Home screen.');
+  }
+
   /// A hold that started on a menu line: the surface drops holds on
   /// rows, so the row reports it. A right-edge hold says you are
   /// already home; anywhere else the hold just swallows the tap.
   void _rowHold(Offset position) {
     final width = MediaQuery.of(context).size.width;
     if (position.dx > width - 64) {
-      _buzz(HapticPattern.back);
-      ref
-          .read(speechProvider)
-          .speak('You are already on the Home screen.');
+      _alreadyHome();
     }
   }
 
@@ -202,10 +212,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       case DoubleTap(zone: Zone.leftEdge):
         _repeat();
       case LongPress(zone: Zone.rightEdge):
-        _buzz(HapticPattern.back);
-        ref
-            .read(speechProvider)
-            .speak('You are already on the Home screen.');
+        _alreadyHome();
       case ThreeFingerTap():
         _repeat();
       case ThreeFingerHold():
@@ -229,12 +236,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Container(
       color: palette.background,
       child: SafeArea(
-        child: GestureSurface(
-          exploreEnabled: false,
-          twoFingerSwipe: true,
-          ignoreChildGestureAt: _onItem,
-          onGesture: _onGesture,
-          child: Semantics(
+        child: ListShortcuts(
+          onMove: _move,
+          onActivate: () => _open(_focus.index),
+          onBack: _alreadyHome,
+          child: GestureSurface(
+            exploreEnabled: false,
+            twoFingerSwipe: true,
+            ignoreChildGestureAt: _onItem,
+            onGesture: _onGesture,
+            child: Semantics(
             customSemanticsActions: {
               const CustomSemanticsAction(label: 'Next'): () => _move(1),
               const CustomSemanticsAction(label: 'Previous'): () => _move(-1),
@@ -266,6 +277,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             },
                             onHold: _rowHold,
                           ),
+                        if (widget.showKeyHint)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              'Keyboard: arrows move, Enter opens, ? lists shortcuts.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: ref
+                                    .watch(fontProvider)
+                                    .family,
+                                fontSize: 14,
+                                color: palette.dim,
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -273,6 +299,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
           ),
+        ),
         ),
       ),
     );

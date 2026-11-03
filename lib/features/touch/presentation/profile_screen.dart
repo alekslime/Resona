@@ -12,6 +12,7 @@ import '../../../core/theme/motion.dart';
 import '../../../core/theme/shapes.dart';
 import '../../../core/ui/enter.dart';
 import '../../../core/ui/focus_fade.dart';
+import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/resonant_dots.dart';
 import '../../../core/ui/resonant_scaffold.dart';
 import '../../learn/domain/lesson_data.dart';
@@ -312,13 +313,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
       subtitle: name ?? 'Your progress',
       onBack: () => unawaited(goBack(context, home: const HomeScreen())),
       backAnnouncement: 'Back to Home.',
-      child: GestureSurface(
-        exploreEnabled: false,
-        twoFingerSwipe: true,
-        ignoreChildGestureAt: _onRow,
-        onGesture: (g) => _onGesture(g, rows),
-        child: SingleChildScrollView(
-          controller: _scroll,
+      child: ListShortcuts(
+        onMove: (d) => _move(d, rows),
+        onActivate: () => _activate(rows),
+        onBack: _back,
+        child: GestureSurface(
+          exploreEnabled: false,
+          twoFingerSwipe: true,
+          ignoreChildGestureAt: _onRow,
+          onGesture: (g) => _onGesture(g, rows),
+          child: SingleChildScrollView(
+            controller: _scroll,
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -341,6 +346,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen>
               const SizedBox(height: 24),
             ],
           ),
+        ),
         ),
       ),
     );

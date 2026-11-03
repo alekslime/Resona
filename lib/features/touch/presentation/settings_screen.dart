@@ -16,6 +16,7 @@ import '../../../core/theme/text_scale.dart';
 import '../../../core/theme/text_spacings.dart';
 import '../../../core/ui/enter.dart';
 import '../../../core/ui/focus_fade.dart';
+import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/resonant_scaffold.dart';
 import '../application/option_picker.dart';
 import '../gestures/gesture_types.dart';
@@ -427,14 +428,25 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       onBack: _back,
       backAnnouncement:
           picking != null ? 'Cancelled.' : 'Back to Home.',
-      child: GestureSurface(
-        exploreEnabled: false,
-        twoFingerSwipe: true,
-        ignoreChildGestureAt: _onRow,
-        onGesture: _onGesture,
-        child: SingleChildScrollView(
-          controller: _scroll,
-          padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: ListShortcuts(
+        onMove: _move,
+        onActivate: () {
+          if (_picking != null) {
+            _confirmPick();
+          } else {
+            _buzz(HapticPattern.select);
+            _activate(_items[_focus.index]);
+          }
+        },
+        onBack: _back,
+        child: GestureSurface(
+          exploreEnabled: false,
+          twoFingerSwipe: true,
+          ignoreChildGestureAt: _onRow,
+          onGesture: _onGesture,
+          child: SingleChildScrollView(
+            controller: _scroll,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -464,6 +476,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 24),
             ],
           ),
+        ),
         ),
       ),
     );

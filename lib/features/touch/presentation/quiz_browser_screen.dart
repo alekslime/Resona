@@ -13,6 +13,7 @@ import '../../../core/theme/shapes.dart';
 import '../../../core/ui/enter.dart';
 import '../../../core/ui/focus_fade.dart';
 import '../../../core/ui/icons.dart';
+import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/press.dart';
 import '../../../core/ui/system_bars.dart';
 import '../../../core/ui/top_bar.dart';
@@ -249,14 +250,19 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
               onSettings: () => _openSettings(context),
             ),
             Expanded(
-              child: GestureSurface(
-                exploreEnabled: false,
-                twoFingerSwipe: true,
-                ignoreChildGestureAt: _onCard,
-                onGesture: _onGesture,
-                child: SingleChildScrollView(
-                  controller: _scroll,
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              child: ListShortcuts(
+                onMove: _move,
+                onActivate: () => _open(_focus.index),
+                onBack: () =>
+                    unawaited(goBack(context, home: const HomeScreen())),
+                child: GestureSurface(
+                  exploreEnabled: false,
+                  twoFingerSwipe: true,
+                  ignoreChildGestureAt: _onCard,
+                  onGesture: _onGesture,
+                  child: SingleChildScrollView(
+                    controller: _scroll,
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -287,6 +293,7 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
                       ],
                     ],
                   ),
+                ),
                 ),
               ),
             ),

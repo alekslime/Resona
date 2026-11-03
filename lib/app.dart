@@ -4,8 +4,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/nav/resonant_nav.dart';
 import 'core/providers.dart';
 import 'core/theme/resonant_theme.dart';
+import 'core/ui/key_shortcuts.dart';
 import 'features/touch/presentation/home_screen.dart';
 import 'features/touch/presentation/splash_screen.dart';
+
+final _navigatorKey = GlobalKey<NavigatorState>();
 
 class ResonantApp extends ConsumerWidget {
   const ResonantApp({super.key});
@@ -16,10 +19,13 @@ class ResonantApp extends ConsumerWidget {
     final font = ref.watch(fontProvider);
     final scale = ref.watch(textScaleProvider);
     final reduced = ref.watch(reduceMotionProvider);
-    return MaterialApp(
-      title: 'Resonant',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(palette, font),
+    return AppShortcuts(
+      navigatorKey: _navigatorKey,
+      child: MaterialApp(
+        title: 'Resonant',
+        debugShowCheckedModeBanner: false,
+        navigatorKey: _navigatorKey,
+        theme: buildTheme(palette, font),
       builder: (context, child) {
         final media = MediaQuery.of(context);
         return MediaQuery(
@@ -50,6 +56,7 @@ class ResonantApp extends ConsumerWidget {
             );
           },
         ),
+      ),
       ),
     );
   }

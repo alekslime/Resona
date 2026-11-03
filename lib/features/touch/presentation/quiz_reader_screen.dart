@@ -8,6 +8,7 @@ import '../../../core/providers.dart';
 import '../../../core/services/haptics.dart';
 import '../../../core/theme/shapes.dart';
 import '../../../core/ui/icons.dart';
+import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/system_bars.dart';
 import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/library.dart';
@@ -232,11 +233,28 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
               onSettings: () => _openSettings(context),
             ),
             Expanded(
-              child: GestureSurface(
-                exploreEnabled: false,
-                onGesture: _onGesture,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+              child: ListShortcuts(
+                onMove: (d) {
+                  if (d > 0) {
+                    if (_session.submitted) {
+                      _advance();
+                    } else {
+                      _next();
+                    }
+                  } else if (!_session.submitted) {
+                    _previous();
+                  }
+                },
+                onActivate: _select,
+                onRight: () {
+                  if (!_session.submitted) _submit();
+                },
+                onBack: _leave,
+                child: GestureSurface(
+                  exploreEnabled: false,
+                  onGesture: _onGesture,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -342,6 +360,7 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
                     ),
                   ],
                 ),
+              ),
               ),
             ),
           ],
