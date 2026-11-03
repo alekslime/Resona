@@ -31,6 +31,13 @@ void main() {
     }
   });
 
+  test('celebration climbs past correct and ends on top', () {
+    final spec = SoundCues.specs[HapticPattern.celebration]!;
+    expect(spec.notes.last.freqHz,
+        greaterThan(spec.notes.first.freqHz));
+    expect(spec.notes.last.freqHz, greaterThan(1200));
+  });
+
   test('direction is contour: next rises, previous falls', () {
     final next = SoundCues.specs[HapticPattern.next]!.notes;
     final prev = SoundCues.specs[HapticPattern.previous]!.notes;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/features/learn/domain/quiz_data.dart';
+import 'package:resonant/core/ui/celebration.dart';
 import 'package:resonant/features/touch/presentation/quiz_browser_screen.dart';
 import 'package:resonant/features/touch/presentation/quiz_reader_screen.dart';
 import 'package:resonant/features/touch/presentation/quiz_results_screen.dart';
@@ -263,6 +264,12 @@ void main() {
       expect(find.text('Tap anywhere to go back.'), findsOneWidget);
       expect(find.text('Back to quizzes'), findsOneWidget);
       expect(find.textContaining('Retry'), findsNothing);
+      // A perfect score bursts: fanfare plus the dots, then gone.
+      expect(log.events, contains('haptic:celebration'));
+      expect(log.events, contains('cue:celebration'));
+      expect(find.byType(CelebrationOverlay), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 2000));
+      expect(find.byType(CelebrationOverlay), findsNothing);
     });
 
     testWidgets('missed questions offer a retry round', (tester) async {

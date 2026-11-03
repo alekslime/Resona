@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/services/speech.dart';
+import 'package:resonant/core/ui/celebration.dart';
 import 'package:resonant/features/learn/domain/progress.dart';
 import 'package:resonant/features/touch/presentation/chat_screen.dart';
 import 'package:resonant/features/touch/presentation/name_setup_screen.dart';
@@ -197,6 +198,9 @@ void main() {
         log.events,
         contains('say: New milestones: First lesson finished and First quiz finished.'),
       );
+      expect(find.byType(CelebrationOverlay), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 2000));
+      expect(find.byType(CelebrationOverlay), findsNothing);
 
       // Told once: reopening celebrates nothing.
       log.events.clear();
