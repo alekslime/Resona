@@ -20,11 +20,37 @@ void main() {
     expect(pick?['name'], 'Samantha (Enhanced)');
   });
 
-  test('nothing clearly better means keep the system default', () {
+  test('a US voice wins on accent alone, even over neural others', () {
+    final pick = preferredVoice([
+      {'name': 'en-in-x-iom-network', 'locale': 'en-IN'},
+      {'name': 'en-us-x-sfg-local', 'locale': 'en-US'},
+    ]);
+    expect(pick?['name'], 'en-us-x-sfg-local');
+  });
+
+  test('GB English beats other non-US accents, US still wins overall', () {
     expect(
       preferredVoice([
+        {'name': 'en-in-x-iom-network', 'locale': 'en-IN'},
+        {'name': 'en-gb-x-gba-network', 'locale': 'en-GB'},
+      ])?['name'],
+      'en-gb-x-gba-network',
+    );
+    expect(
+      preferredVoice([
+        {'name': 'en-gb-x-gba-network', 'locale': 'en-GB'},
         {'name': 'en-us-x-sfg-local', 'locale': 'en-US'},
-        {'name': 'en-GB-compact', 'locale': 'en-GB'},
+      ])?['name'],
+      'en-us-x-sfg-local',
+    );
+  });
+
+  test('without US or GB English, nothing clearly better keeps the default',
+      () {
+    expect(
+      preferredVoice([
+        {'name': 'en-in-x-local', 'locale': 'en-IN'},
+        {'name': 'en-au-x-compact', 'locale': 'en-AU'},
       ]),
       isNull,
     );
