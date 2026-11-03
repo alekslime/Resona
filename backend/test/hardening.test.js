@@ -86,12 +86,10 @@ test("a client that hangs up mid-stream does not break the server", async () => 
   const gate = new Promise((r) => { release = r; });
   const hangingMeta = {
     sparkModel: "hanging-spark",
-    samModel: "hanging-sam",
     describeParts: async () => {
       await gate;
       return { title: "t", kind: "other", overview: "", parts: [{ label: "x" }] };
     },
-    segment: async () => ({ records: [] }),
   };
   await withServer(hangingMeta, async (base) => {
     const ac = new AbortController();

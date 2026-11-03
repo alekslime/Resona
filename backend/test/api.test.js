@@ -4,7 +4,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "../server/index.js";
-import { DOCS_LINE, parseLine } from "./helpers.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const png = fs.readFileSync(path.join(here, "..", "sample", "sample.png"));
@@ -13,20 +12,16 @@ const image = `data:image/png;base64,${png.toString("base64")}`;
 // A stand-in for the Meta API so the whole server flow runs offline.
 const fakeMeta = {
   sparkModel: "fake-spark",
-  samModel: "fake-sam",
   async describeParts() {
     return {
       title: "Test picture",
       kind: "diagram",
       overview: "Two buttons.",
       parts: [
-        { label: "button", spoken: "A button.", detail: "A round button." },
+        { label: "button", spoken: "A button.", detail: "A round button.", where: [0.1, 0.2, 0.3, 0.4] },
         { label: "missing thing", spoken: "Nothing.", detail: "Nothing." },
       ],
     };
-  },
-  async segment(_img, concept) {
-    return parseLine(concept === "button" ? DOCS_LINE : "");
   },
   async ask(_img, question, ctx) {
     return `You asked "${question}" near ${ctx.regionLabel || "nothing"}.`;
@@ -57,13 +52,15 @@ async function withServer(meta, fn) {
 const post = (base, url, body) =>
   fetch(base + url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-test("analyze returns regions and reports parts SAM could not find", async () => {
+test("analyze returns regions and reports parts without a usable box", async () => {
   await withServer(fakeMeta, async (base) => {
     const res = await post(base, "/api/analyze", { image });
     assert.equal(res.status, 200);
     const data = await res.json();
     assert.equal(data.title, "Test picture");
-    assert.equal(data.regions.length, 2);
+    assert.equal(data.regions.length, 1);
+    assert.deepEqual(data.regions[0].box, [80, 120, 240, 240]);
+    assert.equal(data.regions[0].approximate, true);
     assert.deepEqual(data.skipped, ["missing thing"]);
     assert.equal(data.width, 800);
   });
@@ -100,7 +97,7 @@ const learnBody = {
   regions: [{ id: "button-1", label: "button", spoken: "A button.", detail: "A round button." }],
 };
 
-test("lesson, quiz and grade work from region text alone (no image, no SAM)", async () => {
+test("lesson, quiz and grade work from region text alone (no image read)", async () => {
   await withServer(fakeMeta, async (base) => {
     const lesson = await post(base, "/api/lesson", learnBody);
     assert.equal(lesson.status, 200);
@@ -135,15 +132,14 @@ test("chat carries history and the touched part", async () => {
   });
 });
 
-test("analyze is cached: the same picture is only segmented once", async () => {
-  let segments = 0;
-  const counting = { ...fakeMeta, segment: async (...a) => { segments++; return fakeMeta.segment(...a); } };
+test("analyze is cached: the same picture is described once", async () => {
+  let describes = 0;
+  const counting = { ...fakeMeta, describeParts: async (...a) => { describes++; return fakeMeta.describeParts(...a); } };
   await withServer(counting, async (base) => {
     await post(base, "/api/analyze", { image });
     await post(base, "/api/analyze", { image });
-    // "button" once + "missing thing" retried with simpler concepts; the second
-    // analyze is a cache hit and segments nothing at all.
-    assert.equal(segments, 4);
+    // The second analyze is a cache hit and describes nothing at all.
+    assert.equal(describes, 1);
   });
 });
 
@@ -183,28 +179,8 @@ test("analyze-stream emits progress per part, then the full payload", async () =
     );
     const done = events.find(([e]) => e === "done");
     assert.equal(done[1].title, "Test picture");
-    assert.equal(done[1].regions.length, 2);
+    assert.equal(done[1].regions.length, 1);
     assert.ok(!events.some(([e]) => e === "error"));
-  });
-});
-
-test("parts are segmented in parallel, not one by one", async () => {
-  let active = 0;
-  let maxActive = 0;
-  const slow = {
-    ...fakeMeta,
-    segment: async (...a) => {
-      active++;
-      maxActive = Math.max(maxActive, active);
-      await new Promise((r) => setTimeout(r, 20));
-      active--;
-      return fakeMeta.segment(...a);
-    },
-  };
-  await withServer(slow, async (base) => {
-    const res = await post(base, "/api/analyze", { image });
-    assert.equal(res.status, 200);
-    assert.ok(maxActive >= 2, `expected parallel SAM calls, saw max ${maxActive} at once`);
   });
 });
 
