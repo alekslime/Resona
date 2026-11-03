@@ -339,6 +339,16 @@ void main() {
       expect(r.session.view.exchanges.last.sentences, ['It is the sun.']);
     });
 
+    test('xyzzy is answered locally and never reaches the server', () async {
+      final repoLog = Log();
+      final repo = FakeRepository(repoLog);
+      final r = rig(repo: repo, recent: sunRecent());
+      await r.session.askTyped(' Xyzzy ');
+      expect(repoLog.events, isEmpty);
+      expect(r.session.view.exchanges.last.sentences, ['Nothing happens.']);
+      expect(r.log.events, contains('say: Nothing happens.'));
+    });
+
     test('tapping twice asks by voice', () async {
       final r = rig(recent: sunRecent());
       await r.session.askTapped();
