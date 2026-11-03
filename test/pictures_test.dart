@@ -68,7 +68,8 @@ void main() {
     });
 
     testWidgets('a sample opens into the touch screen', (tester) async {
-      final container = await picturesContainer(Log());
+      final log = Log();
+      final container = await picturesContainer(log);
       await tester.pumpWidget(
         UncontrolledProviderScope(
           container: container,
@@ -81,6 +82,8 @@ void main() {
         200,
       );
       await tester.tap(find.text('Explore picture').first);
+      // The fake loads instantly, so the loading line is caught spoken.
+      expect(log.events, contains('say: Loading The water cycle.'));
       await flushPictures(tester);
       expect(find.byType(TouchScreen), findsOneWidget);
       expect(

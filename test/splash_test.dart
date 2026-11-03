@@ -168,6 +168,23 @@ void main() {
       expect(finished, isFalse);
     });
 
+    testWidgets('a tap skips straight to the end', (tester) async {
+      final container = await rigged(Log());
+      var finished = false;
+      await tester.pumpWidget(
+        UncontrolledProviderScope(
+          container: container,
+          child: MaterialApp(
+            home: SplashScreen(onFinished: () => finished = true),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.tapAt(const Offset(400, 400));
+      await tester.pump();
+      expect(finished, isTrue);
+    });
+
     testWidgets('the still splash ends quietly', (tester) async {
       final log = Log();
       final container = await rigged(log);
