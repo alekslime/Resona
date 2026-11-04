@@ -23,18 +23,6 @@ const fakeMeta = {
       ],
     };
   },
-  async ask(_img, question, ctx) {
-    return `You asked "${question}" near ${ctx.regionLabel || "nothing"}.`;
-  },
-  async lesson(ctx) {
-    return { steps: [{ regionId: null, say: `Lesson: ${ctx.title}` }, { regionId: ctx.regions[0].id, say: "First part." }] };
-  },
-  async quiz(ctx) {
-    return { questions: [{ kind: "find", regionId: ctx.regions[0].id, question: "Find the button." }] };
-  },
-  async grade({ answer }) {
-    return { correct: answer.includes("round"), say: answer.includes("round") ? "Correct." : "Not quite." };
-  },
   async chat(_img, question, ctx) {
     return `Chat (${ctx.history.length} past): "${question}" near ${ctx.regionLabel || "nothing"}.`;
   },
@@ -81,42 +69,6 @@ test("without a key the server says so plainly and the sample still serves", asy
     assert.match((await res.json()).error, /MODEL_API_KEY/);
     const sample = await fetch(base + "/sample/sample.json");
     assert.equal((await sample.json()).synthetic, true);
-  });
-});
-
-test("ask passes the touched part as context", async () => {
-  await withServer(fakeMeta, async (base) => {
-    const res = await post(base, "/api/ask", { image, question: "What is this?", regionLabel: "sun" });
-    assert.equal((await res.json()).answer, 'You asked "What is this?" near sun.');
-  });
-});
-
-const learnBody = {
-  title: "Test picture",
-  overview: "Two buttons.",
-  regions: [{ id: "button-1", label: "button", spoken: "A button.", detail: "A round button." }],
-};
-
-test("lesson, quiz and grade work from region text alone (no image read)", async () => {
-  await withServer(fakeMeta, async (base) => {
-    const lesson = await post(base, "/api/lesson", learnBody);
-    assert.equal(lesson.status, 200);
-    assert.equal((await lesson.json()).steps.length, 2);
-    const quiz = await post(base, "/api/quiz", learnBody);
-    assert.equal((await quiz.json()).questions[0].kind, "find");
-    const grade = await post(base, "/api/grade", { question: "What shape?", expected: "round", answer: "It is round." });
-    assert.equal((await grade.json()).correct, true);
-  });
-});
-
-test("lesson without regions is a plain 400, and without a key a plain 503", async () => {
-  await withServer(fakeMeta, async (base) => {
-    const res = await post(base, "/api/lesson", { title: "x", regions: [] });
-    assert.equal(res.status, 400);
-  });
-  await withServer(null, async (base) => {
-    const res = await post(base, "/api/quiz", learnBody);
-    assert.equal(res.status, 503);
   });
 });
 

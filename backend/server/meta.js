@@ -2,7 +2,6 @@
 //   Muse Spark (muse-spark-1.3): looks at the picture, names its parts, answers questions.
 import OpenAI from "openai";
 import { extractJson } from "./json.js";
-import { fallbackLesson, fallbackQuiz, gradePrompt, lessonPrompt, parseGrade, parseLesson, parseQuiz, quizPrompt } from "./learn.js";
 
 const PARTS_PROMPT = `You are helping a blind student explore a picture by touch. List the distinct parts of this picture that the student would want to find with a finger and hear about.
 
@@ -105,53 +104,6 @@ export function createMeta({ apiKey, baseURL = "https://api.meta.ai/v1", sparkMo
         overview: String(json.overview ?? "").trim(),
         parts,
       };
-    },
-
-    async ask(dataUrl, question, { title, regionLabel }) {
-      const where = regionLabel
-        ? `The student's finger is on "${regionLabel}".`
-        : "The student's finger is not on a named part right now.";
-      const prompt = `A blind student is exploring this picture by touch${title ? ` (it is titled "${title}")` : ""}. ${where}
-Answer their question in at most three short sentences, in plain words that sound natural read aloud. No lists, no markdown. If the picture does not show the answer, say so.
-Question: ${question}`;
-      return (
-        await spark(
-          [
-            { type: "input_text", text: prompt },
-            { type: "input_image", image_url: dataUrl },
-          ],
-          3000,
-        )
-      ).trim();
-    },
-
-    /** Text-only Spark call: lesson/quiz work is built from region text, never a second image read. */
-    async generate(prompt, maxTokens = 3000) {
-      return spark([{ type: "input_text", text: prompt }], maxTokens);
-    },
-
-    /** Guided lesson steps. Falls back to a template lesson so it can never hard-fail. */
-    async lesson(ctx) {
-      try {
-        return parseLesson(await this.generate(lessonPrompt(ctx), 4000), ctx.regions);
-      } catch (err) {
-        console.error("lesson generation failed, using fallback:", err?.message ?? err);
-        return fallbackLesson(ctx);
-      }
-    },
-
-    /** Quiz questions (find-it + say-it). Falls back to find-it questions from the regions. */
-    async quiz(ctx) {
-      try {
-        return parseQuiz(await this.generate(quizPrompt(ctx), 3000), ctx.regions);
-      } catch (err) {
-        console.error("quiz generation failed, using fallback:", err?.message ?? err);
-        return fallbackQuiz(ctx);
-      }
-    },
-
-    async grade({ question, expected, answer }) {
-      return parseGrade(await this.generate(gradePrompt({ question, expected, answer }), 800));
     },
 
     /**

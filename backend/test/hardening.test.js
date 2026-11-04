@@ -18,10 +18,10 @@ async function withServer(meta, fn) {
   }
 }
 
-// /api/grade with no Meta key answers 503 before touching the body, so it
+// /api/chat with no Meta key answers 503 before touching the body, so it
 // exercises the limiter deterministically with no model and no fixtures.
-const grade = (base, ip) =>
-  fetch(`${base}/api/grade`, {
+const chat = (base, ip) =>
+  fetch(`${base}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json", "X-Forwarded-For": ip },
     body: "{}",
@@ -64,9 +64,9 @@ test("unknown API routes answer JSON; other pages keep the default", async () =>
 test("behind a proxy each client gets its own bucket", async () => {
   await withTrustProxy("1", async () => {
     await withServer(null, async (base) => {
-      for (let i = 0; i < 20; i++) assert.equal((await grade(base, "10.9.9.9")).status, 503);
-      assert.equal((await grade(base, "10.9.9.9")).status, 429);
-      assert.equal((await grade(base, "10.9.9.8")).status, 503);
+      for (let i = 0; i < 20; i++) assert.equal((await chat(base, "10.9.9.9")).status, 503);
+      assert.equal((await chat(base, "10.9.9.9")).status, 429);
+      assert.equal((await chat(base, "10.9.9.8")).status, 503);
     });
   });
 });
@@ -74,9 +74,9 @@ test("behind a proxy each client gets its own bucket", async () => {
 test("by default a forwarded header cannot escape the shared bucket", async () => {
   await withTrustProxy(undefined, async () => {
     await withServer(null, async (base) => {
-      for (let i = 0; i < 20; i++) assert.equal((await grade(base, "10.9.9.9")).status, 503);
-      assert.equal((await grade(base, "10.9.9.9")).status, 429);
-      assert.equal((await grade(base, "10.9.9.8")).status, 429);
+      for (let i = 0; i < 20; i++) assert.equal((await chat(base, "10.9.9.9")).status, 503);
+      assert.equal((await chat(base, "10.9.9.9")).status, 429);
+      assert.equal((await chat(base, "10.9.9.8")).status, 429);
     });
   });
 });

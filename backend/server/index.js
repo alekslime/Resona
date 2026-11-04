@@ -10,7 +10,6 @@ import { createMeta } from "./meta.js";
 import { createLimiter } from "./limit.js";
 import { buildRegions, dedupeRegions } from "./regions.js";
 import { orientedSize } from "./orient.js";
-import { cleanRegions } from "./learn.js";
 import { liveKitConfig, liveKitSession } from "./livekit.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -60,15 +59,6 @@ export function createApp(meta) {
   };
   const requireMeta = () => {
     if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env.");
-  };
-  const learnCtx = (body) => {
-    const regions = cleanRegions(body?.regions);
-    if (!regions.length) throw httpError(400, "Explore a picture first, then start this.");
-    return {
-      title: String(body?.title ?? "Picture").slice(0, 200),
-      overview: String(body?.overview ?? "").slice(0, 1000),
-      regions,
-    };
   };
   app.use(express.json({ limit: "12mb" }));
   app.use((_req, res, next) => {
@@ -207,53 +197,6 @@ export function createApp(meta) {
       }
       finished = true;
       res.end();
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/ask", createLimiter({ max: 20, windowMs: 60_000 }), async (req, res, next) => {
-    try {
-      if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env.");
-      parseImage(req.body?.image);
-      const question = String(req.body?.question ?? "").trim().slice(0, 500);
-      if (!question) throw httpError(400, "Say or type a question first.");
-      const answer = await meta.ask(req.body.image, question, {
-        title: String(req.body?.title ?? "").slice(0, 200),
-        regionLabel: String(req.body?.regionLabel ?? "").slice(0, 200),
-      });
-      res.json({ answer });
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/lesson", createLimiter({ max: 10, windowMs: 60_000 }), async (req, res, next) => {
-    try {
-      requireMeta();
-      res.json(await meta.lesson(learnCtx(req.body)));
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/quiz", createLimiter({ max: 10, windowMs: 60_000 }), async (req, res, next) => {
-    try {
-      requireMeta();
-      res.json(await meta.quiz(learnCtx(req.body)));
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/grade", createLimiter({ max: 20, windowMs: 60_000 }), async (req, res, next) => {
-    try {
-      requireMeta();
-      const question = String(req.body?.question ?? "").trim().slice(0, 500);
-      const expected = String(req.body?.expected ?? "").trim().slice(0, 900);
-      const answer = String(req.body?.answer ?? "").trim().slice(0, 500);
-      if (!question || !expected || !answer) throw httpError(400, "Say your answer first.");
-      res.json(await meta.grade({ question, expected, answer }));
     } catch (err) {
       next(err);
     }
