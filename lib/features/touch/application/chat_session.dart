@@ -235,6 +235,14 @@ class ChatSession {
     _emit();
     final myId = _requestId;
     _startTicker(myId);
+    // A slow answer means the server is waking from sleep: say so once,
+    // queued behind "Thinking.", and show it where the status already shows.
+    void onSlow() {
+      if (myId != _requestId || _disposed) return;
+      _status = serverWakingMessage;
+      _say(serverWakingMessage, queue: true);
+      _emit();
+    }
     List<String> sentences;
     var cameBack = false;
     final tail = _exchanges.length > maxChatExchanges
@@ -246,12 +254,14 @@ class ChatSession {
     final recent = _recent;
     try {
       final answer = recent == null
-          ? await repository.chatText(question: question, history: history)
+          ? await repository.chatText(
+              question: question, history: history, onSlow: onSlow)
           : await repository.chat(
               recent.picture,
               question: question,
               title: recent.analysis.title,
               history: history,
+              onSlow: onSlow,
             );
       sentences = splitSentences(answer);
       cameBack = _offline;

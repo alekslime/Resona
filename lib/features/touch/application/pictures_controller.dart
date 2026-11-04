@@ -70,6 +70,12 @@ class PicturesController extends Notifier<PicturesState> {
     try {
       final analysis = await ref.read(repositoryProvider).analyze(
         picture,
+        onSlow: () {
+          // Before the first progress event only: never clobber real progress.
+          if (!state.busy || state.progress.isNotEmpty) return;
+          state = state.copyWith(progress: serverWakingMessage);
+          speech.speak(serverWakingMessage, queue: true);
+        },
         onProgress: (p) {
           if (!state.busy) return;
           state = state.copyWith(
