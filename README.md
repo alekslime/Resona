@@ -2,28 +2,26 @@
 
 # Resonant
 
-**A voice tutor for pictures.** Chat, explore, lesson, quiz, notes — one study loop.
+**A voice tutor for pictures.** Photograph anything, ask anything, hold a conversation.
 
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-575%20Flutter%20%2B%2045%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-372%20Flutter%20%2B%2036%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
 </div>
 
 Diagrams, charts and photos are the part of school that screen readers cannot reach. Alt text says
-"a diagram of the water cycle" and stops. Resonant turns the picture into a study loop: **Chat**
-asks the tutor anything, **Explore** feels every part by touch, **Lessons** walks through them in
-order, **Quiz** checks they stuck, and **Notes** keeps the whole picture as text for revision.
-Muse Spark names the parts, draws a box around each one, writes the lessons and does the
-tutoring — so a finger can land on a river or a lung and hear what it is.
+"a diagram of the water cycle" and stops. Resonant is a voice tutor for pictures: photograph
+anything or pick from the gallery, the AI reads it and describes what it sees, and then you just
+talk — ask anything, follow up, hold a conversation. Six built-in lessons and four quiz sets
+round it out for studying offline.
 
-Each part speaks its name, buzzes under the fingertip (bigger parts buzz longer, so size can be
-felt), and plays a tone whose **pitch is its height** on the page and whose **stereo position is
-left to right**, so the whole picture can be heard as well as felt. Rest on empty space and it
-says which way to walk to the nearest part.
+Every answer is spoken and shown: tap to talk, or type. The tutor remembers the last six
+exchanges, so follow-ups ("and why?") just work. With a picture attached it sees the picture
+too; without one it is a text-only tutor on the same voice.
 
 The logo is the letter R in braille (⠗: dots 1-2-3-5), because sound and touch resonate through everything.
 
@@ -35,29 +33,20 @@ Regenerate them with the golden-test generator in `tool/` (see `docs/screenshots
 <div align="center">
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/01-home.png" width="250" alt="Home: an eight-line menu on orange — Chat, Lessons, Quiz, Pictures, Notes, Profile, Settings, Quit — with Chat focused"><br><b>Home</b><br><sub>Chat, explore, study — in eight lines</sub></td>
-<td align="center"><img src="docs/screenshots/02-explore.png" width="250" alt="Explore: the sample landscape with the sun outlined, its spoken caption below, gesture strips on both sides, and buttons for Overview, Previous and Next part, Lesson, Quiz me and Study notes"><br><b>Explore</b><br><sub>The sun, outlined and captioned</sub></td>
-<td align="center"><img src="docs/screenshots/03-study-notes.png" width="250" alt="Study notes: the picture as plain text — title, a Copy notes to share button, overview, the map in words, and every part with its description and clock position"><br><b>Study notes</b><br><sub>The whole picture as readable text</sub></td>
+<td align="center"><img src="docs/screenshots/01-home.png" width="250" alt="Home: a five-line menu on orange — Chat, Lessons, Quiz, Settings, Quit — with Chat focused"><br><b>Home</b><br><sub>Five lines, Chat first</sub></td>
+<td align="center"><img src="docs/screenshots/02-theme-low-vision.png" width="250" alt="Home in the Low vision theme: the five-line menu in yellow on a near-black background"><br><b>Low vision theme</b><br><sub>One of twelve, a tap away</sub></td>
+<td align="center"><img src="docs/screenshots/03-chat.png" width="250" alt="Chat: the braille dots above the greeting and the ask bar with its camera and mic buttons"><br><b>Chat</b><br><sub>The voice tutor, by text or mic</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/screenshots/04-lesson.png" width="250" alt="Lesson mode: the picture above the caption 'Lesson. Welcome to the lesson.' and Previous step, Next step, Repeat and Back to exploring buttons"><br><b>Lesson</b><br><sub>A guided walk through the parts</sub></td>
-<td align="center"><img src="docs/screenshots/05-quiz.png" width="250" alt="Quiz mode: the caption asks 'Quiz. 2 questions. Question 1. Find the sun.' with Answer by voice, Repeat question, Skip and Back to exploring buttons"><br><b>Quiz</b><br><sub>Find it by touch, or answer out loud</sub></td>
-<td align="center"><img src="docs/screenshots/06-theme-low-vision.png" width="250" alt="Home in the Low vision theme: the eight-line menu in yellow on a near-black background"><br><b>Low vision theme</b><br><sub>One of twelve, a tap away</sub></td>
-</tr>
-<tr>
-<td align="center"><img src="docs/screenshots/07-chat.png" width="250" alt="Chat: the braille dots above the greeting 'Hi there!' and the ask bar"><br><b>Chat</b><br><sub>The voice tutor, by text or mic</sub></td>
-<td align="center"><img src="docs/screenshots/08-lessons.png" width="250" alt="Lessons: the library of built-in lessons as cards with Continue buttons"><br><b>Lessons</b><br><sub>Six lessons that read themselves</sub></td>
-<td align="center"><img src="docs/screenshots/09-quiz.png" width="250" alt="Quizzes: 'Test what you know.' above one card per quiz set with Start buttons"><br><b>Quizzes</b><br><sub>Four sets, with retry rounds</sub></td>
-</tr>
-<tr>
-<td align="center"><img src="docs/screenshots/10-profile.png" width="250" alt="Profile: the name in braille dots above streak, lesson, quiz and milestone rows"><br><b>Profile</b><br><sub>Streaks, counts, milestones</sub></td>
+<td align="center"><img src="docs/screenshots/04-lessons.png" width="250" alt="Lessons: the library of built-in lessons as cards with Continue buttons"><br><b>Lessons</b><br><sub>Six lessons that read themselves</sub></td>
+<td align="center"><img src="docs/screenshots/05-quiz.png" width="250" alt="Quizzes: 'Test what you know.' above one card per quiz set with Start buttons"><br><b>Quizzes</b><br><sub>Four sets, with retry rounds</sub></td>
 </tr>
 </table>
 </div>
 
-The braille R is also the app's face while it works: on the explore screen the dots gather when it is
-listening, orbit while it thinks, and settle when it is idle — and every state also has a sound and a
-vibration, so the face is a sighted extra, never the only signal.
+The braille R is also the app's face while it works: in chat the dots gather when it is
+listening, orbit while it thinks, and settle when it is idle — and every state also has a sound
+and a vibration, so the face is a sighted extra, never the only signal.
 
 ## Pre-existing work
 
@@ -74,57 +63,41 @@ Dart**:
 | Gesture grammar: zones, timings, swipe inversion, hold-to-adjust-speed, three-finger gestures | `lib/features/touch/gestures/` |
 | The haptic vocabulary and its matching sound cues, and the stereo-panning rule | `lib/core/services/haptics.dart`, `sound.dart` |
 
-**Built during the hackathon** (everything else): the Muse Spark backend that turns any
-picture into touchable regions; exploring a picture with one finger (the explore gestures, mask
-hit-testing, the fingertip-size haptic, rest-to-read, nearest-part directions); the height-to-pitch and
-left-right-to-stereo sound mapping; hold-to-ask questions about the part under your finger; stepping
-through parts from the edge; the Flutter app and its architecture, for Android, iPhone and web; and all
-the tests.
+**Built during the hackathon** (everything else): the Muse Spark backend that reads any
+picture into named parts; the chat-first Flutter app for Android, iPhone and web (camera sheet,
+the AI tutor with conversation memory, Talk live wiring); and all the tests.
 
 **Ported from Resonant-AI during the hackathon, rewritten in Dart/JS/Python** (behaviour and wording only,
 no old code copied; inventoried in `docs/private/HACKATHON.md`):
 
 | Ported feature | Where it lives here |
 | --- | --- |
-| Lesson mode: guided steps through content, swipes navigate | `lib/features/learn/`, `POST /api/lesson` |
-| Quiz / check-me: correct–incorrect haptic and sound feedback, score | `lib/features/learn/`, `POST /api/quiz`, `POST /api/grade` |
-| Voice tutor chat (the old LiveKit agent, as hold-to-talk multi-turn chat) | `TouchSession` history + `POST /api/chat` |
+| Voice tutor chat (tap to talk, multi-turn with memory) | `ChatSession` history + `POST /api/chat` |
 | Live voice: a real conversation you can interrupt (the old PC agent, rewritten) | `agent/agent.py`, `POST /api/livekit-token`, the Talk live screen — *built; first on-phone call still to be made* |
-| Study screens: home menu, chat hero, lesson library and reader, quiz sets with retry rounds, profile with streaks and milestones, settings with option previews | `lib/features/touch/presentation/`, `lib/features/learn/domain/` |
+| Study screens: home menu, chat hero, lesson library and reader, quiz sets with retry rounds, settings with option previews | `lib/features/touch/presentation/`, `lib/features/learn/domain/` |
 
 ## Status — what is in the app, and what is not
 
 **Working today, on a real phone:**
 
-- **Pick a picture** (gallery, camera, or two built-in samples), get it back as touchable parts in
-  several seconds, with spoken progress as each part lands. Analysis is cached on the backend,
-  and the recents shelf reopens the session's pictures instantly.
-- **Explore by touch**: each part speaks, buzzes (bigger parts buzz longer), and plays a tone whose
-  pitch is its height and whose stereo position is left–right. Rest to hear the description; tap to
-  hear what is around it; drag off a part and it tells you which way to go.
-- **Map in words** (three-finger hold) and **Guide me there** ("Where is the sun?" by voice, then
-  spoken direction + distance as you drag, with a celebration when you land on it).
-- **Lesson mode**: Muse Spark writes a guided walk through the parts (with a built-from-the-parts
-  fallback lesson, so it can never fail to start); swipe or tap through the steps.
-- **Quiz me**: "find-it" questions graded on the phone by hit-testing the finger (instant, free), and
-  "say-it" questions graded by Muse Spark. Correct/incorrect buzzes, one gentle retry, then the
-  answer — and a **Practise missed** round with only the questions you got wrong.
-- **Voice tutor**: hold, ask, lift — then follow up ("and why?"). The tutor remembers the
-  conversation and knows which part your finger is on.
-- **Study notes**: the whole picture as plain text (overview, map, every part with its clock-face
-  position) for revision with a screen reader — and **Copy notes to share** pastes them anywhere.
-- Screen-reader buttons for every gesture, twelve themes, a show-all-outlines view for sighted helpers,
-  chart value readout with bar ranks, 573 Flutter tests + 54 backend tests, all green.
-- **Study library**: six built-in lessons that read themselves, four quiz sets with retry rounds, a
-  profile with streaks and milestones, and settings that preview each theme, font and size before
+- **Add a picture** from chat's camera button: take a photo, choose from the
+  gallery, try a sample, or reopen a recent. The AI reads it in seconds, with
+  spoken progress, then describes what it sees — title, parts, overview.
+- **Talk to the tutor**: tap to start, speak, tap to finish — or type. Answers
+  are spoken and shown; follow-ups ("and why?") carry the last six exchanges,
+  so real conversations hold. With a picture attached the tutor sees it too.
+- **Study library**: six built-in lessons that read themselves, four quiz sets
+  with retry rounds, and settings that preview each theme, font and size before
   keeping it — all working offline, with progress kept for the session.
+- Screen-reader buttons for every gesture, twelve themes, 372 Flutter tests +
+  36 backend tests, all green.
 
 **Built, one step from proven:**
 
 - **Talk live**: a real-time voice conversation with the tutor that you can interrupt mid-sentence.
-  The backend token endpoint, the PC agent and the app screen are built and unit-tested; the first
-  call on a real phone is still to be made. Until then the proven tutor is hold-to-talk, above, and
-  the Talk live button stays hidden unless the app is built with `--dart-define=LIVE_VOICE=true`.
+  The backend token endpoint, the PC agent and the chat entry button are built and unit-tested;
+  the first call on a real phone is still to be made. Until then the proven tutor is tap-to-talk,
+  above, and the Talk live button stays hidden unless the app is built with `--dart-define=LIVE_VOICE=true`.
 
 **Not built yet (deliberately — see `docs/private/HACKATHON.md`):**
 
@@ -132,105 +105,80 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
   over the same Wi-Fi. (A Modal hosting spike is planned; Baseten credits are held in reserve and
   untouched, because on-device speech works.)
 - Nothing is saved between launches: the recents shelf holds the last five pictures for the
-  session, with no accounts and no progress carried over. Practise-missed lasts for the quiz you are in.
-- New pictures need the backend, a Meta API key and internet. Once a picture is analysed, exploring,
-  the map and guiding work on the phone alone.
-- Every part is a box, not a traced outline: near the edge of an irregular shape a fingertip can
-  read a neighbour. Tight boxes and smallest-wins overlap keep this rare, and the app always
-  says what it reads, so nothing is silent.
+  session, with no accounts and no progress carried over.
+- New pictures need the backend, a Meta API key and internet. The study library and the
+  built-in samples work fully offline.
+- The parts list is the model's reading of the picture; the tutor answers from the picture
+  itself, so a missed part never blocks a question.
 
 ## How it works
 
 ```
  picture ──► Muse Spark 1.3 ──► title, overview, and a list of parts
                                 (short noun phrases + a tight box + what to say about each)
-                                          │  one box per part, sent as a 96-cell grid
+                                          │  one call, then the chat speaks it back
                                           ▼
-   phone: finger position → which box is under it → speak, vibrate, play a tone, outline the part
+   chat: the tutor describes the picture, then answers follow-ups from the
+   picture and the last six exchanges
 ```
 
 - **Muse Spark** (`muse-spark-1.3`) reads the picture and decides what its parts are, in reading
-  order, with a tight box around each one. It also writes the guided lesson and the quiz from those
-  parts (text-only calls, so they cost a fraction of an analysis), grades spoken answers, and answers
-  spoken questions as a multi-turn tutor, using the part you last touched and the conversation so far
-  as context.
-- The box is what lets a finger land on a river or a lung. It is also what grades "find-it" quiz
-  questions: the app hit-tests your finger against the regions, on the phone, for free.
+  order, with a tight box around each one. The chat announces the title, the parts and the
+  overview, then the same model answers follow-up questions as a multi-turn tutor, seeing the
+  picture and the conversation so far.
+- Without a picture open, chat is a text-only tutor on the same endpoint: same voice, no
+  picture to look at. When the server is unreachable, the six built-in lessons answer instead,
+  and the app says so.
 - The Meta key lives only on the backend. The app never holds it. Re-analyzing a picture you already
   opened is served from the backend's cache, not paid for twice.
 
 ## Live voice (Talk live)
 
-Tap **Talk live** on the explore screen and just talk. Start speaking while the tutor is mid-sentence
+Tap **Talk live** in chat (with a picture attached) and just talk. Start speaking while the tutor is mid-sentence
 and it stops and listens — that interruption is the point.
 
 ```
 phone mic ──► LiveKit Cloud (free tier, carries audio only) ──► agent/agent.py on your PC
               Silero VAD hears you start ──► faster-whisper writes it down
-              ──► Muse Spark answers ──► Piper speaks ──► back to the phone
+              ──► Muse Spark answers ──► Kokoro speaks (Piper is the fallback) ──► back to the phone
 ```
 
 Everything except the audio relay runs on your own machine and costs nothing: Silero and
-faster-whisper listen locally, Piper is the local voice, and Muse Spark thinks on Meta credits.
-The backend mints the student's room token (`POST /api/livekit-token`) and hides the picture's
-context inside it, so the tutor already knows what you are looking at and which part you last
-touched. Captions of both sides appear on screen as you talk.
+faster-whisper listen locally, Kokoro is the local voice with Piper as the fallback, and Muse
+Spark thinks on Meta credits. The backend mints the student's room token (`POST /api/livekit-token`)
+and hides the picture's context inside it, so the tutor already knows what you are looking at.
+Captions of both sides appear on screen as you talk.
 
 ```bash
 cd agent && pip install -r requirements.txt
 python agent.py download-files   # one-time: VAD + voice models
-python agent.py dev              # then open a picture in the app and tap Talk live
+python agent.py dev              # then attach a picture in the app's chat and tap Talk live
 python agent.py console          # no phone handy? Talk to it in the terminal
 ```
 
 *Status: built end to end and unit-tested; the first on-phone call is still to be made (see Status).*
 
-## Studying, not just exploring
-
-Everything below is computed on the phone from the masks and boxes — no extra model calls, so it
-works even when the network does not:
-
-- **Map in words.** Three-finger hold reads the overview plus a three-band spoken map
-  ("Top: cloud on the left, sun on the right. Middle: mountain…"), so the layout can be learned,
-  not just visited.
-- **Clock-face positions.** Study notes place every part on a clock face ("the sun, at 2 o'clock"),
-  the way blind students are taught to share locations.
-- **What's around it.** A quick tap on a part also names its neighbours ("Around it: cloud to the
-  left, mountain below"), which is how a mental picture gets its edges.
-- **Guide me there.** Hold and ask *"Where is the sun?"* and guide mode points you as you drag:
-  rest and it says the direction and whether you are close or far, and celebrates when your finger
-  lands on the mask.
-- **Practise missed.** The quiz remembers the questions you missed, skipped or had revealed, and
-  the end of the quiz offers a second round with only those.
-- **Study notes.** A plain-text screen (overview, map in words, every part with its size, clock
-  position and neighbours) that a screen reader can read top to bottom — revision without
-  re-analyzing. **Copy notes to share** puts the same text on the clipboard for homework or a teacher.
-
 ## Gestures
 
-Carried over from the earlier app, plus finger exploration:
+Carried over from the earlier app:
 
 | Where | Gesture | Does |
 | --- | --- | --- |
-| Centre | Touch or drag one finger | Explore: hear and feel the part under it |
-| Centre | Move, then rest | Hear the part's description |
-| Centre | Quick tap | Hear its name and description now, and what is around it |
-| Centre | Double tap | Trace the touched part: drag and its edge buzzes under your finger; lift to stop |
-| Centre | Hold still 0.5 s, speak, lift | Ask a question about the picture, or ask "Where is the …?" to be guided to it |
-| Explore screen | Lesson / Quiz me / Talk live buttons | Guided lesson, a quiz (touch the part it names, answer out loud), or a live conversation |
-| Lesson / Quiz | Left-edge swipe, buttons below | Next / previous step or question; hold right edge to go back to exploring |
-| Left edge | Tap / double tap | Stop and resume talking / repeat (a hint while guiding) |
-| Left edge | Swipe (finger down = next) | Step through the parts without dragging |
+| Centre | Tap | Chat: ask by voice; menus: open the focused line |
+| Centre | Swipe | Move between items or sentences |
+| Left edge | Tap / double tap | Stop and resume talking / repeat |
+| Left edge | Swipe (finger down = next) | Step through items or sentences |
 | Right edge | Hold, then drag up or down | Speech faster or slower |
 | Right edge | Hold without dragging | Back |
-| Anywhere | Three-finger tap / hold | Repeat last / hear the overview and the map in words |
+| Anywhere | Three-finger tap / hold | Repeat last / hear where you are |
 | Menus and lists | Two-finger swipe up/down, tap | Move focus (one finger scrolls), open the focused line |
 | Quiz answers | Swipe to browse, tap to choose, swipe right | Answer; each option buzzes its letter |
 | Settings rows | Hold a theme/font/size row, swipe sideways | Preview each option on screen, tap to keep |
+| Chat pill | Type, mic, camera buttons | Ask by text, voice, or attach a picture |
 
 ## Themes
 
-Twelve themes carried over from Resonant, switched in Settings (or on your Profile): Resonant native,
+Twelve themes carried over from Resonant, switched in Settings: Resonant native,
 Low vision (enormous contrast), Cataracts (high clarity), Handsfree (screen reader), Monochrome
 (colorblind), Photophobia (low glare), Warm ambiance, Night red, Blue on yellow, Soft cream,
 Paper gray and White on blue. They are not just colour swaps — the high-contrast ones add outlines
@@ -243,16 +191,15 @@ unit test (`test/palette_test.dart`), so a future edit cannot quietly make a the
 lib/
   core/            speech, haptics, sound behind interfaces; theme; the animated braille logo
   features/touch/
-    domain/        Region, Analysis, hit-testing, spatial words (map, neighbours, clock)  (pure Dart)
-    gestures/      the gesture engine: touches -> gestures (pure Dart, no clock, no timers)
-    application/   TouchSession: gestures -> speech/touch/sound  (pure Dart) + Riverpod controller
-    data/          the backend client
-    presentation/  screens, the gesture surface, the picture painter
+    gestures/      the gesture engine: touches -> menu navigation (pure Dart, no clock, no timers)
+    application/   ChatSession: conversation -> speech (pure Dart) + pictures intake (Riverpod)
+    data/          the backend client (analyze + chat + gallery)
+    presentation/  home, chat + camera sheet, lessons, quizzes, settings
   features/learn/
-    domain/        Lesson, Quiz, Grade                     (pure Dart)
-    application/   LearnSession: lesson steps + quiz grading (pure Dart)
-backend/           Node: Muse Spark -> regions, lesson, quiz, tutor chat; LiveKit tokens
-agent/             Python: the Talk live tutor (Silero, faster-whisper, Muse Spark, Piper)
+    domain/        library lessons, quiz sets, progress, offline answers (pure Dart)
+    application/   lesson + quiz readers (pure Dart)
+backend/           Node: Muse Spark reads pictures; the chat tutor; gallery samples; LiveKit tokens
+agent/             Python: the Talk live tutor (Silero, faster-whisper, Muse Spark, Kokoro/Piper)
 ```
 
 Every effect (voice, vibration, tones, microphone, network) sits behind an interface, so the whole
@@ -274,10 +221,10 @@ flutter test
 flutter run --dart-define=API_BASE=http://<your-computer's-ip>:3000
 ```
 
-**Try a sample** works with no key: both bundled outlines (the water cycle by
+**Try a sample** in the camera sheet works with no key: both bundled pictures (the water cycle by
 `backend/scripts/make-sample.py`, the rainfall chart by `backend/scripts/make-chart-sample.py`) are
 hand-authored, not model output, and the app says so out loud. Extra samples served from the
-backend's `sample/` folder appear in the same gallery via `GET /api/samples`.
+backend's `sample/` folder appear in the same sheet via `GET /api/samples`.
 
 ### iPhone
 
@@ -287,17 +234,17 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound, dots, shell, nav, home, gallery, talk, notes, touch, settings, splash, hints, shell, chat, lessons, quizzes, profile (575 tests)
-cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (45 tests)
+flutter test            # gestures, chat, camera sheet, pictures intake, lessons, quizzes, library, progress, themes, sound, dots, shell, nav, home, settings, splash (372 tests)
+cd backend && npm test  # analyze, text + picture chat, samples gallery, streaming, LiveKit tokens (36 tests)
 ```
 
 ## Known limits
 
 - Analysis is one Muse Spark call, so a new picture takes several seconds, with spoken progress
   as each part lands. The recents shelf keeps the session's pictures so going back is instant.
-- A part whose box is missing or unusable is left out and named in the study notes, so nothing is silently missing. Overlapping boxes resolve smallest-first, so the most specific part wins the finger.
+- A part the model cannot place is left out of the spoken parts list; the tutor answers from the picture itself, so a missed part never blocks a question.
 - Vibration is timed on Android. On iPhone it is a series of taps, and none at all in the browser.
-- With TalkBack or VoiceOver on, the screen reader takes over one-finger touch, so use the buttons under the picture.
+- With TalkBack or VoiceOver on, the screen reader takes over one-finger touch, so use the buttons on each screen.
 - Talk live needs the agent running on a computer on the same network, and its first on-phone call is still to be made.
 
 ## Credits
@@ -306,7 +253,7 @@ Resonant stands on a lot of generous work. Each of these keeps its own license.
 
 | What | Used for | License |
 | --- | --- | --- |
-| Meta Model API (Muse Spark 1.3) | Naming and placing parts, lessons, quizzes, grading, the tutor's brain | Meta Model API terms |
+| Meta Model API (Muse Spark 1.3) | Reading pictures, the tutor's brain | Meta Model API terms |
 | [LiveKit](https://livekit.io) + LiveKit Agents | Carrying live voice between the phone and the PC agent (free tier) | Apache-2.0 |
 | [Silero VAD](https://github.com/snakers4/silero-vad) | Hearing when you start and stop talking | MIT |
 | [faster-whisper](https://github.com/SYSTRAN/faster-whisper) | Writing down what you said, on your own PC | MIT |

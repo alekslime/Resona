@@ -81,7 +81,5 @@ See `docs/IPHONE.md`.
 
 - `POST /api/analyze` responses are cached by image hash (20 pictures), so
   re-opening a demo picture is free.
-- Per-IP rate limits: 6 analyzes/minute, 10 lessons+quizzes/minute, 20 chats/minute.
-- Lesson, quiz, grade and chat reuse the regions already on the phone — no second
-  image read.
+- Per-IP rate limits: 6 analyzes/minute, 20 chats/minute.
 - `GET /api/health` shows what is configured without leaking keys.

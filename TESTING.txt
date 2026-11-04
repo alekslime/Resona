@@ -1,5 +1,5 @@
-HOW TO TEST RESONANT (after the SAM removal)
-=============================================
+HOW TO TEST RESONANT (chat-first tutor)
+======================================
 Run from the repo root unless a step says otherwise.
 No API key needed for parts 1-2 and 4; parts 3 and 5 need one.
 
@@ -18,9 +18,9 @@ PART 1 - AUTOMATED TESTS (no key needed, ~2 min)
 1. flutter analyze
    Expect: "No issues found!"
 2. flutter test
-   Expect: "All tests passed!" (573 tests)
+   Expect: "All tests passed!" (372 tests)
 3. cd backend && npm test
-   Expect: pass 43, fail 0. Then cd .. back to the root.
+   Expect: pass 36, fail 0. Then cd .. back to the root.
 
 PART 2 - BACKEND WITHOUT A KEY (no key needed)
 ----------------------------------------------
@@ -35,6 +35,9 @@ PART 2 - BACKEND WITHOUT A KEY (no key needed)
    - POST analyze with no key (must fail gracefully, not crash):
      curl -X POST http://localhost:3000/api/analyze -H "Content-Type: application/json" -d "{}"
      Expect: HTTP 503 with "no Meta API key ... try the sample picture".
+   - POST chat with no key:
+     curl -X POST http://localhost:3000/api/chat -H "Content-Type: application/json" -d "{\"question\":\"hi\"}"
+     Expect: HTTP 503 with "no Meta API key".
 3. Stop the server with Ctrl+C.
 
 PART 3 - BACKEND WITH A KEY (key needed)
@@ -43,84 +46,73 @@ PART 3 - BACKEND WITH A KEY (key needed)
 2. In a second terminal: npm run check:api
    Expect: Spark answers, parts listed, each part shows box=left,top,right,bottom.
    If regions is empty, Spark gave no usable boxes - try another picture.
-3. Box quality check (the important one since boxes are now the touch target):
+3. Box quality check:
      node scripts/try-image.js path/to/your/picture.jpg
    Expect: parts printed with % of picture + box coords, then an
    "Overlay (open in a browser): ..." path. Open it: each box should hug
-   its part with no big empty margins and no overlaps (unless parts truly
-   overlap). Loose boxes = tune the `where` rule in backend/server/meta.js.
-4. Analyzed-once caching: analyze the same picture twice via the app
-   (part 5); the second open should be instant (served from cache).
+   its part. Loose boxes = tune the `where` rule in backend/server/meta.js.
+4. Analyzed-once caching: analyzing the same picture twice (via the app,
+   part 5) pays once - the second open is instant.
 
-PART 4 - RUN THE APP, NO KEY (bundled samples only)
----------------------------------------------------
+PART 4 - RUN THE APP, NO KEY (samples + lessons only)
+-----------------------------------------------------
 1. Pick a target:
    - Web (quickest):  flutter run -d chrome
    - Android emulator: start the emulator, then: flutter run
    - Real phone: connect it, then: flutter run
-   (android/, ios/, web/ already exist; only run tool/setup.sh - in Git Bash -
-   if you ever delete and regenerate a platform folder.)
-2. On the home screen, open the sample picture ("Try a sample").
-   Expect to hear: "<title>. N parts found. Drag a finger over the picture.
-   This is a sample. Its outlines were drawn by hand, not by the model."
-3. Touch walkthrough (do it with your eyes closed if you can):
-   - Drag one finger: each part speaks its name, buzzes, plays a tone.
-     Pitch = height on page, left/right ear = left/right on page.
-   - Rest on a part: hear its description. Rest on empty space: hear
-     which way to walk to the nearest part.
-   - Quick tap a part: hear its name + what is around it.
-   - Double tap a part, then drag: the edge buzzes under your finger
-     (trace mode). Lift to stop.
-   - Left edge swipe: step through parts in order without dragging.
-   - Three-finger hold: hear the overview + the map in words.
-4. Buttons under the picture:
-   - Lesson / Quiz me / Ask need the backend WITH a key: without one the
-     app speaks the server's error ("no Meta API key...") and stays put.
-   - Chat without a picture tries the AI tutor first; with no key it says
-     "I can't reach the AI server" and answers from the built-in lessons
-     instead, with the Offline banner showing. This is the expected
-     keyless behavior, not a bug.
-   - Study notes: full picture as text; works fully offline, and
-     "Copy notes to share" works.
-5. Settings: switch themes/fonts/sizes (each previews before keeping).
-   Profile: streaks and milestones update for the session.
+2. Home shows five lines: Chat, Lessons, Quiz, Settings, Quit.
+3. Open Chat. It greets you with no picture attached.
+   - Type or speak a question about one of the six lesson topics
+     (photosynthesis, cells, ecosystems, plant adaptations, binary
+     search, plate tectonics): the built-in lessons answer, and the
+     app says the answer is from the lesson.
+   - Ask anything else: it says it has no lesson on that and lists
+     the topics. This is the expected keyless behavior, not a bug.
+4. Tap the camera button on the ask bar. The sheet offers: Take photo,
+   Choose from gallery, Try a sample, plus recents once you have any.
+   - Tap a sample: it attaches instantly (no key needed) and the chat
+     announces its title, parts and overview. Questions now go to the
+     AI tutor - without a key it says it can't reach the server and
+     falls back to the lessons, with the Offline banner showing.
+   - Take photo / Choose without a key: analyzing fails gracefully
+     with a spoken error. Nothing crashes, nothing stalls silently.
+5. Lessons: open a lesson, it reads itself; swipes move through it.
+   Quiz: start a set, answer, retry rounds work - all offline.
+6. Settings: switch themes/fonts/sizes (each previews before keeping).
 
-PART 5 - RUN THE APP WITH A KEY (new pictures, end to end)
-----------------------------------------------------------
+PART 5 - RUN THE APP WITH A KEY (full tutor, end to end)
+--------------------------------------------------------
 1. Start the backend WITH the key: cd backend && npm start.
    Find your computer's LAN IP (ipconfig, IPv4 Address).
 2. Run the app pointed at it:
      flutter run --dart-define=API_BASE=http://<your-computer-ip>:3000
    (On the Android emulator you can use http://10.0.2.2:3000 instead.
    On web, API_BASE defaults to the page origin.)
-3. Pick a NEW picture (gallery or camera).
-   Expect: spoken progress as each part lands ("1 of 5: sun..."), total
-   several seconds (one Spark call now, not ~30 s). Then the explore
-   screen with N parts found.
-4. Explore it like part 4, step 3. Sanity checks for box mode:
-   - Every spoken part matches what is actually under your finger.
-   - Near the edge of an irregular shape you may read a neighbour -
-     that is the known box limitation; it should be rare, never silent
-     (the app always says what it reads).
-   - Overlapping parts: the most specific (smallest) part wins.
-5. Lesson / Quiz me / Ask (hold, speak, lift) / Chat: all should work end
-   to end now. (If Spark's output is ever unusable, the server falls back
-   to a template built from the parts, so lessons and quizzes still start.)
-6. Recents shelf: reopen the picture - must be instant (cached).
+3. Open Chat, tap the camera button, take a NEW photo.
+   Expect: "Reading the picture...", spoken progress as each part
+   lands, then "Title. N parts: ... Overview. Ask me anything about it."
+4. Hold a conversation: ask a question by voice (tap, speak, tap) or
+   type it. Follow up ("and why?") - the tutor remembers the last six
+   exchanges. Answers are spoken and shown as swipable sentences;
+   swipe through them, tap an edge to stop the voice.
+5. Attach another picture mid-conversation: a fresh conversation
+   starts about it (announced, never silent).
+6. Reopen a recent from the sheet: instant, no model calls.
 7. Talk live: hidden unless you run with
      --dart-define=LIVE_VOICE=true
    and only works with the agent running (cd agent, see agent/README.md)
-   plus LiveKit creds. First on-phone call is still unproven - expect
+   plus LiveKit creds. With a picture attached, a Talk live button
+   appears in chat. First on-phone call is still unproven - expect
    rough edges there.
 
-PART 6 - WHAT "GOOD" LOOKS LIKE (box-mode checklist)
-----------------------------------------------------
+PART 6 - WHAT "GOOD" LOOKS LIKE (checklist)
+-------------------------------------------
 - check:api prints a box for every part, none missing.
-- try-image overlays hug their parts; margins small; overlaps rare.
-- App never names a part with no box (those land in study notes as skipped).
-- No crash or silent stall anywhere: every failure speaks a plain sentence.
-- Full suite still green after any change: flutter analyze, flutter test,
-  cd backend && npm test.
+- Attaching announces title + parts + overview, every time.
+- Follow-ups reference earlier answers (history flows).
+- Every failure speaks a plain sentence; nothing stalls silently.
+- Full suite still green after any change: flutter analyze, flutter
+  test, cd backend && npm test.
 
 TROUBLESHOOTING
 ---------------
@@ -131,4 +123,4 @@ TROUBLESHOOTING
 - 422 "No parts could be placed": picture too vague - try one with
   distinct shapes.
 - TalkBack/VoiceOver on: one-finger touch goes to the screen reader -
-  use the buttons under the picture instead.
+  use the buttons instead.
