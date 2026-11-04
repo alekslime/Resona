@@ -1,0 +1,58 @@
+name: Rolling APK
+
+# Every push to main that touches the app rebuilds the demo APK against the
+# public backend and republishes it on the rolling `latest` release, so one
+# stable link always serves the newest build:
+#   https://github.com/alekslime/Resona/releases/download/latest/resonant.apk
+#
+# One-time setup: repo Settings -> Secrets and variables -> Actions ->
+# Variables tab -> New variable PUBLIC_API_BASE=https://<your-render-host>
+# (no trailing slash). The build fails with a pointer until it exists.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+
+      - run: flutter analyze
+      - run: flutter test
+
+      - name: Check PUBLIC_API_BASE
+        run: |
+          if [ -z "${{ vars.PUBLIC_API_BASE }}" ]; then
+            echo 'Set repo variable PUBLIC_API_BASE to the backend URL first:'
+            echo 'Settings -> Secrets and variables -> Actions -> Variables.'
+            exit 1
+          fi
+
+      - run: flutter build apk --release --dart-define=API_BASE=${{ vars.PUBLIC_API_BASE }}
+      - run: mv build/app/outputs/flutter-apk/app-release.apk resonant.apk
+
+      - name: Publish rolling latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --yes 2>/dev/null || true
+          git push origin :refs/tags/latest 2>/dev/null || true
+          gh release create latest resonant.apk \
+            --title 'Latest demo build' \
+            --notes "Rolling build from main ($(git rev-parse --short HEAD)). This file is always the newest APK."
