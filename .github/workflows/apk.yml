@@ -8,6 +8,9 @@ name: Rolling APK
 # One-time setup: repo Settings -> Secrets and variables -> Actions ->
 # Variables tab -> New variable PUBLIC_API_BASE=https://<your-render-host>
 # (no trailing slash). The build fails with a pointer until it exists.
+# Release signing needs four more entries on the Secrets tab (same page):
+# ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
+# ANDROID_KEY_PASSWORD. See docs/HOSTING.md section 6.
 on:
   push:
     branches: [main]
@@ -44,7 +47,23 @@ jobs:
             exit 1
           fi
 
-      - run: flutter build apk --release --dart-define=API_BASE=${{ vars.PUBLIC_API_BASE }}
+      - name: Set up release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo 'Missing Android signing secrets. Add all four under Settings -> Secrets and variables -> Actions -> Secrets tab (not Variables):'
+            echo 'ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.'
+            echo 'See docs/HOSTING.md section 6 for how to generate them.'
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          printf 'storeFile=upload-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+
+      - run: flutter build apk --release --dart-define=API_BASE=${{ vars.PUBLIC_API_BASE }} --build-number=${{ github.run_number }}
       - run: mv build/app/outputs/flutter-apk/app-release.apk resonant.apk
 
       - name: Publish rolling latest release
