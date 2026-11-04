@@ -57,6 +57,11 @@ const bundledSamples = [
       id: 'chart', title: 'Spring rainfall', kind: 'chart', regions: 5),
 ];
 
+/// Spoken and shown when a backend call is slow enough that the server is
+/// probably waking from sleep. One announcement per request, never repeated.
+const serverWakingMessage =
+    'Waking up the server. This can take up to 30 seconds.';
+
 /// Progress while the backend outlines a picture: [done] of [total] parts.
 class AnalyzeProgress {
   const AnalyzeProgress(
@@ -76,24 +81,31 @@ class ServerHealth {
 abstract class TouchRepository {
   /// Muse Spark names the parts and places a box around each one (see backend/).
   /// [onProgress] fires after every part is placed, so the phone can speak
-  /// the progress instead of sitting silent while it works.
+  /// the progress instead of sitting silent while it works. [onSlow] fires
+  /// once when no response has arrived in a while, so the caller can say
+  /// the server is waking up; it never fires after a response lands.
   Future<Analysis> analyze(PictureBytes picture,
-      {void Function(AnalyzeProgress progress)? onProgress});
+      {void Function(AnalyzeProgress progress)? onProgress,
+      void Function()? onSlow});
 
   /// Multi-turn voice tutor: [history] is the conversation so far, oldest first.
+  /// [onSlow] fires once when no answer has arrived in a while.
   Future<String> chat(
     PictureBytes picture, {
     required String question,
     required String title,
     String regionLabel = '',
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   });
 
   /// Text-only tutor for chat without a picture: same endpoint as [chat],
   /// no image attached. History is the conversation so far, oldest first.
+  /// [onSlow] fires once when no answer has arrived in a while.
   Future<String> chatText({
     required String question,
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   });
 
   /// Join details for a live, interruptible voice conversation about a picture.

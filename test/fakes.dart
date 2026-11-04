@@ -103,6 +103,7 @@ class FakeRepository implements TouchRepository {
   Future<Analysis> analyze(
     PictureBytes picture, {
     void Function(AnalyzeProgress progress)? onProgress,
+    void Function()? onSlow,
   }) =>
       throw UnimplementedError();
   @override
@@ -112,6 +113,7 @@ class FakeRepository implements TouchRepository {
     required String title,
     String regionLabel = '',
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   }) async {
     log.events.add('ask:$question|$regionLabel|past:${history.length}');
     if (fail != null) throw fail!;
@@ -122,6 +124,7 @@ class FakeRepository implements TouchRepository {
   Future<String> chatText({
     required String question,
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   }) async {
     log.events.add('ask:$question||past:${history.length}');
     if (fail != null) throw fail!;

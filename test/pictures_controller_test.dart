@@ -15,6 +15,7 @@ class AnalyzingRepo extends FakeRepository {
   Future<Analysis> analyze(
     PictureBytes picture, {
     void Function(AnalyzeProgress progress)? onProgress,
+    void Function()? onSlow,
   }) async {
     final failure = this.fail;
     if (failure != null) throw failure;

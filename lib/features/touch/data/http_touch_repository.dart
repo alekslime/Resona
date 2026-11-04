@@ -17,7 +17,10 @@ class _StreamUnsupported implements Exception {
 
 class HttpTouchRepository implements TouchRepository {
   HttpTouchRepository(
-      {required this.baseUrl, http.Client? client, AssetBundle? bundle})
+      {required this.baseUrl,
+      http.Client? client,
+      AssetBundle? bundle,
+      this.slowAfter = const Duration(seconds: 4)})
       : _http = client ?? http.Client(),
         _bundle = bundle ?? rootBundle;
 
@@ -25,14 +28,24 @@ class HttpTouchRepository implements TouchRepository {
   final http.Client _http;
   final AssetBundle _bundle;
 
+  /// How long a call runs silent before its [onSlow] fires. Short in tests.
+  final Duration slowAfter;
+
+  /// One slow-timer for one request: fires [onSlow] once, or never when the
+  /// response lands first. The caller cancels it in a finally.
+  Timer? _armSlow(void Function()? onSlow) =>
+      onSlow == null ? null : Timer(slowAfter, onSlow);
+
   String _dataUrl(PictureBytes p) =>
       'data:${p.mime};base64,${base64Encode(p.bytes)}';
 
   Future<Map<String, dynamic>> _post(
     String path,
     Map<String, dynamic> body,
-    Duration timeout,
-  ) async {
+    Duration timeout, [
+    void Function()? onSlow,
+  ]) async {
+    final slow = _armSlow(onSlow);
     final http.Response res;
     try {
       res = await _http
@@ -47,6 +60,8 @@ class HttpTouchRepository implements TouchRepository {
     } catch (_) {
       throw TouchApiException(
           'Cannot reach the server. Check your connection.');
+    } finally {
+      slow?.cancel();
     }
     Map<String, dynamic> json;
     try {
@@ -66,9 +81,20 @@ class HttpTouchRepository implements TouchRepository {
   Future<Analysis> analyze(
     PictureBytes picture, {
     void Function(AnalyzeProgress progress)? onProgress,
+    void Function()? onSlow,
   }) async {
+    // One announcement for the whole call, even if the stream attempt and
+    // the plain fallback are both slow.
+    var announced = false;
+    void once() {
+      if (announced) return;
+      announced = true;
+      onSlow?.call();
+    }
+
+    final slow = onSlow == null ? null : once;
     try {
-      return await _analyzeStream(picture, onProgress);
+      return await _analyzeStream(picture, onProgress, slow);
     } on _StreamUnsupported {
       // An older backend without /api/analyze-stream: same result, no progress.
       final json = await _post(
@@ -76,7 +102,8 @@ class HttpTouchRepository implements TouchRepository {
           {
             'image': _dataUrl(picture),
           },
-          const Duration(seconds: 120));
+          const Duration(seconds: 120),
+          slow);
       return Analysis.fromJson(json);
     }
   }
@@ -86,76 +113,82 @@ class HttpTouchRepository implements TouchRepository {
   Future<Analysis> _analyzeStream(
     PictureBytes picture,
     void Function(AnalyzeProgress progress)? onProgress,
+    void Function()? onSlow,
   ) async {
-    final req = http.Request('POST', Uri.parse('$baseUrl/api/analyze-stream'))
-      ..headers['Content-Type'] = 'application/json'
-      ..body = jsonEncode({'image': _dataUrl(picture)});
-    final http.StreamedResponse res;
+    final slow = _armSlow(onSlow);
     try {
-      res = await _http.send(req).timeout(const Duration(seconds: 150));
-    } on TimeoutException {
-      throw TouchApiException('That took too long. Try again.');
-    } catch (_) {
-      throw TouchApiException(
-          'Cannot reach the server. Check your connection.');
-    }
-    if (res.statusCode == 404) throw const _StreamUnsupported();
-    if (res.statusCode != 200) {
-      throw TouchApiException(_errorOf(await res.stream.bytesToString()));
-    }
-    if (!(res.headers['content-type'] ?? '').contains('text/event-stream')) {
-      throw const _StreamUnsupported();
-    }
-    Analysis? done;
-    var buf = '';
-    void feed(String raw) {
-      final event = _sseEvent(raw);
-      if (event == null) return;
-      switch (event.$1) {
-        case 'progress':
-          final p = event.$2;
-          onProgress?.call(
-            AnalyzeProgress(
-              done: (p['done'] as num).toInt(),
-              total: (p['total'] as num).toInt(),
-              label: (p['label'] as String?) ?? '',
-            ),
-          );
-        case 'done':
-          done = Analysis.fromJson(event.$2);
-        case 'error':
-          throw TouchApiException(
-            (event.$2['error'] as String?) ??
-                'Something went wrong. Try again.',
-          );
+      final req = http.Request('POST', Uri.parse('$baseUrl/api/analyze-stream'))
+        ..headers['Content-Type'] = 'application/json'
+        ..body = jsonEncode({'image': _dataUrl(picture)});
+      final http.StreamedResponse res;
+      try {
+        res = await _http.send(req).timeout(const Duration(seconds: 150));
+      } on TimeoutException {
+        throw TouchApiException('That took too long. Try again.');
+      } catch (_) {
+        throw TouchApiException(
+            'Cannot reach the server. Check your connection.');
       }
-    }
-
-    try {
-      await for (final chunk in res.stream
-          .transform(utf8.decoder)
-          .timeout(const Duration(seconds: 150))) {
-        buf +=
-            chunk; // network chunks split mid-event, so re-split on blank lines
-        final parts = buf.split('\n\n');
-        buf = parts.removeLast();
-        for (final raw in parts) {
-          feed(raw);
+      if (res.statusCode == 404) throw const _StreamUnsupported();
+      if (res.statusCode != 200) {
+        throw TouchApiException(_errorOf(await res.stream.bytesToString()));
+      }
+      if (!(res.headers['content-type'] ?? '').contains('text/event-stream')) {
+        throw const _StreamUnsupported();
+      }
+      Analysis? done;
+      var buf = '';
+      void feed(String raw) {
+        final event = _sseEvent(raw);
+        if (event == null) return;
+        slow?.cancel(); // a response arrived: the server is awake
+        switch (event.$1) {
+          case 'progress':
+            final p = event.$2;
+            onProgress?.call(
+              AnalyzeProgress(
+                done: (p['done'] as num).toInt(),
+                total: (p['total'] as num).toInt(),
+                label: (p['label'] as String?) ?? '',
+              ),
+            );
+          case 'done':
+            done = Analysis.fromJson(event.$2);
+          case 'error':
+            throw TouchApiException(
+              (event.$2['error'] as String?) ??
+                  'Something went wrong. Try again.',
+            );
         }
       }
-    } on TimeoutException {
-      throw TouchApiException('That took too long. Try again.');
-    }
-    if (buf.trim().isNotEmpty) {
-      feed(buf);
-    }
-    if (done == null) {
-      throw TouchApiException(
-          'The server sent something unexpected. Try again.');
-    }
-    return done!;
-  }
 
+      try {
+        await for (final chunk in res.stream
+            .transform(utf8.decoder)
+            .timeout(const Duration(seconds: 150))) {
+          buf +=
+              chunk; // network chunks split mid-event, so re-split on blank lines
+          final parts = buf.split('\n\n');
+          buf = parts.removeLast();
+          for (final raw in parts) {
+            feed(raw);
+          }
+        }
+      } on TimeoutException {
+        throw TouchApiException('That took too long. Try again.');
+      }
+      if (buf.trim().isNotEmpty) {
+        feed(buf);
+      }
+      if (done == null) {
+        throw TouchApiException(
+            'The server sent something unexpected. Try again.');
+      }
+      return done!;
+    } finally {
+      slow?.cancel();
+    }
+  }
   /// One server-sent event: "event: <name>\ndata: <json>". Null when the block
   /// is a heartbeat, a partial write, or anything else unparseable.
   (String, Map<String, dynamic>)? _sseEvent(String raw) {
@@ -189,6 +222,7 @@ class HttpTouchRepository implements TouchRepository {
     required String title,
     String regionLabel = '',
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   }) async {
     final json = await _post(
         '/api/chat',
@@ -201,7 +235,8 @@ class HttpTouchRepository implements TouchRepository {
             for (final h in history) {'q': h.q, 'a': h.a}
           ],
         },
-        const Duration(seconds: 60));
+        const Duration(seconds: 60),
+        onSlow);
     return json['answer'] as String;
   }
 
@@ -209,6 +244,7 @@ class HttpTouchRepository implements TouchRepository {
   Future<String> chatText({
     required String question,
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   }) async {
     final json = await _post(
         '/api/chat',
@@ -218,7 +254,8 @@ class HttpTouchRepository implements TouchRepository {
             for (final h in history) {'q': h.q, 'a': h.a}
           ],
         },
-        const Duration(seconds: 60));
+        const Duration(seconds: 60),
+        onSlow);
     return json['answer'] as String;
   }
 

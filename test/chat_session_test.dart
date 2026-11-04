@@ -29,6 +29,7 @@ class GatedRepo extends FakeRepository {
     required String title,
     String regionLabel = '',
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   }) async {
     log.events.add('ask:$question|$regionLabel|past:${history.length}');
     return gate.future;
