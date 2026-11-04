@@ -21,6 +21,7 @@ import '../../../core/ui/resonant_scaffold.dart';
 import '../application/option_picker.dart';
 import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'home_screen.dart';
 import 'name_setup_screen.dart';
@@ -80,6 +81,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   late final MenuFocus _focus;
   final _scroll = ScrollController();
+  final _guideKey = GlobalKey();
   late final List<GlobalKey> _keys;
   _Pick? _picking;
   bool _awaitingClearConfirm = false;
@@ -120,7 +122,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   /// A tap the rows took themselves: the surface drops its echo.
-  bool _onRow(Offset position) => _keys.any((k) {
+  bool _onRow(Offset position) =>
+      guideContains(_guideKey, position) || _keys.any((k) {
         final box = k.currentContext?.findRenderObject() as RenderBox?;
         if (box == null || !box.attached) return false;
         return Rect.fromPoints(
@@ -458,6 +461,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              FirstVisitGuide(key: _guideKey, screen: GuideScreen.settings),
               Text(
                 const GesturePhrases().holdToChangeSpeed,
                 style: TextStyle(

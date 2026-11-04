@@ -21,6 +21,7 @@ import '../../learn/domain/library.dart';
 import '../../learn/domain/progress.dart';
 import '../../learn/domain/quiz_data.dart';
 import '../gestures/gesture_types.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'home_screen.dart';
 import 'quiz_reader_screen.dart';
@@ -255,6 +256,7 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
               },
               onSettings: () => _openSettings(context),
             ),
+            const FirstVisitGuide(screen: GuideScreen.quizBrowser),
             Expanded(
               child: ListShortcuts(
                 onMove: _move,

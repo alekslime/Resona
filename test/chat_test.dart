@@ -17,6 +17,7 @@ Future<ProviderContainer> chatContainer(
   TouchRepository? repo,
   String heard = 'what is this?',
 }) async {
+  final prefs = await guidesSeenPrefs();
   final container = ProviderContainer(
     overrides: [
       speechProvider.overrideWithValue(FakeSpeech(log)),
@@ -24,6 +25,7 @@ Future<ProviderContainer> chatContainer(
       speechInputProvider.overrideWithValue(FakeInput(log, heard: heard)),
       cuesProvider.overrideWithValue(FakeCues(log)),
       repositoryProvider.overrideWithValue(repo ?? FakeRepository(log)),
+      sharedPreferencesProvider.overrideWithValue(prefs),
     ],
   );
   addTearDown(container.dispose);

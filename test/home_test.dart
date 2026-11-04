@@ -14,6 +14,7 @@ import 'package:resonant/features/touch/presentation/quiz_browser_screen.dart';
 import 'fakes.dart';
 
 Future<ProviderContainer> riggedContainer(Log log) async {
+  final prefs = await guidesSeenPrefs();
   final container = ProviderContainer(
     overrides: [
       speechProvider.overrideWithValue(FakeSpeech(log)),
@@ -21,6 +22,7 @@ Future<ProviderContainer> riggedContainer(Log log) async {
       speechInputProvider.overrideWithValue(FakeInput(log)),
       cuesProvider.overrideWithValue(FakeCues(log)),
       repositoryProvider.overrideWithValue(SeedRepo(log)),
+      sharedPreferencesProvider.overrideWithValue(prefs),
     ],
   );
   addTearDown(container.dispose);

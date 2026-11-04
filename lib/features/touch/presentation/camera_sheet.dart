@@ -7,6 +7,7 @@ import '../../../core/providers.dart';
 import '../../../core/ui/resonant_controls.dart';
 import '../application/pictures_controller.dart';
 import '../data/touch_repository.dart';
+import 'gesture_guide.dart';
 
 /// The sheet behind the chat pill's camera button: take a photo, choose from
 /// the gallery, try a sample, or reopen a recent. Returns the attached
@@ -107,6 +108,7 @@ class _CameraSheetState extends ConsumerState<_CameraSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const FirstVisitGuide(screen: GuideScreen.camera),
             Text(
               'Add a picture',
               style: TextStyle(

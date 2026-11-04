@@ -33,6 +33,7 @@ import '../../../core/ui/system_bars.dart';
 import '../application/pictures_controller.dart';
 import '../gestures/gesture_types.dart';
 import 'chat_screen.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'lessons_screen.dart';
 import 'quiz_browser_screen.dart';
@@ -67,6 +68,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _focus = MenuFocus(count: _items.length);
   final _scroll = ScrollController();
+  final _guideKey = GlobalKey();
   late final List<GlobalKey> _keys = [
     for (var i = 0; i < _items.length; i++) GlobalKey()
   ];
@@ -80,7 +82,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   /// A tap the menu lines took themselves: the surface drops its echo.
-  bool _onItem(Offset position) => _keys.any((k) {
+  bool _onItem(Offset position) =>
+      guideContains(_guideKey, position) || _keys.any((k) {
         final box = k.currentContext?.findRenderObject() as RenderBox?;
         if (box == null || !box.attached) return false;
         return Rect.fromPoints(
@@ -242,6 +245,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        FirstVisitGuide(
+                            key: _guideKey, screen: GuideScreen.home),
                         for (var i = 0; i < _items.length; i++)
                           _MenuItem(
                             key: _keys[i],

@@ -25,12 +25,14 @@ Widget sheetHarness(
       ),
     );
 
-ProviderContainer sheetContainer(Log log) {
+Future<ProviderContainer> sheetContainer(Log log) async {
+  final prefs = await guidesSeenPrefs();
   final container = ProviderContainer(
     overrides: [
       speechProvider.overrideWithValue(FakeSpeech(log)),
       hapticsProvider.overrideWithValue(FakeHaptics(log)),
       repositoryProvider.overrideWithValue(SeedRepo(log)),
+      sharedPreferencesProvider.overrideWithValue(prefs),
     ],
   );
   addTearDown(container.dispose);
@@ -48,7 +50,7 @@ void main() {
         (tester) async {
       final log = Log();
       await tester.pumpWidget(
-          sheetHarness(sheetContainer(log), (_) {}));
+          sheetHarness(await sheetContainer(log), (_) {}));
       await openSheet(tester);
       expect(find.text('Add a picture'), findsOneWidget);
       expect(find.text('Take photo'), findsOneWidget);
@@ -73,7 +75,7 @@ void main() {
       final log = Log();
       RecentPicture? attached;
       await tester.pumpWidget(
-          sheetHarness(sheetContainer(log), (r) => attached = r));
+          sheetHarness(await sheetContainer(log), (r) => attached = r));
       await openSheet(tester);
       final first = bundledSamples.first;
       await tester.tap(find.text('${first.title} (${first.regions} parts)'));
@@ -85,7 +87,7 @@ void main() {
 
     testWidgets('recents reopen from the sheet', (tester) async {
       final log = Log();
-      final container = sheetContainer(log);
+      final container = await sheetContainer(log);
       await container
           .read(picturesControllerProvider.notifier)
           .openGallery(bundledSamples.first);

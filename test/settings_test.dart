@@ -117,11 +117,13 @@ void main() {
 
   group('settings screen', () {
     Future<ProviderContainer> rigged(Log log) async {
+      final prefs = await guidesSeenPrefs();
       final container = ProviderContainer(
         overrides: [
           speechProvider.overrideWithValue(FakeSpeech(log)),
           hapticsProvider.overrideWithValue(FakeHaptics(log)),
           cuesProvider.overrideWithValue(FakeCues(log)),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );
       addTearDown(container.dispose);
@@ -340,11 +342,13 @@ void main() {
 
     testWidgets('home opens settings', (tester) async {
       final log = Log();
+      final prefs = await guidesSeenPrefs();
       final container = ProviderContainer(
         overrides: [
           speechProvider.overrideWithValue(FakeSpeech(log)),
           hapticsProvider.overrideWithValue(FakeHaptics(log)),
           cuesProvider.overrideWithValue(FakeCues(log)),
+          sharedPreferencesProvider.overrideWithValue(prefs),
           speechInputProvider.overrideWithValue(FakeInput(log)),
           repositoryProvider.overrideWithValue(FakeRepository(log)),
         ],

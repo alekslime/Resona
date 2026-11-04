@@ -16,6 +16,7 @@ import '../../learn/domain/quiz_data.dart';
 import '../application/quiz_session.dart';
 import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'settings_screen.dart';
 
@@ -233,6 +234,7 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
               backAnnouncement: 'Leaving the quiz. Back to Quizzes.',
               onSettings: () => _openSettings(context),
             ),
+            const FirstVisitGuide(screen: GuideScreen.quizReader),
             Expanded(
               child: ListShortcuts(
                 onMove: (d) {

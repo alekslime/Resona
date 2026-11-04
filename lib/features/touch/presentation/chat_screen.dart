@@ -16,6 +16,7 @@ import '../application/recents.dart';
 import '../data/touch_repository.dart';
 import 'ask_pill.dart';
 import 'camera_sheet.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'home_screen.dart';
 import 'live_talk_screen.dart';
@@ -136,6 +137,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               },
               onSettings: () => _openSettings(context),
             ),
+            const FirstVisitGuide(screen: GuideScreen.chat),
             if (view.offline)
               Container(
                 width: double.infinity,

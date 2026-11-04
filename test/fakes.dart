@@ -3,11 +3,14 @@ import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/services/haptics.dart';
 import 'package:resonant/core/services/sound.dart';
 import 'package:resonant/core/services/speech.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
 import 'package:resonant/features/touch/domain/region.dart';
+import 'package:resonant/features/touch/presentation/gesture_guide.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Records everything the session does, in order.
 class Log {
@@ -208,4 +211,15 @@ String? Function() mockClipboard() {
     return null;
   });
   return () => stored;
+}
+
+/// Prefs for widget tests of other behavior: a returning device whose
+/// guides were all seen, so no guide banner appears. Guide tests seed
+/// their own flags instead.
+Future<SharedPreferences> guidesSeenPrefs() async {
+  SharedPreferences.setMockInitialValues({
+    seenTourKey: true,
+    for (final s in GuideScreen.values) guideSeenKey(s): true,
+  });
+  return SharedPreferences.getInstance();
 }

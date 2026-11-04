@@ -16,6 +16,7 @@ import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/library.dart';
 import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'lesson_screen.dart';
 import 'settings_screen.dart';
@@ -163,6 +164,7 @@ class _LessonModeScreenState extends ConsumerState<LessonModeScreen> {
               onBack: _back,
               onSettings: () => _openSettings(context),
             ),
+            const FirstVisitGuide(screen: GuideScreen.lessonMode),
             Expanded(
               child: GestureSurface(
                 ignoreChildGestureAt: _onCard,

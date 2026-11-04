@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../core/ui/resonant_controls.dart';
 import '../../../core/ui/resonant_scaffold.dart';
+import 'gesture_guide.dart';
 
 /// The first name used in the Chat greeting ("Hi Ana!").
 /// Blank = the generic greeting.
@@ -44,6 +45,7 @@ class _NameSetupScreenState extends ConsumerState<NameSetupScreen> {
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
         child: Column(
           children: [
+            const FirstVisitGuide(screen: GuideScreen.nameSetup),
             ResonantTextField(
               value: _name,
               onChanged: (v) {

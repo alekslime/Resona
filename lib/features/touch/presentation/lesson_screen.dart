@@ -13,6 +13,7 @@ import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/library.dart';
 import '../application/lesson_session.dart';
 import '../gestures/gesture_phrases.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'settings_screen.dart';
 
@@ -112,6 +113,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
               onBack: () => Navigator.of(context).pop(),
               onSettings: () => _openSettings(context),
             ),
+            const FirstVisitGuide(screen: GuideScreen.lessonReader),
             Expanded(
               child: GestureSurface(
                 twoFingerSwipe: true,

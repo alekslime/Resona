@@ -9,6 +9,7 @@ import '../../../core/ui/resonant_controls.dart';
 import '../../../core/ui/resonant_dots.dart';
 import '../../../core/ui/resonant_scaffold.dart';
 import '../data/touch_repository.dart';
+import 'gesture_guide.dart';
 
 /// Which dots the live room shows: orbiting while the call sets up, the
 /// speaking wave while the tutor talks, the listening lean otherwise.
@@ -220,6 +221,7 @@ class _LiveTalkScreenState extends ConsumerState<LiveTalkScreen> {
                     ),
               ),
             ),
+            const FirstVisitGuide(screen: GuideScreen.liveTalk),
             const SizedBox(height: 16),
             Expanded(
               child: ListView(

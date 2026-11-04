@@ -19,6 +19,7 @@ import '../../../core/ui/system_bars.dart';
 import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/lesson_data.dart';
 import '../gestures/gesture_types.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'home_screen.dart';
 import 'lesson_mode_screen.dart';
@@ -171,6 +172,7 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
               },
               onSettings: () => _openSettings(context),
             ),
+            const FirstVisitGuide(screen: GuideScreen.lessons),
             Expanded(
               child: ListShortcuts(
                 onMove: _move,

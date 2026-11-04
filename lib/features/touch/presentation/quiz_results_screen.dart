@@ -15,6 +15,7 @@ import '../../../core/ui/system_bars.dart';
 import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/quiz_data.dart';
 import '../gestures/gesture_types.dart';
+import 'gesture_guide.dart';
 import 'gesture_surface.dart';
 import 'settings_screen.dart';
 
@@ -187,6 +188,7 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
                 ),
               ),
             ),
+            const FirstVisitGuide(screen: GuideScreen.quizResults),
             Expanded(
               child: GestureSurface(
                 onGesture: _onGesture,
