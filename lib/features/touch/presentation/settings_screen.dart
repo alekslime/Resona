@@ -59,6 +59,7 @@ class SettingsScreen extends ConsumerStatefulWidget {
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   static const _items = [
     'Replay Tutorial',
+    'Replay guides',
     'Your name',
     'Sound cues',
     'Color theme',
@@ -155,6 +156,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const TourScreen(),
           reduce: MediaQuery.of(context).disableAnimations,
         ));
+      case 'Replay guides':
+        _awaitingClearConfirm = false;
+        unawaited(resetGuideSeen(ref.read(sharedPreferencesProvider)));
+        _buzz(HapticPattern.confirm);
+        _speak('Guides will show again on each screen.');
       case 'Your name':
         _awaitingClearConfirm = false;
         Navigator.of(context).push(resonantRoute(

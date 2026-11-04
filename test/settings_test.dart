@@ -146,6 +146,7 @@ void main() {
       await open(tester, container);
       for (final row in [
         'Replay Tutorial',
+        'Replay guides',
         'Your name',
         'Sound cues: on',
         'Color theme: Resonant native',
