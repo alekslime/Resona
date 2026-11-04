@@ -19,6 +19,49 @@ Rules:
 - Pages with several photographs or panels (textbook spreads, figure grids, collages): treat each whole photograph or panel as ONE part. Its label names what the whole photo shows (such as "teeth with braces photo"), its where box covers the whole photo, not one tooth or detail inside it.
 - Avoid labels ending in row, pair, group, set or close-up, and never name a single small repeated item (one tooth, one bar, one dot) when the student needs the whole group it belongs to.`;
 
+const QUIZ_PROMPT = `You are writing a short self-test for a blind student who just discussed a topic with a tutor. The questions are read aloud, so every word must sound natural spoken.
+
+Return only JSON in this shape:
+{"questions": [{"prompt": "...", "options": ["...", "...", "..."], "correct": 0, "explanation": "..."}]}
+
+Rules:
+- questions: exactly 5, each testing one idea from the conversation below. Ask about what was discussed, not trivia from elsewhere.
+- prompt: one plain question, no markdown, no lists.
+- options: 3 or 4 short answers in plain words. Wrong options must be plausible but clearly wrong.
+- correct: the 0-based index of the right option.
+- explanation: one short sentence saying why the right answer is right.
+- If the conversation is too thin for 5 questions, still write 5 about the topic itself.`;
+
+/**
+ * The validated quiz payload: exactly 5 questions with 3-4 options each,
+ * a correct index and a one-line explanation. Anything short of that is
+ * an error, never a half-empty quiz.
+ */
+export function quizPayload(topic, json) {
+  const questions = (Array.isArray(json?.questions) ? json.questions : [])
+    .filter((q) => q && typeof q.prompt === "string" && q.prompt.trim())
+    .map((q) => ({
+      prompt: q.prompt.trim(),
+      options: (Array.isArray(q.options) ? q.options : [])
+        .filter((o) => typeof o === "string" && o.trim())
+        .map((o) => o.trim())
+        .slice(0, 4),
+      correctIndex: Number(q.correct),
+      explanation: String(q.explanation ?? "").trim(),
+    }))
+    .filter(
+      (q) =>
+        q.options.length >= 3 &&
+        Number.isInteger(q.correctIndex) &&
+        q.correctIndex >= 0 &&
+        q.correctIndex < q.options.length &&
+        q.explanation,
+    )
+    .slice(0, 5);
+  if (questions.length < 5) throw new Error("The model did not return a full quiz.");
+  return { topic, questions };
+}
+
 export function textOf(response) {
   if (typeof response?.output_text === "string" && response.output_text) return response.output_text;
   const chunks = [];
@@ -133,6 +176,29 @@ New question: ${question}`;
       const content = [{ type: "input_text", text: prompt }];
       if (dataUrl) content.push({ type: "input_image", image_url: dataUrl });
       return (await spark(content, 3000)).trim();
+    },
+
+    /**
+     * A 5-question self-test on what was just discussed. Text only: the
+     * topic plus the conversation so far, through the same Spark box as
+     * chat. Anything short of 5 valid questions is an error, never a
+     * half-empty quiz.
+     */
+    async quiz(topic, { history = [] }) {
+      const past = history
+        .slice(-6)
+        .map((h) => `Student: ${h.q}\nTutor: ${h.a}`)
+        .join("\n");
+      const text = await spark(
+        [
+          {
+            type: "input_text",
+            text: `${QUIZ_PROMPT}\nTopic: ${topic}\nConversation:\n${past || "(none yet)"}`,
+          },
+        ],
+        4000,
+      );
+      return quizPayload(topic, extractJson(text));
     },
   };
 }

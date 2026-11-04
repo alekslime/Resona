@@ -228,6 +228,24 @@ export function createApp(meta) {
     }
   });
 
+  // Text-only self-test: the topic plus the conversation so far, capped
+  // and truncated exactly like /api/chat. Always 5 valid questions or a
+  // clear error — never a half-empty quiz.
+  app.post("/api/quiz", createLimiter({ max: 6, windowMs: 60_000 }), async (req, res, next) => {
+    try {
+      requireMeta();
+      const topic = String(req.body?.topic ?? "").trim().slice(0, 200);
+      if (!topic) throw httpError(400, "Name a topic for the quiz first.");
+      const history = (Array.isArray(req.body?.history) ? req.body.history : [])
+        .filter((h) => h && typeof h.q === "string" && typeof h.a === "string")
+        .slice(-6)
+        .map((h) => ({ q: h.q.slice(0, 500), a: h.a.slice(0, 1000) }));
+      res.json(await meta.quiz(topic, { history }));
+    } catch (err) {
+      next(err);
+    }
+  });
+
   app.post("/api/livekit-token", createLimiter({ max: 10, windowMs: 60_000 }), async (req, res, next) => {
     try {
       const cfg = liveKitConfig();
