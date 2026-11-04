@@ -128,7 +128,7 @@ void main() {
       await settle(tester);
       expect(
         log.events,
-        contains('say: You said: what is this?. Thinking.'),
+        contains('say: Thinking.'),
       );
       expect(find.text('It is the sun.'), findsOneWidget);
     });

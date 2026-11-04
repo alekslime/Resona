@@ -216,8 +216,8 @@ class ChatSession {
       return;
     }
     _buzz(HapticPattern.confirm);
-    // One announcement, not two: the reply's first sentence queues behind it.
-    _say('You said: $heard. Thinking.');
+    // No echo of what was heard: straight to thinking, then the answer.
+    _say('Thinking.');
     await _ask(heard);
   }
 

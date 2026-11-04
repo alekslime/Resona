@@ -338,7 +338,7 @@ void main() {
       expect(r.log.events, contains('mic:stop'));
       expect(
         r.log.events,
-        contains('say: You said: what is this?. Thinking.'),
+        contains('say: Thinking.'),
       );
       expect(r.log.events, contains('ask:what is this?||past:0'));
     });
