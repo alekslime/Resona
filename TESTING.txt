@@ -18,7 +18,7 @@ PART 1 - AUTOMATED TESTS (no key needed, ~2 min)
 1. flutter analyze
    Expect: "No issues found!"
 2. flutter test
-   Expect: "All tests passed!" (372 tests)
+   Expect: "All tests passed!" (375 tests)
 3. cd backend && npm test
    Expect: pass 36, fail 0. Then cd .. back to the root.
 

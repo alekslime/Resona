@@ -7,7 +7,7 @@
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-372%20Flutter%20%2B%2036%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-375%20Flutter%20%2B%2036%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -89,7 +89,7 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 - **Study library**: six built-in lessons that read themselves, four quiz sets
   with retry rounds, and settings that preview each theme, font and size before
   keeping it — all working offline, with progress kept for the session.
-- Screen-reader buttons for every gesture, twelve themes, 372 Flutter tests +
+- Screen-reader buttons for every gesture, twelve themes, 375 Flutter tests +
   36 backend tests, all green.
 
 **Built, one step from proven:**
@@ -234,7 +234,7 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, chat, camera sheet, pictures intake, lessons, quizzes, library, progress, themes, sound, dots, shell, nav, home, settings, splash (372 tests)
+flutter test            # gestures, chat, camera sheet, pictures intake, lessons, quizzes, library, progress, themes, sound, dots, shell, nav, home, settings, splash (375 tests)
 cd backend && npm test  # analyze, text + picture chat, samples gallery, streaming, LiveKit tokens (36 tests)
 ```
 
