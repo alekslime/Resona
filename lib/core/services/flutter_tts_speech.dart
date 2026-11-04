@@ -62,6 +62,16 @@ class FlutterTtsSpeech implements SpeechOutput {
   bool _voiceTried = false;
   double _rate = 1.0;
 
+  /// Callers fire speaks without awaiting them, but the engine behind them
+  /// is one shared queue: mode flips and stop() calls only make sense in
+  /// call order. Every speak waits its turn in this chain, so a flush can
+  /// never land between two queued sentences and eat one.
+  Future<void> _chain = Future.value();
+
+  /// Bumped by every stop(): a speak still waiting its turn when the bump
+  /// lands is stale and stays silent.
+  int _epoch = 0;
+
   @override
   bool get isSpeaking => _speaking;
 
@@ -92,9 +102,20 @@ class FlutterTtsSpeech implements SpeechOutput {
   }
 
   @override
-  Future<void> speak(String text, {bool queue = false}) async {
-    if (text.trim().isEmpty) return;
+  Future<void> speak(String text, {bool queue = false}) {
+    if (text.trim().isEmpty) return Future.value();
+    final epoch = _epoch;
+    final run = _chain.then((_) => _speakNow(text, queue: queue, epoch: epoch));
+    // The chain never breaks: a failed utterance must not wedge later speech.
+    _chain = run.catchError((_) {});
+    return run;
+  }
+
+  Future<void> _speakNow(String text,
+      {required bool queue, required int epoch}) async {
+    if (epoch != _epoch) return;
     await _pickVoiceOnce();
+    if (epoch != _epoch) return;
     _speaking = true;
     try {
       if (queue) {
@@ -111,6 +132,7 @@ class FlutterTtsSpeech implements SpeechOutput {
 
   @override
   Future<void> stop() async {
+    _epoch++;
     _speaking = false;
     await _tts.stop();
   }
