@@ -1,4 +1,5 @@
 import 'library.dart';
+import '../../touch/gestures/gesture_phrases.dart';
 
 // The quizzes that ship inside the app, transcribed from Resonant's
 // QuizData.kt. Every word is the old text, unchanged, except two
@@ -350,14 +351,15 @@ String quizResultsSpoken(int correct, int total, int missedCount,
 }
 
 /// The instructions after the score. A perfect score gets no dangling
-/// "tap right edge" that does nothing.
+/// retry hint. The retry is a real button: a right-edge tap is the engine's
+/// dead zone, so promising one would point at a gesture that does nothing.
 String quizResultsInstructions(int missedCount) => missedCount > 0
-    ? '$missedCount missed. Tap the right edge to retry those, or tap center to return home.'
+    ? '$missedCount missed. Tap the "${quizRetryLabel(missedCount)}" button to retry those, or ${GesturePhrases.tapCenterToReturnHome}.'
     : 'Tap to return home.';
 
 /// The hint line shown under the score card.
 String quizResultsHint(int missedCount) => missedCount > 0
-    ? 'Tap the right edge to retry the $missedCount missed, or the center to go back.'
+    ? 'Tap "${quizRetryLabel(missedCount)}" to retry, or the center to go back.'
     : 'Tap anywhere to go back.';
 
 /// Announced when a retry round starts.
@@ -382,16 +384,18 @@ String quizScoreShareText(int correct, int total, String quizTitle) =>
 String quizOptionUnit(String letter, String text) => 'Option $letter. $text.';
 
 /// Announced when an option is tapped.
-String quizSelectSpoken(String letter) =>
-    'Option $letter selected. Swipe right to submit.';
+String quizSelectSpoken(String letter,
+        [GesturePhrases phrases = const GesturePhrases()]) =>
+    'Option $letter selected. ${phrases.swipeToSubmit}';
 
 /// Announced on submit: the verdict plus the explanation.
 String quizSubmitSpoken(bool correct, String explanation) =>
     '${correct ? 'Correct' : 'Incorrect'}. $explanation';
 
 /// Announced when submit is swiped with nothing chosen.
-const String quizNoSelectionSpoken =
-    'No option selected. Swipe up or down to browse, then tap to select.';
+String quizNoSelectionSpoken(
+        [GesturePhrases phrases = const GesturePhrases()]) =>
+    'No option selected. ${phrases.swipeBrowse()} to browse, then tap to select.';
 
 /// What the three-finger hold says on the reader.
 String quizHoldSummary({
@@ -400,15 +404,16 @@ String quizHoldSummary({
   required bool submitted,
   bool? correct,
   String? selectedLetter,
+  GesturePhrases phrases = const GesturePhrases(),
 }) {
   final String status;
   if (submitted) {
-    status = 'Submitted. ${correct == true ? 'Correct' : 'Incorrect'}. Swipe down to continue.';
+    status = 'Submitted. ${correct == true ? 'Correct' : 'Incorrect'}. ${phrases.swipeToContinue}';
   } else if (selectedLetter != null) {
-    status = 'Option $selectedLetter selected. Swipe right to submit.';
+    status = 'Option $selectedLetter selected. ${phrases.swipeToSubmit}';
   } else {
     status =
-        'No option selected. Swipe up or down to browse, tap to select, swipe right to submit.';
+        'No option selected. ${phrases.swipeBrowse()} to browse, tap to select, ${phrases.swipeToSubmitInner}.';
   }
   return 'Quiz, question ${questionIndex + 1} of $total. $status';
 }

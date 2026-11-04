@@ -8,6 +8,7 @@ import '../../learn/domain/library.dart';
 import '../../learn/domain/offline_answers.dart';
 import '../../learn/domain/sentences.dart';
 import '../data/touch_repository.dart';
+import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
 import 'recents.dart';
 
@@ -136,7 +137,7 @@ class ChatSession {
       final n = _exchanges.length;
       _say('Ask Resonant. You have $n previous '
           '${n == 1 ? 'exchange' : 'exchanges'} from before. '
-          'Swipe up or down to review them, or tap center to ask something new.');
+          '${const GesturePhrases().swipeBrowse()} to review them, or tap center to ask something new.');
     }
     _emit();
   }

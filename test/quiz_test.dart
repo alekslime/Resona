@@ -285,7 +285,7 @@ void main() {
       expect(
         log.events,
         contains('say: You scored 4 out of 5. 1 missed. '
-            'Tap the right edge to retry those, or tap center to return home. '
+            'Tap the "Retry 1 missed" button to retry those, or tap center to return home. '
             'Nice work, Ana.'),
       );
     });
@@ -307,7 +307,7 @@ void main() {
       expect(
         log.events,
         contains('say: You scored 3 out of 5. 2 missed. '
-            'Tap the right edge to retry those, or tap center to return home.'),
+            'Tap the "Retry 2 missed" button to retry those, or tap center to return home.'),
       );
       expect(find.text('Good effort.'), findsOneWidget);
       expect(find.text('Retry 2 missed'), findsOneWidget);

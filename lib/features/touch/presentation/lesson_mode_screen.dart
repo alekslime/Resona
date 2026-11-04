@@ -14,6 +14,7 @@ import '../../../core/ui/press.dart';
 import '../../../core/ui/system_bars.dart';
 import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/library.dart';
+import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
 import 'gesture_surface.dart';
 import 'lesson_screen.dart';
@@ -55,7 +56,7 @@ class _LessonModeScreenState extends ConsumerState<LessonModeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       ref.read(speechProvider).speak(
-          'How do you want to go through this lesson? Swipe up or down to choose, then tap the center.');
+          'How do you want to go through this lesson? ${const GesturePhrases().swipeBrowse()} to choose, then tap the center.');
       ref.read(speechProvider).speak(_modes[0].spoken, queue: true);
     });
   }

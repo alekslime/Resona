@@ -128,8 +128,6 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
       case Tap(zone: Zone.leftEdge):
         ref.read(speechProvider).stop();
         _buzz(HapticPattern.confirm);
-      case Tap(zone: Zone.rightEdge):
-        if (_canRetry) _retry();
       case DoubleTap(zone: Zone.leftEdge):
         _repeat();
       case LongPress(zone: Zone.rightEdge):

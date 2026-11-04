@@ -12,6 +12,7 @@ import '../../../core/ui/system_bars.dart';
 import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/library.dart';
 import '../application/lesson_session.dart';
+import '../gestures/gesture_phrases.dart';
 import 'gesture_surface.dart';
 import 'settings_screen.dart';
 
@@ -187,7 +188,7 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
                                 Padding(
                                   padding: const EdgeInsets.only(top: 8),
                                   child: Text(
-                                    'Long press the right edge to go back.',
+                                    GesturePhrases.longPressRightEdgeBack,
                                     style: TextStyle(
                                       fontFamily: font.family,
                                       fontWeight: FontWeight.w600,

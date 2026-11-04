@@ -9,6 +9,7 @@ import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/resonant_scaffold.dart';
 import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/tour_steps.dart';
+import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
 import 'gesture_surface.dart';
 
@@ -157,7 +158,7 @@ class _TourScreenState extends ConsumerState<TourScreen> {
                   padding: const EdgeInsets.only(bottom: 24),
                   child: Text(
                     _index + 1 < tourSteps.length
-                        ? 'Swipe down or tap to continue.'
+                        ? const GesturePhrases().swipeOrTapToContinue
                         : 'One more tap finishes the tour.',
                     textAlign: TextAlign.center,
                     style: TextStyle(

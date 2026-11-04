@@ -19,6 +19,7 @@ import '../../../core/ui/focus_fade.dart';
 import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/resonant_scaffold.dart';
 import '../application/option_picker.dart';
+import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
 import 'gesture_surface.dart';
 import 'home_screen.dart';
@@ -275,7 +276,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     setState(() => _picking = _Pick(item, at, at));
     _awaitingClearConfirm = false;
     _buzz(HapticPattern.holdEngaged);
-    _speak('Preview. Swipe left or right, tap to keep, '
+    _speak('Preview. ${const GesturePhrases().swipeLeftRight}, tap to keep, '
         'hold the right edge to cancel. '
         '${OptionPicker.describe(_optionLabel(item, at), at, _optionCount(item))}');
   }
@@ -366,7 +367,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   void _hold() {
     final rate = ref.read(speechProvider).rate;
     _speak('Settings. Speaking at ${speechSpeedLabel(rate)}. '
-        'Hold the right edge and drag up to speed up, down to slow down. '
+        '${const GesturePhrases().holdToChangeSpeed} '
         'Currently focused: ${_label(_items[_focus.index])}.');
   }
 
@@ -458,7 +459,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'Hold the right edge and drag up to speed up, down to slow down.',
+                const GesturePhrases().holdToChangeSpeed,
                 style: TextStyle(
                   fontFamily: font.family,
                   fontWeight: FontWeight.w600,

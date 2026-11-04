@@ -19,7 +19,7 @@ void main() {
         'Incorrect. Water flows downhill.',
       );
       expect(
-        quizNoSelectionSpoken,
+        quizNoSelectionSpoken(),
         'No option selected. Swipe up or down to browse, then tap to select.',
       );
     });

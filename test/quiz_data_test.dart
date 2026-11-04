@@ -78,7 +78,7 @@ void main() {
       expect(
         quizResultsSpoken(3, 5, 2),
         'You scored 3 out of 5. 2 missed. '
-        'Tap the right edge to retry those, or tap center to return home.',
+        'Tap the "Retry 2 missed" button to retry those, or tap center to return home.',
       );
     });
 
@@ -94,13 +94,13 @@ void main() {
       expect(
         quizResultsSpoken(4, 5, 1, name: 'Ana'),
         'You scored 4 out of 5. 1 missed. '
-        'Tap the right edge to retry those, or tap center to return home. '
+        'Tap the "Retry 1 missed" button to retry those, or tap center to return home. '
         'Nice work, Ana.',
       );
       expect(
         quizResultsSpoken(1, 5, 4, name: 'Ana'),
         'You scored 1 out of 5. 4 missed. '
-        'Tap the right edge to retry those, or tap center to return home. '
+        'Tap the "Retry 4 missed" button to retry those, or tap center to return home. '
         'You will get them next time, Ana.',
       );
       expect(
@@ -112,7 +112,7 @@ void main() {
     test('hint line mirrors the instructions', () {
       expect(
         quizResultsHint(2),
-        'Tap the right edge to retry the 2 missed, or the center to go back.',
+        'Tap "Retry 2 missed" to retry, or the center to go back.',
       );
       expect(quizResultsHint(0), 'Tap anywhere to go back.');
     });

@@ -14,6 +14,7 @@ import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/library.dart';
 import '../../learn/domain/quiz_data.dart';
 import '../application/quiz_session.dart';
+import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
 import 'gesture_surface.dart';
 import 'settings_screen.dart';
@@ -106,7 +107,7 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
     if (_session.submitted) return;
     final verdict = _session.submit();
     if (verdict == null) {
-      _speak(quizNoSelectionSpoken);
+      _speak(quizNoSelectionSpoken());
       _buzz(HapticPattern.error);
       return;
     }
@@ -344,7 +345,7 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
                                         minSp: 20,
                                       )
                                     : Text(
-                                        'Swipe down to see options',
+                                        const GesturePhrases().seeOptions,
                                         style: TextStyle(
                                           fontFamily: font.family,
                                           fontWeight: FontWeight.w600,

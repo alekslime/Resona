@@ -4,6 +4,7 @@ import '../../../core/services/haptics.dart';
 import '../../../core/services/sound.dart';
 import '../../../core/services/speech.dart';
 import '../../learn/domain/library.dart';
+import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
 
 class _FlatUnit {
@@ -211,7 +212,7 @@ class LessonSession {
       _finished = true;
       _watch?.cancel();
       _buzz(HapticPattern.correct);
-      _say('Lesson finished. Long press the right edge to go back.');
+      _say('Lesson finished. ${GesturePhrases.longPressRightEdgeBack}');
       _emit();
     });
   }
@@ -249,7 +250,7 @@ class LessonSession {
           _buzz(HapticPattern.next);
         } else {
           _buzz(HapticPattern.edge);
-          _say('End of the lesson. Long press the right edge to go back.');
+          _say('End of the lesson. ${GesturePhrases.longPressRightEdgeBack}');
         }
       case Tap(zone: Zone.leftEdge):
         // The old pause has no equivalent in our speech stack; stopping
