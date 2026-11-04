@@ -74,9 +74,12 @@ PART 4 - RUN THE APP, NO KEY (bundled samples only)
    - Left edge swipe: step through parts in order without dragging.
    - Three-finger hold: hear the overview + the map in words.
 4. Buttons under the picture:
-   - Lesson / Quiz me / Ask / Chat need the backend WITH a key: without
-     one the app speaks the server's error ("no Meta API key...") and
-     stays put. This is the expected keyless behavior, not a bug.
+   - Lesson / Quiz me / Ask need the backend WITH a key: without one the
+     app speaks the server's error ("no Meta API key...") and stays put.
+   - Chat without a picture tries the AI tutor first; with no key it says
+     "I can't reach the AI server" and answers from the built-in lessons
+     instead, with the Offline banner showing. This is the expected
+     keyless behavior, not a bug.
    - Study notes: full picture as text; works fully offline, and
      "Copy notes to share" works.
 5. Settings: switch themes/fonts/sizes (each previews before keeping).

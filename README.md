@@ -7,7 +7,7 @@
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-573%20Flutter%20%2B%2043%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-575%20Flutter%20%2B%2045%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -287,8 +287,8 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound, dots, shell, nav, home, gallery, talk, notes, touch, settings, splash, hints, shell, chat, lessons, quizzes, profile (573 tests)
-cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (43 tests)
+flutter test            # gestures, hit-testing, sessions, charts, recents, gallery, overlays, notes, themes, sound, dots, shell, nav, home, gallery, talk, notes, touch, settings, splash, hints, shell, chat, lessons, quizzes, profile (575 tests)
+cd backend && npm test  # the Meta pipeline, streaming, samples gallery, lesson/quiz/chat API, LiveKit tokens (45 tests)
 ```
 
 ## Known limits
