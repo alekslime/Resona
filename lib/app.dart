@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -7,6 +9,7 @@ import 'core/theme/resonant_theme.dart';
 import 'core/ui/key_shortcuts.dart';
 import 'features/touch/presentation/home_screen.dart';
 import 'features/touch/presentation/splash_screen.dart';
+import 'features/touch/presentation/tour_screen.dart';
 
 final _navigatorKey = GlobalKey<NavigatorState>();
 
@@ -47,12 +50,27 @@ class ResonantApp extends ConsumerWidget {
       home: Builder(
         builder: (context) => SplashScreen(
           onFinished: () {
+            final reduce = MediaQuery.disableAnimationsOf(context);
+            final prefs = ProviderScope.containerOf(context)
+                .read(sharedPreferencesProvider);
             Navigator.of(context).pushAndRemoveUntil(
               resonantRoute(
                 const HomeScreen(),
-                reduce: MediaQuery.disableAnimationsOf(context),
+                reduce: reduce,
               ),
               (_) => false,
+            );
+            if (prefs.getBool(seenTourKey) ?? false) return;
+            // First launch on this device: the tutorial goes up over Home,
+            // so leaving it lands on the menu. Marked shown as it appears:
+            // a deliberate early exit must not re-trigger it every launch,
+            // and Settings replays it any time.
+            unawaited(prefs.setBool(seenTourKey, true));
+            Navigator.of(context).push(
+              resonantRoute(
+                const TourScreen(),
+                reduce: reduce,
+              ),
             );
           },
         ),
