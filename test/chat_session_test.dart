@@ -36,6 +36,21 @@ class GatedRepo extends FakeRepository {
   }
 }
 
+/// A tutor that reports a slow server, then answers.
+class SlowRepo extends FakeRepository {
+  SlowRepo(super.log);
+
+  @override
+  Future<String> chatText({
+    required String question,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  }) async {
+    onSlow?.call();
+    return super.chatText(question: question, history: history);
+  }
+}
+
 class Rig {
   Rig(this.log, this.session, this.input, this.backs);
   final Log log;
@@ -487,5 +502,23 @@ void main() {
       expect(r.session.view.offline, isFalse);
       expect(r.session.recent, isNotNull);
     });
+
+    test('a slow answer shows and speaks the waking message once', () async {
+      final log = Log();
+      final statuses = <String>[];
+      final session = ChatSession(
+        repository: SlowRepo(log),
+        speech: FakeSpeech(log),
+        haptics: FakeHaptics(log),
+        cues: FakeCues(log),
+        input: FakeInput(log),
+        onChanged: (view) => statuses.add(view.statusText),
+      );
+      addTearDown(session.dispose);
+      await session.askTyped('hi');
+      expect(statuses, contains(serverWakingMessage));
+      expect(log.where('say+: $serverWakingMessage'), hasLength(1));
+    });
+
   });
 }

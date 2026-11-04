@@ -10,6 +10,7 @@ import 'fakes.dart';
 class AnalyzingRepo extends FakeRepository {
   AnalyzingRepo(super.log);
   int analyzes = 0;
+  bool announceSlow = false;
 
   @override
   Future<Analysis> analyze(
@@ -20,6 +21,7 @@ class AnalyzingRepo extends FakeRepository {
     final failure = this.fail;
     if (failure != null) throw failure;
     analyzes++;
+    if (announceSlow) onSlow?.call();
     onProgress?.call(const AnalyzeProgress(done: 1, total: 2, label: 'sun'));
     onProgress?.call(const AnalyzeProgress(done: 2, total: 2, label: 'cloud'));
     return loadSample();
@@ -120,5 +122,23 @@ void main() {
       controller.openRecent(a);
       expect(titles().first, 'The water cycle');
     });
+
+    test('a slow analyze shows and speaks the waking message once', () async {
+      final log = Log();
+      final repo = AnalyzingRepo(log)..announceSlow = true;
+      final container = picturesContainer(log, repo);
+      final progresses = <String>[];
+      container.listen<PicturesState>(
+        picturesControllerProvider,
+        (_, next) => progresses.add(next.progress),
+      );
+      await container
+          .read(picturesControllerProvider.notifier)
+          .analyze(tinyPicture);
+      expect(progresses, contains(serverWakingMessage));
+      expect(log.where('say+: $serverWakingMessage'), hasLength(1));
+      expect(container.read(picturesControllerProvider).progress, isEmpty);
+    });
+
   });
 }

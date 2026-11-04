@@ -72,6 +72,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
+    // Warm the backend before the first real request: silent, errors ignored.
+    // The health check never throws; a sleeping server just wakes up.
+    unawaited(ref.read(repositoryProvider).health());
     _time = AnimationController(
       vsync: this,
       duration: Duration(
