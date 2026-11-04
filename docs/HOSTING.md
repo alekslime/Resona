@@ -83,3 +83,26 @@ See `docs/IPHONE.md`.
   re-opening a demo picture is free.
 - Per-IP rate limits: 6 analyzes/minute, 20 chats/minute.
 - `GET /api/health` shows what is configured without leaking keys.
+
+## 5. Public demo: always-on server + self-updating APK
+
+For a demo strangers can use without touching a terminal:
+
+1. Deploy the backend with Option A above (Render Blueprint from
+   `render.yaml`). Add `MODEL_API_KEY` as a secret env var. Render
+   redeploys the backend on every push to `main` by itself.
+2. Always-on or free: the free plan sleeps after ~15 minutes idle
+   and the first request takes ~30 s to wake it (the app's samples
+   still work while it wakes). A Starter instance (~$7/month) never
+   sleeps. Pick on the service's Settings page.
+3. Tell CI where the backend lives: repo Settings -> Secrets and
+   variables -> Actions -> Variables tab -> New variable
+   `PUBLIC_API_BASE=https://<your-render-host>` (no trailing slash).
+4. Every push to `main` that touches the app then rebuilds the APK
+   (after `flutter analyze` + `flutter test` pass) and republishes
+   it on the rolling `latest` release. One stable link always serves
+   the newest build:
+   `https://github.com/alekslime/Resona/releases/download/latest/resonant.apk`
+
+The CI APK is signed with debug keys: it sideloads fine, but it is
+not a Play Store upload. See `.github/workflows/apk.yml`.
