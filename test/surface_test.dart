@@ -6,6 +6,7 @@ import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/theme/palettes.dart';
 import 'package:resonant/core/ui/resonant_surface.dart';
 import 'package:resonant/core/ui/system_bars.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fakes.dart';
 
@@ -85,6 +86,9 @@ void main() {
 
     testWidgets('the app shell sits every screen on a material', (tester) async {
       final log = Log();
+      // A returning device: the boot lands on home, not the tutorial.
+      SharedPreferences.setMockInitialValues(const {seenTourKey: true});
+      final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
           speechProvider.overrideWithValue(FakeSpeech(log)),
@@ -92,6 +96,7 @@ void main() {
           cuesProvider.overrideWithValue(FakeCues(log)),
           speechInputProvider.overrideWithValue(FakeInput(log)),
           repositoryProvider.overrideWithValue(FakeRepository(log)),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );
       addTearDown(container.dispose);

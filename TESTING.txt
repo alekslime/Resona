@@ -18,7 +18,7 @@ PART 1 - AUTOMATED TESTS (no key needed, ~2 min)
 1. flutter analyze
    Expect: "No issues found!"
 2. flutter test
-   Expect: "All tests passed!" (375 tests)
+   Expect: "All tests passed!" (383 tests)
 3. cd backend && npm test
    Expect: pass 36, fail 0. Then cd .. back to the root.
 
@@ -60,7 +60,9 @@ PART 4 - RUN THE APP, NO KEY (samples + lessons only)
    - Web (quickest):  flutter run -d chrome
    - Android emulator: start the emulator, then: flutter run
    - Real phone: connect it, then: flutter run
-2. Home shows five lines: Chat, Lessons, Quiz, Settings, Quit.
+2. First launch on a device shows the Tutorial first; finish it or leave
+   early (hold the right edge) to reach Home. Later launches go straight
+   to Home, which shows five lines: Chat, Lessons, Quiz, Settings, Quit.
 3. Open Chat. It greets you with no picture attached.
    - Type or speak a question about one of the six lesson topics
      (photosynthesis, cells, ecosystems, plant adaptations, binary

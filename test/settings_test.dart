@@ -12,6 +12,7 @@ import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/name_setup_screen.dart';
 import 'package:resonant/features/touch/presentation/settings_screen.dart';
 import 'package:resonant/features/touch/presentation/tour_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fakes.dart';
 
@@ -380,6 +381,9 @@ void main() {
       expect(text.style!.fontFamily, 'Atkinson');
     });
     testWidgets('text size and reduce motion reach the whole app', (tester) async {
+      // A returning device: the boot lands on home, not the tutorial.
+      SharedPreferences.setMockInitialValues(const {seenTourKey: true});
+      final prefs = await SharedPreferences.getInstance();
       final log = Log();
       final container = ProviderContainer(
         overrides: [
@@ -388,6 +392,7 @@ void main() {
           cuesProvider.overrideWithValue(FakeCues(log)),
           speechInputProvider.overrideWithValue(FakeInput(log)),
           repositoryProvider.overrideWithValue(FakeRepository(log)),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );
       addTearDown(container.dispose);

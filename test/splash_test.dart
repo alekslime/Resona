@@ -9,6 +9,8 @@ import 'package:resonant/core/services/sound.dart';
 import 'package:resonant/core/ui/splash_motion.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/splash_screen.dart';
+import 'package:resonant/features/touch/presentation/tour_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fakes.dart';
 
@@ -132,7 +134,10 @@ void main() {
     });
   });
   group('splash screen', () {
-    Future<ProviderContainer> rigged(Log log) async {
+    Future<ProviderContainer> rigged(Log log,
+        [Map<String, Object> initialPrefs = const {seenTourKey: true}]) async {
+      SharedPreferences.setMockInitialValues(initialPrefs);
+      final prefs = await SharedPreferences.getInstance();
       final container = ProviderContainer(
         overrides: [
           speechProvider.overrideWithValue(FakeSpeech(log)),
@@ -140,6 +145,7 @@ void main() {
           cuesProvider.overrideWithValue(FakeCues(log)),
           speechInputProvider.overrideWithValue(FakeInput(log)),
           repositoryProvider.overrideWithValue(FakeRepository(log)),
+          sharedPreferencesProvider.overrideWithValue(prefs),
         ],
       );
       addTearDown(container.dispose);
@@ -249,6 +255,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pump(const Duration(milliseconds: 500));
       expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.byType(TourScreen), findsNothing);
     });
   });
 }

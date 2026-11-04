@@ -17,6 +17,7 @@ import 'package:resonant/features/touch/presentation/chat_screen.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
 import 'package:resonant/features/touch/presentation/lessons_screen.dart';
 import 'package:resonant/features/touch/presentation/quiz_browser_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../test/fakes.dart';
 
@@ -72,7 +73,14 @@ void main() {
     tester.view.physicalSize = const Size(1170, 2532);
     tester.view.devicePixelRatio = 3.0;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(ProviderScope(overrides: fakes(), child: const ResonantApp()));
+    // Screenshots start from home: a returning device, not the tutorial.
+    // ignore: invalid_use_of_visible_for_testing_member
+    SharedPreferences.setMockInitialValues(const {seenTourKey: true});
+    final prefs = await SharedPreferences.getInstance();
+    await tester.pumpWidget(ProviderScope(
+      overrides: [...fakes(), sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const ResonantApp(),
+    ));
     // The app boots through the splash: choreography, hold, exit fade, then
     // the nav to Home.
     await tester.pump(const Duration(milliseconds: 2900));
