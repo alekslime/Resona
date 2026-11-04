@@ -1,16 +1,17 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
-import 'core/env.dart';
-import 'features/touch/data/http_touch_repository.dart';
+import 'core/providers.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Warm the backend before the first real request: silent, errors ignored.
-  // The health check never throws; a sleeping server just wakes up.
-  unawaited(HttpTouchRepository(baseUrl: Env.apiBase).health());
-  runApp(const ProviderScope(child: ResonantApp()));
+  final prefs = await SharedPreferences.getInstance();
+  runApp(
+    ProviderScope(
+      overrides: [sharedPreferencesProvider.overrideWithValue(prefs)],
+      child: const ResonantApp(),
+    ),
+  );
 }

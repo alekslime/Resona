@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'env.dart';
 import 'services/audio_cues.dart';
@@ -25,6 +26,15 @@ final cuesProvider = Provider<Cues>((ref) => AudioPlayersCues());
 final speechInputProvider = Provider<SpeechInput>((ref) => SpeechToTextInput());
 final repositoryProvider = Provider<TouchRepository>(
   (ref) => HttpTouchRepository(baseUrl: Env.apiBase),
+);
+
+/// True once the tutorial has been shown on this device.
+const seenTourKey = 'seen_tour';
+
+/// On-device flags. Overridden in main() with the real store and in tests
+/// with a mock-seeded one; anything else is a wiring bug.
+final sharedPreferencesProvider = Provider<SharedPreferences>(
+  (_) => throw UnimplementedError('sharedPreferencesProvider was not overridden.'),
 );
 
 class PaletteNotifier extends Notifier<ResonantPalette> {
