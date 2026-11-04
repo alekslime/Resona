@@ -403,7 +403,7 @@ String quizHoldSummary({
 }) {
   final String status;
   if (submitted) {
-    status = 'Submitted. ${correct == true ? 'Correct' : 'Incorrect'}. Swipe up to continue.';
+    status = 'Submitted. ${correct == true ? 'Correct' : 'Incorrect'}. Swipe down to continue.';
   } else if (selectedLetter != null) {
     status = 'Option $selectedLetter selected. Swipe right to submit.';
   } else {

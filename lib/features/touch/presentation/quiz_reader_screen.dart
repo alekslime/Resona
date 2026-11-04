@@ -344,7 +344,7 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
                                         minSp: 20,
                                       )
                                     : Text(
-                                        'Swipe up to see options',
+                                        'Swipe down to see options',
                                         style: TextStyle(
                                           fontFamily: font.family,
                                           fontWeight: FontWeight.w600,

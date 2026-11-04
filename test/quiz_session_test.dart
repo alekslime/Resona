@@ -28,7 +28,7 @@ void main() {
       expect(
         quizHoldSummary(
             questionIndex: 1, total: 5, submitted: true, correct: true),
-        'Quiz, question 2 of 5. Submitted. Correct. Swipe up to continue.',
+        'Quiz, question 2 of 5. Submitted. Correct. Swipe down to continue.',
       );
       expect(
         quizHoldSummary(
