@@ -132,6 +132,22 @@ test("chat carries history and the touched part", async () => {
   });
 });
 
+test("chat answers without a picture (text only)", async () => {
+  await withServer(fakeMeta, async (base) => {
+    const res = await post(base, "/api/chat", { question: "What is the capital of France?" });
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).answer, 'Chat (0 past): "What is the capital of France?" near nothing.');
+  });
+});
+
+test("chat rejects a malformed image instead of answering blind", async () => {
+  await withServer(fakeMeta, async (base) => {
+    const res = await post(base, "/api/chat", { image: "not-a-picture", question: "Hi?" });
+    assert.equal(res.status, 400);
+    assert.match((await res.json()).error, /PNG, JPEG or WebP/);
+  });
+});
+
 test("analyze is cached: the same picture is described once", async () => {
   let describes = 0;
   const counting = { ...fakeMeta, describeParts: async (...a) => { describes++; return fakeMeta.describeParts(...a); } };
