@@ -262,14 +262,19 @@ export function createApp(meta) {
   app.post("/api/chat", createLimiter({ max: 20, windowMs: 60_000 }), async (req, res, next) => {
     try {
       requireMeta();
-      parseImage(req.body?.image);
+      // The image is optional: with one the tutor sees the picture, without
+      // one it answers from the question and history alone. A present but
+      // malformed image is still a 400 — never answer blind by accident.
+      const rawImage = req.body?.image;
+      const image = typeof rawImage === "string" && rawImage ? rawImage : null;
+      if (image) parseImage(image);
       const question = String(req.body?.question ?? "").trim().slice(0, 500);
       if (!question) throw httpError(400, "Say or type a question first.");
       const history = (Array.isArray(req.body?.history) ? req.body.history : [])
         .filter((h) => h && typeof h.q === "string" && typeof h.a === "string")
         .slice(-6)
         .map((h) => ({ q: h.q.slice(0, 500), a: h.a.slice(0, 1000) }));
-      const answer = await meta.chat(req.body.image, question, {
+      const answer = await meta.chat(image, question, {
         title: String(req.body?.title ?? "").slice(0, 200),
         regionLabel: String(req.body?.regionLabel ?? "").slice(0, 200),
         history,

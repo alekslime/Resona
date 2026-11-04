@@ -154,27 +154,33 @@ Question: ${question}`;
       return parseGrade(await this.generate(gradePrompt({ question, expected, answer }), 800));
     },
 
-    /** Multi-turn voice tutor: like ask(), but the conversation so far travels with the question. */
+    /**
+     * Multi-turn voice tutor: like ask(), but the conversation so far travels
+     * with the question. Without a picture it is a text-only tutor: same
+     * voice, no picture to look at.
+     */
     async chat(dataUrl, question, { title, regionLabel, history = [] }) {
-      const where = regionLabel
-        ? `The student's finger is on "${regionLabel}".`
-        : "The student's finger is not on a named part right now.";
       const past = history
         .slice(-6)
         .map((h) => `Student: ${h.q}\nTutor: ${h.a}`)
         .join("\n");
-      const prompt = `You are a patient tutor helping a blind student explore this picture by touch${title ? ` (it is titled "${title}")` : ""}. ${where}
-${past ? `Conversation so far:\n${past}\n` : ""}Answer the new question in at most three short sentences, in plain words that sound natural read aloud. No lists, no markdown. Build on what was already discussed. If the picture does not show the answer, say so.
+      const pastBlock = past ? `Conversation so far:\n${past}\n` : "";
+      const style =
+        "Answer the new question in at most three short sentences, in plain words that sound natural read aloud. No lists, no markdown. Build on what was already discussed.";
+      const prompt = dataUrl
+        ? `You are a patient tutor helping a blind student explore this picture by touch${title ? ` (it is titled "${title}")` : ""}. ${
+            regionLabel
+              ? `The student's finger is on "${regionLabel}".`
+              : "The student's finger is not on a named part right now."
+          }
+${pastBlock}${style} If the picture does not show the answer, say so.
+New question: ${question}`
+        : `You are a patient tutor chatting with a blind student. No picture is open.
+${pastBlock}${style} If you do not know the answer, say so.
 New question: ${question}`;
-      return (
-        await spark(
-          [
-            { type: "input_text", text: prompt },
-            { type: "input_image", image_url: dataUrl },
-          ],
-          3000,
-        )
-      ).trim();
+      const content = [{ type: "input_text", text: prompt }];
+      if (dataUrl) content.push({ type: "input_image", image_url: dataUrl });
+      return (await spark(content, 3000)).trim();
     },
   };
 }
