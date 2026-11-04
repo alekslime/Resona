@@ -268,15 +268,29 @@ void main() {
       await Future<void>.delayed(Duration.zero);
     });
 
-    test('without a picture, the lessons answer', () async {
+    test('without a picture, the text tutor answers', () async {
       final r = rig();
-      await r.session.askTyped('matters');
+      await r.session.askTyped('what is the capital of France?');
       expect(
-        r.log.events.where((e) => e.startsWith('ask:')),
-        isEmpty,
+        r.log.events,
+        contains('ask:what is the capital of France?||past:0'),
       );
-      expect(r.log.events, contains('say: This is from the lesson.'));
-      expect(r.log.events, contains('say+: Why sorting matters.'));
+      expect(r.log.events, contains('say: It is the sun.'));
+      expect(r.session.view.exchanges, hasLength(1));
+      expect(r.session.view.offline, isFalse);
+    });
+
+    test('without a picture and no server, the lessons step in', () async {
+      final log = Log();
+      final repo = FakeRepository(log)..fail = TouchApiException('Down.');
+      final r = rig(repo: repo);
+      await r.session.askTyped('matters');
+      expect(r.session.view.offline, isTrue);
+      expect(
+        r.log.events,
+        contains(
+            "say: I can't reach the AI server, so this is from the lesson."),
+      );
     });
 
     test('the first answer without a picture points at Pictures, once',
@@ -312,7 +326,7 @@ void main() {
       expect(r.session.view.offline, isTrue);
     });
 
-    test('lesson answers without a picture are not offline', () async {
+    test('a text answer without a picture is not offline', () async {
       final r = rig();
       await r.session.askTyped('matters');
       expect(r.session.view.offline, isFalse);

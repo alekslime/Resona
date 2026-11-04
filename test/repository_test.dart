@@ -170,6 +170,27 @@ void main() {
     });
   });
 
+  group('chatText', () {
+    test('posts the question and history with no image', () async {
+      Map<String, dynamic>? body;
+      final client = MockClient((req) async {
+        expect(req.url.path, '/api/chat');
+        body = jsonDecode(req.body) as Map<String, dynamic>;
+        return http.Response('{"answer":"Paris."}', 200);
+      });
+      final answer = await repo(client).chatText(
+        question: 'What is the capital of France?',
+        history: const [(q: 'Hi.', a: 'Hello.')],
+      );
+      expect(answer, 'Paris.');
+      expect(body!['question'], 'What is the capital of France?');
+      expect(body!['history'], [
+        {'q': 'Hi.', 'a': 'Hello.'}
+      ]);
+      expect(body!.containsKey('image'), isFalse);
+    });
+  });
+
   group('gallery', () {
     test('bundled entries plus backend extras, bundled wins on id clash',
         () async {
