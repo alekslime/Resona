@@ -3,19 +3,22 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/env.dart';
 import '../../../core/nav/resonant_nav.dart';
 import '../../../core/providers.dart';
 import '../../../core/ui/enter.dart';
+import '../../../core/ui/resonant_controls.dart';
 import '../../../core/ui/resonant_dots.dart';
 import '../../../core/ui/system_bars.dart';
 import '../../../core/ui/top_bar.dart';
 import '../application/chat_session.dart';
-import '../application/touch_controller.dart';
-import '../domain/region.dart';
+import '../application/recents.dart';
+import '../data/touch_repository.dart';
 import 'ask_pill.dart';
+import 'camera_sheet.dart';
 import 'gesture_surface.dart';
 import 'home_screen.dart';
-import 'pictures_screen.dart';
+import 'live_talk_screen.dart';
 import 'settings_screen.dart';
 
 /// The strip under the top bar while the AI server is known to be down:
@@ -57,7 +60,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       input: ref.read(speechInputProvider),
       recent: widget.recent,
       previous: ref.read(chatHistoryProvider),
-      onGuide: _guideTo,
+
       onBack: () {
         if (mounted) {
           unawaited(goBack(context, home: const HomeScreen()));
@@ -81,23 +84,38 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     super.dispose();
   }
 
-  void _guideTo(Region region) {
-    final recent = widget.recent;
-    if (recent == null || !mounted) return;
-    final controller = ref.read(touchControllerProvider.notifier);
-    controller.openRecent(recent);
-    controller.guideTo(region);
-    Navigator.of(context).push(resonantRoute(
-      const PicturesScreen(),
-      reduce: MediaQuery.of(context).disableAnimations,
-    ));
-  }
-
   void _openSettings(BuildContext context) {
     Navigator.of(context).push(resonantRoute(
       const SettingsScreen(),
       reduce: MediaQuery.of(context).disableAnimations,
     ));
+  }
+
+  Future<void> _openCamera() async {
+    final recent = await showCameraSheet(context);
+    if (recent == null || !mounted) return;
+    _session.attachPicture(recent);
+  }
+
+  Future<void> _talkLive() async {
+    final recent = _session.recent;
+    if (recent == null) return;
+    await ref.read(speechProvider).stop();
+    try {
+      final connection = await ref.read(repositoryProvider).liveVoice(
+            title: recent.analysis.title,
+            overview: recent.analysis.overview,
+          );
+      if (!mounted) return;
+      Navigator.of(context).push(resonantRoute(
+        LiveTalkScreen(connection: connection, title: recent.analysis.title),
+        reduce: MediaQuery.of(context).disableAnimations,
+      ));
+    } on TouchApiException catch (e) {
+      ref.read(speechProvider).speak(e.message);
+    } catch (_) {
+      ref.read(speechProvider).speak('Something went wrong. Try again.');
+    }
   }
 
   @override
@@ -137,7 +155,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
             Expanded(
               child: GestureSurface(
-                exploreEnabled: false,
                 onGesture: _session.handle,
                 child: Padding(
                   padding:
@@ -157,10 +174,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 ),
               ),
             ),
+            if (Env.liveVoiceEnabled && _session.recent != null)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+                child: ResonantButton(
+                  text: 'Talk live',
+                  filled: false,
+                  onPressed: _talkLive,
+                ),
+              ),
             AskPill(
               listening: view.listening,
               onSubmit: (q) => unawaited(_session.askTyped(q)),
               onMic: () => unawaited(_session.askTapped()),
+              onCamera: _openCamera,
             ),
           ],
         ),

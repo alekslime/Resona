@@ -8,8 +8,6 @@ import '../../learn/domain/library.dart';
 import '../../learn/domain/offline_answers.dart';
 import '../../learn/domain/sentences.dart';
 import '../data/touch_repository.dart';
-import '../domain/guide_match.dart';
-import '../domain/region.dart';
 import '../gestures/gesture_types.dart';
 import 'recents.dart';
 
@@ -54,8 +52,7 @@ class ChatView {
 
 /// The voice tutor's chat, ported from Resonant's ChatScreen (phone side).
 /// Ask by voice or by typing; the backend tutor answers with or without a
-/// picture, and when the server fails the shipped lessons do. "Where
-/// is the X?" hands the hunt to the picture instead of answering.
+/// picture, and when the server fails the shipped lessons do.
 ///
 /// Pure Dart behind the existing interfaces: speech, haptics, cues, mic
 /// and repository are all injected and faked in tests.
@@ -69,7 +66,6 @@ class ChatSession {
     RecentPicture? recent,
     List<ChatExchange> previous = const [],
     this.lessons = builtInLessons,
-    this.onGuide,
     this.onBack,
     this.onChanged,
     this.thinkingTick = const Duration(seconds: 2),
@@ -86,10 +82,6 @@ class ChatSession {
   final SpeechInput input;
   final List<LibraryLesson> lessons;
 
-  /// A "where is" found its part: the screen opens the picture and starts
-  /// the hunt there.
-  final void Function(Region region)? onGuide;
-
   /// The right-edge hold: back out of chat.
   final void Function()? onBack;
   final void Function(ChatView view)? onChanged;
@@ -99,7 +91,7 @@ class ChatSession {
   final Duration thinkingTick;
   final Duration thinkingSpokenEvery;
 
-  final RecentPicture? _recent;
+  RecentPicture? _recent;
   final List<ChatExchange> _exchanges;
   bool _thinking = false;
   bool _listening = false;
@@ -109,8 +101,6 @@ class ChatSession {
   int _flatIndex = 0;
   int _requestId = 0;
   Timer? _ticker;
-  Region? _pendingFirst;
-  Region? _pendingSecond;
   bool _disposed = false;
 
   ChatView get view => ChatView(
@@ -148,6 +138,23 @@ class ChatSession {
           '${n == 1 ? 'exchange' : 'exchanges'} from before. '
           'Swipe up or down to review them, or tap center to ask something new.');
     }
+    _emit();
+  }
+
+  /// The picture the tutor answers from, or null before one is attached.
+  RecentPicture? get recent => _recent;
+
+  /// A picture arrives from the camera sheet: it becomes the tutor's context
+  /// and a fresh conversation starts about it. Announced, never silent.
+  void attachPicture(RecentPicture recent) {
+    _cancelRequest();
+    _recent = recent;
+    _exchanges.clear();
+    _flatIndex = 0;
+    _offline = false;
+    final a = recent.analysis;
+    _say(
+        '${a.title}. ${a.regions.length} parts: ${a.regions.map((r) => r.label).join(', ')}. ${a.overview} Ask me anything about it.');
     _emit();
   }
 
@@ -223,33 +230,6 @@ class ChatSession {
       _emit();
       return;
     }
-    // An open "did you mean A or B?" lasts exactly one answer: anything
-    // that does not pick a side dismisses it.
-    if (_pendingFirst != null && _pendingSecond != null) {
-      final first = _pendingFirst, second = _pendingSecond;
-      _pendingFirst = _pendingSecond = null;
-      final pick = resolveGuidePick(first!, second!, question);
-      if (pick != null) {
-        _handToGuide(pick == 0 ? first : second);
-        return;
-      }
-    }
-    if (_recent != null) {
-      final match = matchGuideTarget(_recent.analysis.regions, question);
-      if (match is GuideAmbiguous) {
-        _pendingFirst = match.first;
-        _pendingSecond = match.second;
-        _say('Did you mean ${match.first.label} or ${match.second.label}?');
-        _emit();
-        return;
-      }
-      // GuideNotFound falls through to the tutor: the model may still know
-      // the answer even when no part matched by name.
-      if (match is GuideFound) {
-        _handToGuide(match.region);
-        return;
-      }
-    }
     _thinking = true;
     _status = 'Thinking…';
     _emit();
@@ -305,18 +285,10 @@ class ChatSession {
     // so a fresh chat still teaches where pictures live.
     if (_recent == null && !_picturedHintGiven) {
       _picturedHintGiven = true;
-      _say('Open a picture in Pictures, and I can answer about that too.',
+      _say('Tap the camera button below to add a picture, and I can answer about that too.',
           queue: true);
     }
     _emit();
-  }
-
-  void _handToGuide(Region region) {
-    _thinking = false;
-    _status = '';
-    _say('Opening the picture to guide you to the ${region.label}.');
-    _emit();
-    onGuide?.call(region);
   }
 
   void _addExchange(ChatExchange exchange) {

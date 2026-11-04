@@ -4,9 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/providers.dart';
 import '../../../core/ui/icons.dart';
 
-/// "Ask anything…" — type a question, or tap the mic to ask by voice (same
-/// path as tapping the center of the screen). Ported from Resonant's
-/// AskPill. Lives outside the GestureSurface on purpose: the gesture
+/// "Ask anything…" — type a question, tap the mic to ask by voice (same
+/// path as tapping the center of the screen), or tap the camera to add a
+/// picture. Ported from Resonant's AskPill. Lives outside the
+/// GestureSurface on purpose: the gesture
 /// detector consumes touches, so a text field inside it could never be
 /// focused.
 class AskPill extends ConsumerStatefulWidget {
@@ -15,11 +16,13 @@ class AskPill extends ConsumerStatefulWidget {
     required this.listening,
     required this.onSubmit,
     required this.onMic,
+    required this.onCamera,
   });
 
   final bool listening;
   final void Function(String question) onSubmit;
   final VoidCallback onMic;
+  final VoidCallback onCamera;
 
   @override
   ConsumerState<AskPill> createState() => _AskPillState();
@@ -83,6 +86,24 @@ class _AskPillState extends ConsumerState<AskPill> {
                 ),
               ),
             ),
+            Semantics(
+              label: 'Add a picture',
+              button: true,
+              child: GestureDetector(
+                onTap: widget.onCamera,
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: palette.onBar,
+                  ),
+                  alignment: Alignment.center,
+                  child: CameraIcon(tint: palette.bar),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
             Semantics(
               label: widget.listening ? 'Listening' : 'Ask by voice',
               button: true,
