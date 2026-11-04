@@ -251,7 +251,6 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
                 },
                 onBack: _leave,
                 child: GestureSurface(
-                  exploreEnabled: false,
                   onGesture: _onGesture,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

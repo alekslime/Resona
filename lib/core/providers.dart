@@ -237,19 +237,3 @@ class UserNameNotifier extends Notifier<String?> {
 final userNameProvider =
     NotifierProvider<UserNameNotifier, String?>(UserNameNotifier.new);
 
-/// Milestones already celebrated, so each is cheered once.
-/// Session-only for now.
-class MilestoneSeenNotifier extends Notifier<Set<String>> {
-  @override
-  Set<String> build() => const {};
-
-  void markSeen(Iterable<String> ids) {
-    state = {...state, ...ids};
-  }
-
-  void clear() => state = const {};
-}
-
-final milestoneSeenProvider =
-    NotifierProvider<MilestoneSeenNotifier, Set<String>>(
-        MilestoneSeenNotifier.new);

@@ -72,16 +72,6 @@ class Region {
     );
   }
 
-  /// Is the picture pixel ([x], [y]) inside this part's outline?
-  bool contains(num x, num y) {
-    if (x < left || x >= right || y < top || y >= bottom) return false;
-    final u = (((x - left) / (right - left)) * maskW).floor().clamp(0, maskW - 1);
-    final v = (((y - top) / (bottom - top)) * maskH).floor().clamp(0, maskH - 1);
-    return bits[v * maskW + u] == 1;
-  }
-
-  double get centerX => (left + right) / 2;
-  double get centerY => (top + bottom) / 2;
 }
 
 /// What the backend returns for one picture.

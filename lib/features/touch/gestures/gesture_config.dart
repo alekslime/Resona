@@ -10,8 +10,6 @@ class GestureConfig {
     this.swipeMinDistance = 28,
     this.holdStepPx = 56,
     this.edgeZonePx = 64,
-    this.restMs = 700,
-    this.restJitterPx = 4,
     // A finger moving DOWN the screen is SwipeDirection.up, which every screen treats as "next".
     this.invertVerticalSwipes = true,
     this.invertHorizontalSwipes = false,
@@ -26,8 +24,6 @@ class GestureConfig {
   final double swipeMinDistance;
   final double holdStepPx;
   final double edgeZonePx;
-  final int restMs;
-  final double restJitterPx;
   final bool invertVerticalSwipes;
   final bool invertHorizontalSwipes;
   final bool invertSpeedDrag;

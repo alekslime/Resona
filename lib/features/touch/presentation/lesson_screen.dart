@@ -113,7 +113,6 @@ class _LessonScreenState extends ConsumerState<LessonScreen> {
             ),
             Expanded(
               child: GestureSurface(
-                exploreEnabled: false,
                 twoFingerSwipe: true,
                 onGesture: _session.handle,
                 child: SingleChildScrollView(

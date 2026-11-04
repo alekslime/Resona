@@ -191,7 +191,6 @@ class _QuizResultsScreenState extends ConsumerState<QuizResultsScreen> {
             ),
             Expanded(
               child: GestureSurface(
-                exploreEnabled: false,
                 onGesture: _onGesture,
                 child: Padding(
                   padding:

@@ -1,15 +1,13 @@
 /// The menu home screen, ported from Resonant's HomeScreen.
 ///
 /// A fixed brand surface — flat theme background, matching the splash it
-/// visually continues from. Eight big lines; the focused one draws in ink and
+/// visually continues from. Five big lines; the focused one draws in ink and
 /// the rest in dim. A tap opens the item; a two-finger swipe moves focus and
 /// speaks it, while one finger only scrolls.
 ///
-/// The old menu (Chat, Lessons, Quiz, Profile, Settings, Quit) plus our two
-/// picture children: Pictures, where a finger explores, and Notes, the study
-/// notes it leaves behind. Chat and Notes hang off the last explored
-/// picture, like old Chat answering from the material opened last; Chat
-/// without a picture still talks, while Notes sends you to Pictures first.
+/// The old menu (Chat, Lessons, Quiz, Settings, Quit) with Chat first. Chat
+/// hangs off the last attached picture, like old Chat answering from the
+/// material opened last; without a picture it still talks.
 ///
 /// Menu words are huge already, so the text size stops at 1.2x here.
 library;
@@ -32,16 +30,13 @@ import '../../../core/ui/enter.dart';
 import '../../../core/ui/focus_fade.dart';
 import '../../../core/ui/key_shortcuts.dart';
 import '../../../core/ui/system_bars.dart';
-import '../application/touch_controller.dart';
+import '../application/pictures_controller.dart';
 import '../gestures/gesture_types.dart';
 import 'chat_screen.dart';
 import 'gesture_surface.dart';
 import 'lessons_screen.dart';
-import 'pictures_screen.dart';
-import 'profile_screen.dart';
 import 'quiz_browser_screen.dart';
 import 'settings_screen.dart';
-import 'study_notes_screen.dart';
 
 class _HomeItem {
   const _HomeItem(this.label, this.route);
@@ -54,9 +49,6 @@ const _items = [
   _HomeItem('Chat', Routes.chat),
   _HomeItem('Lessons', Routes.lessons),
   _HomeItem('Quiz', Routes.quiz),
-  _HomeItem('Pictures', Routes.pictures),
-  _HomeItem('Notes', Routes.notes),
-  _HomeItem('Profile', Routes.profile),
   _HomeItem('Settings', Routes.settings),
   _HomeItem('Quit', Routes.quit),
 ];
@@ -105,11 +97,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   /// The picture everything hangs off, or null before the first explore.
   RecentPicture? get _last {
-    final recents = ref.read(touchControllerProvider).recents;
+    final recents = ref.read(picturesControllerProvider).recents;
     return recents.isEmpty ? null : recents.first;
   }
-
-  bool _needsContext(String route) => route == Routes.notes;
 
   Future<void> _open(int i) async {
     final item = _items[i];
@@ -124,12 +114,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
       return;
     }
-    if (_needsContext(item.route) && _last == null) {
-      ref.read(speechProvider).speak(
-          'Explore a picture first, then come back to revise.');
-      _push(const PicturesScreen());
-      return;
-    }
     ref.read(speechProvider).speak('Opening ${item.label}.');
     switch (item.route) {
       case Routes.chat:
@@ -138,12 +122,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         _push(const LessonsScreen());
       case Routes.quiz:
         _push(const QuizBrowserScreen());
-      case Routes.pictures:
-        _push(const PicturesScreen());
-      case Routes.notes:
-        _push(StudyNotesScreen(analysis: _last!.analysis));
-      case Routes.profile:
-        _push(const ProfileScreen());
       case Routes.settings:
         _push(const SettingsScreen());
     }
@@ -241,7 +219,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           onActivate: () => _open(_focus.index),
           onBack: _alreadyHome,
           child: GestureSurface(
-            exploreEnabled: false,
             twoFingerSwipe: true,
             ignoreChildGestureAt: _onItem,
             onGesture: _onGesture,
@@ -253,7 +230,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) => SingleChildScrollView(
                 controller: _scroll,
-                // Eight lines at this size do not fit every phone: one finger
+                // Five lines at this size do not fit every phone: one finger
                 // scrolls when they overflow, and a two-finger swipe moves
                 // focus whether they fit or not.
                 child: ConstrainedBox(

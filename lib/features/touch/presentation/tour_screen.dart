@@ -112,7 +112,6 @@ class _TourScreenState extends ConsumerState<TourScreen> {
         onActivate: () => _move(1),
         onBack: _leave,
         child: GestureSurface(
-          exploreEnabled: false,
           onGesture: _onGesture,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),

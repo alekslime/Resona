@@ -262,7 +262,6 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
                 onBack: () =>
                     unawaited(goBack(context, home: const HomeScreen())),
                 child: GestureSurface(
-                  exploreEnabled: false,
                   twoFingerSwipe: true,
                   ignoreChildGestureAt: _onCard,
                   onGesture: _onGesture,

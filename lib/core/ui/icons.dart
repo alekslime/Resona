@@ -1,7 +1,8 @@
 /// The Figma icons, ported from Resonant's vector drawables and Icons.kt.
 ///
 /// Coordinates are transcribed 1:1 from res/drawable (ic_back, ic_settings,
-/// ic_mic, ic_arrow_up/down); [tint] recolors them, so one asset serves
+/// ic_mic, ic_arrow_up/down), except the camera glyph, which is original;
+/// [tint] recolors them, so one asset serves
 /// every background. Decorative: the buttons that hold them carry their
 /// own spoken labels.
 library;
@@ -247,6 +248,40 @@ Path _arrowUpPath() => Path()
   ..lineTo(53.625, 97.5)
   ..lineTo(53.625, 38.1469)
   ..close();
+
+class CameraIcon extends StatelessWidget {
+  const CameraIcon({super.key, required this.tint, this.size = 26});
+
+  final Color tint;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) => ExcludeSemantics(
+        child: SizedBox.square(
+          dimension: size,
+          child: CustomPaint(
+            painter: _VectorPainter(
+              path: _cameraPath(),
+              viewport: 24,
+              tint: tint,
+              strokeWidth: 2.2,
+            ),
+          ),
+        ),
+      );
+}
+
+Path _cameraPath() => Path()
+  ..moveTo(3, 8.5)
+  ..lineTo(3, 18)
+  ..lineTo(21, 18)
+  ..lineTo(21, 8.5)
+  ..lineTo(16.5, 8.5)
+  ..lineTo(15, 6)
+  ..lineTo(9, 6)
+  ..lineTo(7.5, 8.5)
+  ..close()
+  ..addOval(Rect.fromCircle(center: const Offset(12, 13.2), radius: 3.6));
 
 Path _arrowDownPath() => Path()
   ..moveTo(63.375, 78.8531)

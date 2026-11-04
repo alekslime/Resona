@@ -164,7 +164,6 @@ class _LessonModeScreenState extends ConsumerState<LessonModeScreen> {
             ),
             Expanded(
               child: GestureSurface(
-                exploreEnabled: false,
                 ignoreChildGestureAt: _onCard,
                 onGesture: _onGesture,
                 child: Padding(

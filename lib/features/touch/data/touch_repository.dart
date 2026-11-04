@@ -1,6 +1,5 @@
 import 'dart:typed_data';
 
-import '../../learn/domain/learn.dart';
 import '../domain/region.dart';
 
 /// The picture the user chose, already downscaled for upload.
@@ -81,13 +80,6 @@ abstract class TouchRepository {
   Future<Analysis> analyze(PictureBytes picture,
       {void Function(AnalyzeProgress progress)? onProgress});
 
-  Future<String> ask(
-    PictureBytes picture, {
-    required String question,
-    required String title,
-    String regionLabel = '',
-  });
-
   /// Multi-turn voice tutor: [history] is the conversation so far, oldest first.
   Future<String> chat(
     PictureBytes picture, {
@@ -103,17 +95,6 @@ abstract class TouchRepository {
     required String question,
     List<({String q, String a})> history = const [],
   });
-
-  /// A guided lesson over the parts of a picture that was already analyzed.
-  Future<Lesson> lesson(Analysis analysis);
-
-  /// Check-me questions (find-it by touch, say-it by voice) over the same parts.
-  Future<Quiz> quiz(Analysis analysis);
-
-  Future<Grade> grade(
-      {required String question,
-      required String expected,
-      required String answer});
 
   /// Join details for a live, interruptible voice conversation about a picture.
   Future<LiveVoiceConnection> liveVoice({

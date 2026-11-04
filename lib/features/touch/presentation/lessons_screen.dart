@@ -178,7 +178,6 @@ class _LessonsScreenState extends ConsumerState<LessonsScreen> {
                 onBack: () =>
                     unawaited(goBack(context, home: const HomeScreen())),
                 child: GestureSurface(
-                  exploreEnabled: false,
                   twoFingerSwipe: true,
                   ignoreChildGestureAt: _onCard,
                   onGesture: _onGesture,

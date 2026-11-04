@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:http/http.dart' as http;
 
-import '../../learn/domain/learn.dart';
 import '../domain/region.dart';
 import 'touch_repository.dart';
 
@@ -184,25 +183,6 @@ class HttpTouchRepository implements TouchRepository {
   }
 
   @override
-  Future<String> ask(
-    PictureBytes picture, {
-    required String question,
-    required String title,
-    String regionLabel = '',
-  }) async {
-    final json = await _post(
-        '/api/ask',
-        {
-          'image': _dataUrl(picture),
-          'question': question,
-          'title': title,
-          'regionLabel': regionLabel,
-        },
-        const Duration(seconds: 60));
-    return json['answer'] as String;
-  }
-
-  @override
   Future<String> chat(
     PictureBytes picture, {
     required String question,
@@ -240,45 +220,6 @@ class HttpTouchRepository implements TouchRepository {
         },
         const Duration(seconds: 60));
     return json['answer'] as String;
-  }
-
-  Map<String, dynamic> _learnBody(Analysis a) => {
-        'title': a.title,
-        'overview': a.overview,
-        'regions': [
-          for (final r in a.regions)
-            {
-              'id': r.id,
-              'label': r.label,
-              'spoken': r.spoken,
-              'detail': r.detail
-            },
-        ],
-      };
-
-  @override
-  Future<Lesson> lesson(Analysis analysis) async => Lesson.fromJson(await _post(
-      '/api/lesson', _learnBody(analysis), const Duration(seconds: 60)));
-
-  @override
-  Future<Quiz> quiz(Analysis analysis) async => Quiz.fromJson(await _post(
-      '/api/quiz', _learnBody(analysis), const Duration(seconds: 60)));
-
-  @override
-  Future<Grade> grade({
-    required String question,
-    required String expected,
-    required String answer,
-  }) async {
-    final json = await _post(
-        '/api/grade',
-        {
-          'question': question,
-          'expected': expected,
-          'answer': answer,
-        },
-        const Duration(seconds: 60));
-    return Grade.fromJson(json);
   }
 
   @override

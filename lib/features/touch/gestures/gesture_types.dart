@@ -14,7 +14,7 @@ class PointerSample {
   final int timeMs;
 }
 
-/// Everything the gesture engine can say. Resonant's grammar plus finger exploration.
+/// Everything the gesture engine can say: Resonant's menu grammar.
 sealed class Gesture {
   const Gesture();
 }
@@ -69,25 +69,4 @@ class ThreeFingerTap extends Gesture {
 
 class ThreeFingerHold extends Gesture {
   const ThreeFingerHold();
-}
-
-/// One finger is exploring the picture. Coordinates are screen coordinates.
-class ExploreStart extends Gesture {
-  const ExploreStart(this.x, this.y);
-  final double x, y;
-}
-
-class ExploreMove extends Gesture {
-  const ExploreMove(this.x, this.y);
-  final double x, y;
-}
-
-/// The finger moved, then rested in place: time to read the part under it.
-class ExploreRest extends Gesture {
-  const ExploreRest(this.x, this.y);
-  final double x, y;
-}
-
-class ExploreEnd extends Gesture {
-  const ExploreEnd();
 }

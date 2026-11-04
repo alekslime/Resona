@@ -448,7 +448,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         },
         onBack: _back,
         child: GestureSurface(
-          exploreEnabled: false,
           twoFingerSwipe: true,
           ignoreChildGestureAt: _onRow,
           onGesture: _onGesture,
