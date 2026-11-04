@@ -225,6 +225,23 @@ class HttpTouchRepository implements TouchRepository {
     return json['answer'] as String;
   }
 
+  @override
+  Future<String> chatText({
+    required String question,
+    List<({String q, String a})> history = const [],
+  }) async {
+    final json = await _post(
+        '/api/chat',
+        {
+          'question': question,
+          'history': [
+            for (final h in history) {'q': h.q, 'a': h.a}
+          ],
+        },
+        const Duration(seconds: 60));
+    return json['answer'] as String;
+  }
+
   Map<String, dynamic> _learnBody(Analysis a) => {
         'title': a.title,
         'overview': a.overview,

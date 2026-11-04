@@ -129,6 +129,16 @@ class FakeRepository implements TouchRepository {
   }
 
   @override
+  Future<String> chatText({
+    required String question,
+    List<({String q, String a})> history = const [],
+  }) async {
+    log.events.add('ask:$question||past:${history.length}');
+    if (fail != null) throw fail!;
+    return answer;
+  }
+
+  @override
   Future<Lesson> lesson(Analysis analysis) async {
     log.events.add('lesson');
     final order = [...analysis.regions]

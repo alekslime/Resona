@@ -32,8 +32,7 @@ class ChatView {
   final int flatIndex;
 
   /// True once an answer has failed, until a fresh one lands. The screen
-  /// shows the offline banner for this; without a picture the lessons are
-  /// the plan, not a fallback, so it stays false there.
+  /// shows the offline banner for this.
   final bool offline;
 
   bool get hero => exchanges.isEmpty;
@@ -54,8 +53,8 @@ class ChatView {
 }
 
 /// The voice tutor's chat, ported from Resonant's ChatScreen (phone side).
-/// Ask by voice or by typing; with a picture the backend tutor answers,
-/// without one (or when the server fails) the shipped lessons do. "Where
+/// Ask by voice or by typing; the backend tutor answers with or without a
+/// picture, and when the server fails the shipped lessons do. "Where
 /// is the X?" hands the hunt to the picture instead of answering.
 ///
 /// Pure Dart behind the existing interfaces: speech, haptics, cues, mic
@@ -258,33 +257,32 @@ class ChatSession {
     _startTicker(myId);
     List<String> sentences;
     var cameBack = false;
-    if (_recent == null) {
-      sentences = offlineAnswer(question, lessons, serverDown: false).sentences;
-    } else {
-      try {
-        final tail = _exchanges.length > maxChatExchanges
-            ? _exchanges.sublist(_exchanges.length - maxChatExchanges)
-            : _exchanges;
-        final history = [
-          for (final e in tail) (q: e.userText, a: e.sentences.join(' ')),
-        ];
-        final answer = await repository.chat(
-          _recent.picture,
-          question: question,
-          title: _recent.analysis.title,
-          history: history,
-        );
-        sentences = splitSentences(answer);
-        cameBack = _offline;
-        _offline = false;
-      } catch (_) {
-        // When the AI server can't answer, the lesson text does: a
-        // degraded chat, not a dead one. The answer's own preface says
-        // the server is unreachable, so no extra spoken line here — the
-        // banner carries the persistent state instead.
-        _offline = true;
-        sentences = offlineAnswer(question, lessons).sentences;
-      }
+    final tail = _exchanges.length > maxChatExchanges
+        ? _exchanges.sublist(_exchanges.length - maxChatExchanges)
+        : _exchanges;
+    final history = [
+      for (final e in tail) (q: e.userText, a: e.sentences.join(' ')),
+    ];
+    final recent = _recent;
+    try {
+      final answer = recent == null
+          ? await repository.chatText(question: question, history: history)
+          : await repository.chat(
+              recent.picture,
+              question: question,
+              title: recent.analysis.title,
+              history: history,
+            );
+      sentences = splitSentences(answer);
+      cameBack = _offline;
+      _offline = false;
+    } catch (_) {
+      // When the AI server can't answer, the lesson text does: a
+      // degraded chat, not a dead one. The answer's own preface says
+      // the server is unreachable, so no extra spoken line here — the
+      // banner carries the persistent state instead.
+      _offline = true;
+      sentences = offlineAnswer(question, lessons).sentences;
     }
     if (myId != _requestId || _disposed) return; // cancelled or replaced
     _stopTicker();

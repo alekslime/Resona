@@ -97,6 +97,13 @@ abstract class TouchRepository {
     List<({String q, String a})> history = const [],
   });
 
+  /// Text-only tutor for chat without a picture: same endpoint as [chat],
+  /// no image attached. History is the conversation so far, oldest first.
+  Future<String> chatText({
+    required String question,
+    List<({String q, String a})> history = const [],
+  });
+
   /// A guided lesson over the parts of a picture that was already analyzed.
   Future<Lesson> lesson(Analysis analysis);
 

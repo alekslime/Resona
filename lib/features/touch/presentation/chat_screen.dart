@@ -28,7 +28,7 @@ const offlineBanner = 'Offline — answers come from the lessons.';
 /// The voice tutor's chat, ported from Resonant's ChatScreen.
 ///
 /// [recent] is the picture it answers from — the old active material —
-/// or null before the first explore, when the shipped lessons answer
+/// or null before the first explore, when the text tutor answers
 /// instead. Empty chat is the hero (dots, greeting, prompt); once there
 /// is a conversation the exchange takes the space. "Where is the X?"
 /// opens the picture and starts the hunt there.
