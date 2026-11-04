@@ -106,3 +106,52 @@ For a demo strangers can use without touching a terminal:
 
 The CI APK is signed with debug keys: it sideloads fine, but it is
 not a Play Store upload. See `.github/workflows/apk.yml`.
+
+## 6. Release signing (do this once)
+
+CI signs the rolling APK with a stable release key, so each download
+installs over the previous one. Without it every CI runner mints fresh
+debug keys and Android refuses the update ("App not installed").
+
+1. Generate the keystore (repo root, PowerShell; `keytool` ships with
+   every JDK and with Android Studio under `jbr/bin`):
+
+   ```powershell
+   keytool -genkeypair -v -keystore android/app/upload-keystore.jks `
+     -alias resonant -keyalg RSA -keysize 2048 -validity 10000
+   ```
+
+   Answer the prompts (passwords + name details). Never type the
+   passwords anywhere else, and never commit the `.jks` file.
+2. Encode it for the GitHub secret:
+
+   ```powershell
+   [Convert]::ToBase64String([IO.File]::ReadAllBytes("android/app/upload-keystore.jks")) `
+     | Set-Content keystore-base64.txt -NoNewline
+   ```
+3. Repo Settings -> Secrets and variables -> Actions -> **Secrets**
+   tab (not Variables) -> New repository secret, four times:
+
+   | Secret | Value |
+   | --- | --- |
+   | `ANDROID_KEYSTORE_BASE64` | the whole `keystore-base64.txt` content |
+   | `ANDROID_KEYSTORE_PASSWORD` | the store password from step 1 |
+   | `ANDROID_KEY_ALIAS` | `resonant` |
+   | `ANDROID_KEY_PASSWORD` | the key password from step 1 |
+
+4. Delete `keystore-base64.txt`. Keep the local `.jks` where it is:
+   it is gitignored, and keeping it means local installs carry the
+   same signature as the public APK instead of conflicting with it.
+5. Re-run the `Rolling APK` workflow (Actions tab -> Re-run). Each
+   build carries `--build-number` from the CI run number, so Android
+   always treats it as an update; `pubspec.yaml`'s version name is
+   untouched.
+
+**Back up `upload-keystore.jks` and both passwords somewhere safe
+outside the repo (password manager, USB stick).** If the key is lost,
+nobody can ever update the app in place again - every user would have
+to uninstall and reinstall a build signed with a new key.
+
+**One uninstall is required.** The first build signed with the new key
+does NOT install over the earlier debug-signed builds: existing
+testers must uninstall once. After that, updates overwrite cleanly.
