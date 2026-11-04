@@ -5,6 +5,7 @@ import 'package:flutter/services.dart' show AssetBundle, rootBundle;
 import 'package:http/http.dart' as http;
 
 import '../domain/region.dart';
+import '../../learn/domain/library.dart';
 import 'touch_repository.dart';
 
 /// Talks to the Resonant backend (see backend/), which holds the Meta API key.
@@ -257,6 +258,54 @@ class HttpTouchRepository implements TouchRepository {
         const Duration(seconds: 60),
         onSlow);
     return json['answer'] as String;
+  }
+
+  @override
+  Future<GeneratedQuiz> quiz({
+    required String topic,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  }) async {
+    final json = await _post(
+        '/api/quiz',
+        {
+          'topic': topic,
+          'history': [
+            for (final h in history) {'q': h.q, 'a': h.a}
+          ],
+        },
+        const Duration(seconds: 90),
+        onSlow);
+    try {
+      return GeneratedQuiz(
+        topic: json['topic'] as String,
+        questions: [
+          for (var i = 0; i < (json['questions'] as List).length; i++)
+            _quizQuestion(i, (json['questions'] as List)[i] as Map<String, dynamic>),
+        ],
+      );
+    } catch (_) {
+      throw TouchApiException(
+          'The quiz came back unreadable. Try again.');
+    }
+  }
+
+  /// One server question with client-side letters (A-D) and a stable id.
+  LibraryQuizQuestion _quizQuestion(int index, Map<String, dynamic> q) {
+    final options = q['options'] as List;
+    return LibraryQuizQuestion(
+      id: 'cq$index',
+      prompt: q['prompt'] as String,
+      options: [
+        for (var i = 0; i < options.length; i++)
+          LibraryQuizOption(
+            letter: String.fromCharCode(65 + i),
+            text: options[i] as String,
+          ),
+      ],
+      correctIndex: (q['correctIndex'] as num).toInt(),
+      explanation: q['explanation'] as String,
+    );
   }
 
   @override

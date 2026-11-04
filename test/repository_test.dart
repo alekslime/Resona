@@ -196,6 +196,62 @@ void main() {
     });
   });
 
+  group('quiz', () {
+    String quizJson() => jsonEncode({
+      'topic': 'The water cycle',
+      'questions': [
+        for (var i = 0; i < 5; i++)
+          {
+            'prompt': 'Q$i?',
+            'options': ['Right', 'Wrong a', 'Wrong b'],
+            'correctIndex': 0,
+            'explanation': 'Because $i.',
+          },
+      ],
+    });
+
+    test('posts the topic and history, parses letters and ids', () async {
+      Map<String, dynamic>? body;
+      final client = MockClient((req) async {
+        expect(req.url.path, '/api/quiz');
+        body = jsonDecode(req.body) as Map<String, dynamic>;
+        return http.Response(quizJson(), 200);
+      });
+      final quiz = await repo(client).quiz(
+        topic: 'The water cycle',
+        history: const [(q: 'Hi.', a: 'Hello.')],
+      );
+      expect(quiz.topic, 'The water cycle');
+      expect(quiz.questions.length, 5);
+      expect(quiz.questions[0].id, 'cq0');
+      expect(quiz.questions[0].options.map((o) => o.letter), ['A', 'B', 'C']);
+      expect(quiz.questions[0].correctIndex, 0);
+      expect(body!['topic'], 'The water cycle');
+      expect(body!['history'], [
+        {'q': 'Hi.', 'a': 'Hello.'}
+      ]);
+    });
+
+    test('an unreadable quiz is a plain error, not a crash', () async {
+      final client =
+          MockClient((_) async => http.Response('{"topic":"t"}', 200));
+      await expectLater(
+        repo(client).quiz(topic: 't'),
+        throwsA(isA<TouchApiException>().having(
+            (e) => e.message, 'message', contains('unreadable'))),
+      );
+    });
+
+    test('a server error speaks the server sentence', () async {
+      final client = MockClient(
+          (_) async => http.Response('{"error":"Slow down."}', 429));
+      await expectLater(
+        repo(client).quiz(topic: 't'),
+        throwsA(isA<TouchApiException>().having(
+            (e) => e.message, 'message', 'Slow down.')));
+    });
+  });
+
   group('gallery', () {
     test('bundled entries plus backend extras, bundled wins on id clash',
         () async {

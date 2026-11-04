@@ -9,6 +9,8 @@ import 'package:resonant/core/services/sound.dart';
 import 'package:resonant/core/services/speech.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
 import 'package:resonant/features/touch/domain/region.dart';
+import 'package:resonant/features/learn/domain/library.dart';
+import 'package:resonant/features/touch/application/chat_quizzes.dart';
 import 'package:resonant/features/touch/presentation/gesture_guide.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -135,6 +137,17 @@ class FakeRepository implements TouchRepository {
   }
 
   @override
+  Future<GeneratedQuiz> quiz({
+    required String topic,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  }) async {
+    log.events.add('quiz:$topic|past:${history.length}');
+    if (fail != null) throw fail!;
+    return cannedQuiz(topic);
+  }
+
+  @override
   Future<LiveVoiceConnection> liveVoice({
     required String title,
     String overview = '',
@@ -222,4 +235,54 @@ Future<SharedPreferences> guidesSeenPrefs() async {
     for (final s in GuideScreen.values) guideSeenKey(s): true,
   });
   return SharedPreferences.getInstance();
+}
+
+/// A 5-question generated quiz for tests.
+GeneratedQuiz cannedQuiz([String topic = 'The water cycle']) => GeneratedQuiz(
+      topic: topic,
+      questions: [
+        for (var i = 0; i < 5; i++)
+          LibraryQuizQuestion(
+            id: 'cq',
+            prompt: 'Canned question ',
+            options: [
+              for (var o = 0; o < 4; o++)
+                LibraryQuizOption(
+                  letter: String.fromCharCode(65 + o),
+                  text: 'Answer ',
+                ),
+            ],
+            correctIndex: 0,
+            explanation: 'Because .',
+          ),
+      ],
+    );
+
+/// An in-memory generated-quiz store for tests.
+class FakeChatQuizStore implements ChatQuizStore {
+  FakeChatQuizStore(this.log);
+  final Log log;
+  final _quizzes = <StoredQuiz>[];
+
+  @override
+  List<StoredQuiz> get quizzes => List.unmodifiable(_quizzes);
+
+  @override
+  Future<StoredQuiz> saveQuiz({
+    required String title,
+    required List<LibraryQuizQuestion> questions,
+  }) async {
+    log.events.add('quiz-saved:$title');
+    final stored = StoredQuiz(
+      set: LibraryQuizSet(
+        id: 'fake-quiz-${_quizzes.length}',
+        title: title,
+        category: 'From your chats',
+        questions: questions,
+      ),
+      createdAt: DateTime(2026, 11, 5),
+    );
+    _quizzes.insert(0, stored);
+    return stored;
+  }
 }

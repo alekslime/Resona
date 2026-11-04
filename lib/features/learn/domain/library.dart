@@ -73,6 +73,12 @@ class LibraryQuizOption {
   const LibraryQuizOption({required this.letter, required this.text});
   final String letter;
   final String text;
+
+  Map<String, Object?> toJson() => {'letter': letter, 'text': text};
+
+  factory LibraryQuizOption.fromJson(Map<String, dynamic> json) =>
+      LibraryQuizOption(
+          letter: json['letter'] as String, text: json['text'] as String);
 }
 
 class LibraryQuizQuestion {
@@ -88,6 +94,26 @@ class LibraryQuizQuestion {
   final List<LibraryQuizOption> options;
   final int correctIndex;
   final String explanation;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'prompt': prompt,
+        'options': [for (final o in options) o.toJson()],
+        'correctIndex': correctIndex,
+        'explanation': explanation,
+      };
+
+  factory LibraryQuizQuestion.fromJson(Map<String, dynamic> json) =>
+      LibraryQuizQuestion(
+        id: json['id'] as String,
+        prompt: json['prompt'] as String,
+        options: [
+          for (final o in json['options'] as List)
+            LibraryQuizOption.fromJson(o as Map<String, dynamic>)
+        ],
+        correctIndex: (json['correctIndex'] as num).toInt(),
+        explanation: json['explanation'] as String,
+      );
 }
 
 class LibraryQuizSet {
@@ -101,4 +127,21 @@ class LibraryQuizSet {
   final String title;
   final String category;
   final List<LibraryQuizQuestion> questions;
+
+  Map<String, Object?> toJson() => {
+        'id': id,
+        'title': title,
+        'category': category,
+        'questions': [for (final q in questions) q.toJson()],
+      };
+
+  factory LibraryQuizSet.fromJson(Map<String, dynamic> json) => LibraryQuizSet(
+        id: json['id'] as String,
+        title: json['title'] as String,
+        category: json['category'] as String,
+        questions: [
+          for (final q in json['questions'] as List)
+            LibraryQuizQuestion.fromJson(q as Map<String, dynamic>)
+        ],
+      );
 }

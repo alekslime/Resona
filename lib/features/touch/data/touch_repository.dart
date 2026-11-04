@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import '../domain/region.dart';
+import '../../learn/domain/library.dart';
 
 /// The picture the user chose, already downscaled for upload.
 class PictureBytes {
@@ -78,6 +79,32 @@ class ServerHealth {
   final bool metaConfigured;
 }
 
+/// A self-test the tutor generated from a chat conversation: the topic plus
+/// 5 multiple-choice questions. The store wraps it in a [LibraryQuizSet].
+class GeneratedQuiz {
+  const GeneratedQuiz({required this.topic, required this.questions});
+  final String topic;
+  final List<LibraryQuizQuestion> questions;
+}
+
+/// A quiz the tutor generated from a chat conversation, kept with its save
+/// date so the Quiz shelf can show it under "From your chats".
+class StoredQuiz {
+  const StoredQuiz({required this.set, required this.createdAt});
+  final LibraryQuizSet set;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'set': set.toJson(),
+    'createdAt': createdAt.toIso8601String(),
+  };
+
+  factory StoredQuiz.fromJson(Map<String, dynamic> json) => StoredQuiz(
+    set: LibraryQuizSet.fromJson(json['set'] as Map<String, dynamic>),
+    createdAt: DateTime.parse(json['createdAt'] as String),
+  );
+}
+
 abstract class TouchRepository {
   /// Muse Spark names the parts and places a box around each one (see backend/).
   /// [onProgress] fires after every part is placed, so the phone can speak
@@ -104,6 +131,15 @@ abstract class TouchRepository {
   /// [onSlow] fires once when no answer has arrived in a while.
   Future<String> chatText({
     required String question,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  });
+
+  /// A 5-question self-test on the topic just discussed: the topic plus the
+  /// conversation so far, oldest first. [onSlow] fires once when no quiz
+  /// has arrived in a while.
+  Future<GeneratedQuiz> quiz({
+    required String topic,
     List<({String q, String a})> history = const [],
     void Function()? onSlow,
   });

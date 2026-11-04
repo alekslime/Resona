@@ -15,6 +15,7 @@ import 'theme/text_scale.dart';
 import 'theme/text_spacings.dart';
 import '../features/learn/domain/library.dart';
 import '../features/learn/domain/progress.dart';
+import '../features/touch/application/chat_quizzes.dart';
 import '../features/touch/data/http_touch_repository.dart';
 import '../features/touch/data/touch_repository.dart';
 
@@ -35,6 +36,11 @@ const seenTourKey = 'seen_tour';
 /// with a mock-seeded one; anything else is a wiring bug.
 final sharedPreferencesProvider = Provider<SharedPreferences>(
   (_) => throw UnimplementedError('sharedPreferencesProvider was not overridden.'),
+);
+
+/// The quizzes the tutor generated from chats, kept on this device.
+final chatQuizStoreProvider = Provider<ChatQuizStore>(
+  (ref) => SharedPreferencesChatQuizStore(ref.watch(sharedPreferencesProvider)),
 );
 
 class PaletteNotifier extends Notifier<ResonantPalette> {
