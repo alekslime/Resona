@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/features/learn/domain/library.dart';
@@ -7,43 +6,10 @@ import 'package:resonant/features/learn/domain/sentences.dart';
 import 'package:resonant/features/touch/application/chat_session.dart';
 import 'package:resonant/features/touch/application/recents.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
-import 'package:resonant/features/touch/domain/guide_match.dart';
-import 'package:resonant/features/touch/domain/region.dart';
+
 import 'package:resonant/features/touch/gestures/gesture_types.dart';
 
 import 'fakes.dart';
-
-Region makeRegion(String id, String label, int order) => Region(
-      id: id,
-      order: order,
-      label: label,
-      spoken: label,
-      detail: '',
-      left: 0,
-      top: 0,
-      right: 10,
-      bottom: 10,
-      maskW: 1,
-      maskH: 1,
-      bits: Uint8List.fromList([1]),
-      area: 1,
-      areaFrac: 0.01,
-    );
-
-Analysis lungsAnalysis() => Analysis(
-      width: 100,
-      height: 100,
-      title: 'Lungs',
-      kind: 'diagram',
-      overview: '',
-      regions: [makeRegion('a', 'left lung', 0), makeRegion('b', 'right lung', 1)],
-    );
-
-RecentPicture lungsRecent() => RecentPicture(
-      analysis: lungsAnalysis(),
-      picture: tinyPicture,
-      openedAt: DateTime(2026),
-    );
 
 RecentPicture sunRecent() => RecentPicture(
       analysis: loadSample(),
@@ -70,11 +36,10 @@ class GatedRepo extends FakeRepository {
 }
 
 class Rig {
-  Rig(this.log, this.session, this.input, this.guided, this.backs);
+  Rig(this.log, this.session, this.input, this.backs);
   final Log log;
   final ChatSession session;
   final FakeInput input;
-  final List<Region> guided;
   final List<bool> backs;
 }
 
@@ -88,7 +53,6 @@ Rig rig({
   Duration spokenFor = const Duration(seconds: 10),
 }) {
   final log = Log();
-  final guided = <Region>[];
   final backs = <bool>[];
   final input = FakeInput(log, heard: heard, available: micAvailable);
   final session = ChatSession(
@@ -99,13 +63,12 @@ Rig rig({
     input: input,
     recent: recent,
     previous: previous,
-    onGuide: guided.add,
     onBack: () => backs.add(true),
     thinkingTick: tick,
     thinkingSpokenEvery: spokenFor,
   );
   addTearDown(session.dispose);
-  return Rig(log, session, input, guided, backs);
+  return Rig(log, session, input, backs);
 }
 
 /// Let an unawaited ask run until it parks (on the mic or the model).
@@ -293,14 +256,15 @@ void main() {
       );
     });
 
-    test('the first answer without a picture points at Pictures, once',
+    test('the first answer without a picture points at the camera, once',
         () async {
       final r = rig();
       await r.session.askTyped('matters');
       await r.session.askTyped('matters');
       expect(
         r.log.events.where((e) =>
-            e == 'say+: Open a picture in Pictures, and I can answer about that too.'),
+            e ==
+            'say+: Tap the camera button below to add a picture, and I can answer about that too.'),
         hasLength(1),
       );
     });
@@ -470,49 +434,9 @@ void main() {
 
     test('unused gestures are ignored', () {
       final r = rig();
-      r.session.handle(const ExploreMove(1, 2));
+      r.session.handle(const HoldStart());
       r.session.handle(const Tap(Zone.rightEdge));
       expect(r.log.events, isEmpty);
-    });
-
-    test('where-is hands the hunt to the picture', () async {
-      final r = rig(heard: 'where is the sun', recent: sunRecent());
-      await r.session.askTapped();
-      await r.session.askTapped();
-      expect(
-        r.log.events,
-        contains('say: Opening the picture to guide you to the sun.'),
-      );
-      expect(r.guided.map((g) => g.label), ['sun']);
-      expect(
-        r.log.events.where((e) => e.startsWith('ask:')),
-        isEmpty,
-      );
-    });
-
-    test('a close pair asks, then takes the first', () async {
-      final r = rig(heard: 'where is the lung?', recent: lungsRecent());
-      await r.session.askTapped();
-      await r.session.askTapped();
-      expect(
-        r.log.events,
-        contains('say: Did you mean left lung or right lung?'),
-      );
-      r.input.heard = 'the first one';
-      await r.session.askTapped();
-      await r.session.askTapped();
-      expect(r.guided.map((g) => g.label), ['left lung']);
-    });
-
-    test('an open did-you-mean lasts exactly one answer', () async {
-      final r = rig(heard: 'where is the lung?', recent: lungsRecent());
-      await r.session.askTapped();
-      await r.session.askTapped();
-      r.input.heard = 'what is this?';
-      await r.session.askTapped();
-      await r.session.askTapped();
-      expect(r.guided, isEmpty);
-      expect(r.log.events, contains('ask:what is this?||past:0'));
     });
 
     test('disposing silences the ticker', () async {
@@ -535,17 +459,32 @@ void main() {
     });
   });
 
-  group('guide pick', () {
-    test('first, second, letters and names resolve', () {
-      final first = makeRegion('a', 'left lung', 0);
-      final second = makeRegion('b', 'right lung', 1);
-      expect(resolveGuidePick(first, second, 'the first one'), 0);
-      expect(resolveGuidePick(first, second, 'second'), 1);
-      expect(resolveGuidePick(first, second, 'A'), 0);
-      expect(resolveGuidePick(first, second, 'option b'), 1);
-      expect(resolveGuidePick(first, second, 'the right lung'), 1);
-      expect(resolveGuidePick(first, second, 'the lung'), isNull);
-      expect(resolveGuidePick(first, second, 'left lung right lung'), isNull);
+  group('attach', () {
+    test('attaching a picture announces it and starts fresh', () async {
+      final r = rig();
+      await r.session.askTyped('what is this?');
+      expect(r.session.view.exchanges, hasLength(1));
+      r.session.attachPicture(sunRecent());
+      expect(r.session.recent, isNotNull);
+      expect(r.session.view.exchanges, isEmpty);
+      expect(
+        r.log.events.firstWhere((e) => e.startsWith('say: The water cycle.')),
+        startsWith('say: The water cycle. 4 parts: sun, cloud, mountain, sea.'),
+      );
+      await r.session.askTyped('and the sun?');
+      expect(r.log.events, contains('ask:and the sun?||past:0'));
+    });
+
+    test('attaching clears a failed offline state', () async {
+      final log = Log();
+      final repo = FakeRepository(log)..fail = TouchApiException('Down.');
+      final r = rig(repo: repo);
+      await r.session.askTyped('matters');
+      expect(r.session.view.offline, isTrue);
+      repo.fail = null;
+      r.session.attachPicture(sunRecent());
+      expect(r.session.view.offline, isFalse);
+      expect(r.session.recent, isNotNull);
     });
   });
 }

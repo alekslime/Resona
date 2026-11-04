@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,11 +5,10 @@ import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/ui/icons.dart';
 import 'package:resonant/core/ui/resonant_dots.dart';
 import 'package:resonant/features/learn/domain/library.dart';
-import 'package:resonant/features/touch/application/touch_controller.dart';
+import 'package:resonant/features/touch/application/recents.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
 import 'package:resonant/features/touch/presentation/chat_screen.dart';
 import 'package:resonant/features/touch/presentation/home_screen.dart';
-import 'package:resonant/features/touch/presentation/touch_screen.dart';
 
 import 'fakes.dart';
 
@@ -36,17 +33,6 @@ Future<ProviderContainer> chatContainer(
 RecentPicture sunRecent() => RecentPicture(
       analysis: loadSample(),
       picture: tinyPicture,
-      openedAt: DateTime(2026),
-    );
-
-/// The handoff lands on the touch screen, which decodes the bytes: a real
-/// picture, not the tiny stand-in.
-RecentPicture drawableRecent() => RecentPicture(
-      analysis: loadSample(),
-      picture: PictureBytes(
-        File('assets/sample/sample.png').readAsBytesSync(),
-        'image/png',
-      ),
       openedAt: DateTime(2026),
     );
 
@@ -172,26 +158,6 @@ void main() {
       await settle(tester);
       expect(log.events, contains('say: Second.'));
       expect(log.events, contains('haptic:next'));
-    });
-
-    testWidgets('where-is opens the picture and starts the hunt',
-        (tester) async {
-      final log = Log();
-      final container =
-          await chatContainer(log, heard: 'where is the sun');
-      await tester.pumpWidget(harnessedChat(container, drawableRecent()));
-      await tester.pump();
-      await tester.tap(find.byType(MicIcon));
-      await settle(tester);
-      await tester.tap(find.byType(MicIcon));
-      await settle(tester);
-      await settle(tester);
-      expect(find.byType(TouchScreen), findsOneWidget);
-      expect(
-        log.events,
-        contains('say: Opening the picture to guide you to the sun.'),
-      );
-      expect(container.read(touchControllerProvider).phase, Phase.explore);
     });
 
     testWidgets('a returning chat greets with its history', (tester) async {

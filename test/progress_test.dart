@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:resonant/features/learn/domain/milestones.dart';
 import 'package:resonant/features/learn/domain/progress.dart';
 
 void main() {
@@ -238,94 +237,6 @@ void main() {
       expect(BrailleAvatar.cellWidth(count: 0, available: 10), 44);
       expect(BrailleAvatar.cellWidth(count: 1, available: 500), 44);
       expect(BrailleAvatar.cellWidth(count: 10, available: 100), lessThan(44));
-    });
-  });
-
-  group('milestones', () {
-    const fresh = ProfileStats(
-      quizzesDone: 0,
-      quizzesTotal: 4,
-      averagePercent: null,
-      materials: 0,
-    );
-
-    test('fourteen milestones in firsts-then-streaks-then-counts order', () {
-      expect(allMilestones.map((m) => m.id), [
-        'lessons_1',
-        'quizzes_1',
-        'material_1',
-        'streak_3',
-        'streak_7',
-        'streak_14',
-        'streak_30',
-        'lessons_5',
-        'lessons_10',
-        'lessons_all',
-        'quizzes_5',
-        'quizzes_all',
-        'listen_1h',
-        'listen_10h',
-      ]);
-    });
-
-    test('a fresh learner has reached nothing', () {
-      expect(reachedMilestonesNow(fresh), isEmpty);
-      expect(reachedMilestones(fresh, const {}), isEmpty);
-    });
-
-    test('reached keeps milestones told about before', () {
-      expect(reachedMilestones(fresh, const {'streak_3'}).map((m) => m.id), ['streak_3']);
-    });
-
-    test('fresh celebrates only the untold', () {
-      const s = ProfileStats(
-        quizzesDone: 1,
-        quizzesTotal: 4,
-        averagePercent: 80,
-        materials: 1,
-        lessonsDone: 1,
-        lessonsTotal: 5,
-      );
-      expect(freshMilestones(s, const {}).map((m) => m.id),
-          ['lessons_1', 'quizzes_1', 'material_1']);
-      expect(freshMilestones(s, const {'lessons_1'}).map((m) => m.id),
-          ['quizzes_1', 'material_1']);
-    });
-
-    test('row line counts plainly with new ones called out', () {
-      const s = ProfileStats(
-        quizzesDone: 1,
-        quizzesTotal: 4,
-        averagePercent: 80,
-        materials: 0,
-      );
-      final reached = reachedMilestones(s, const {});
-      expect(milestoneRowLine(reached, const []), 'Milestones: 1 of 14');
-      expect(milestoneRowLine(reached, reached), 'Milestones: 1 of 14, 1 new');
-    });
-
-    test('spoken row names the next goal', () {
-      final reached = reachedMilestones(fresh, const {'lessons_1'});
-      expect(
-        milestoneSpoken(reached),
-        'You have reached 1 of 14 milestones. '
-        'Reached: First lesson finished. '
-        'Next goal: First quiz finished.',
-      );
-    });
-
-    test('announcements stay short', () {
-      expect(milestoneAnnouncement(const []), '');
-      final one = reachedMilestones(
-          const ProfileStats(
-              quizzesDone: 0, quizzesTotal: 4, averagePercent: null, materials: 1),
-          const {});
-      expect(milestoneAnnouncement(one), 'New milestone: First material of your own.');
-      expect(
-        milestoneAnnouncement(one, name: 'Ana'),
-        'New milestone: First material of your own. Way to go, Ana.',
-      );
-      expect(milestoneAnnouncement(const [], name: 'Ana'), '');
     });
   });
 }

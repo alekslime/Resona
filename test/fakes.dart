@@ -6,7 +6,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/services/haptics.dart';
 import 'package:resonant/core/services/sound.dart';
 import 'package:resonant/core/services/speech.dart';
-import 'package:resonant/features/learn/domain/learn.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
 import 'package:resonant/features/touch/domain/region.dart';
 
@@ -107,15 +106,6 @@ class FakeRepository implements TouchRepository {
   }) =>
       throw UnimplementedError();
   @override
-  Future<String> ask(
-    PictureBytes picture, {
-    required String question,
-    required String title,
-    String regionLabel = '',
-  }) async =>
-      chat(picture, question: question, title: title, regionLabel: regionLabel);
-
-  @override
   Future<String> chat(
     PictureBytes picture, {
     required String question,
@@ -136,49 +126,6 @@ class FakeRepository implements TouchRepository {
     log.events.add('ask:$question||past:${history.length}');
     if (fail != null) throw fail!;
     return answer;
-  }
-
-  @override
-  Future<Lesson> lesson(Analysis analysis) async {
-    log.events.add('lesson');
-    final order = [...analysis.regions]
-      ..sort((a, b) => a.order.compareTo(b.order));
-    return Lesson([
-      const LessonStep(say: 'Welcome to the lesson.'),
-      for (final r in order)
-        LessonStep(regionId: r.id, say: '${r.label}. ${r.detail}'),
-      const LessonStep(say: 'That is the whole picture.'),
-    ]);
-  }
-
-  @override
-  Future<Quiz> quiz(Analysis analysis) async {
-    log.events.add('quiz');
-    final order = [...analysis.regions]
-      ..sort((a, b) => a.order.compareTo(b.order));
-    return Quiz([
-      QuizQuestion(
-          kind: QuizKind.find,
-          regionId: order.first.id,
-          question: 'Find the ${order.first.label}.'),
-      QuizQuestion(
-        kind: QuizKind.say,
-        regionId: order.last.id,
-        question: 'What does the ${order.last.label} hold?',
-        expected: 'water',
-      ),
-    ]);
-  }
-
-  @override
-  Future<Grade> grade(
-      {required String question,
-      required String expected,
-      required String answer}) async {
-    log.events.add('grade:$answer');
-    final ok = answer.toLowerCase().contains(expected.toLowerCase());
-    return Grade(
-        ok, ok ? 'Correct. Well done.' : 'Not quite. The answer is $expected.');
   }
 
   @override
