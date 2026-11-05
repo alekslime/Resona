@@ -1,13 +1,8 @@
 <div align="center">
 
-# Resonant
+<h1><img src="docs/assets/hero.png" alt="Resonant" width="100%"></h1>
 
 **A voice tutor for pictures.** Photograph anything, ask anything, hold a conversation.
-
-![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
-![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-426%20Flutter%20%2B%2043%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -34,13 +29,13 @@ Regenerate them with the golden-test generator in `tool/` (see `docs/screenshots
 <div align="center">
 <table>
 <tr>
-<td align="center"><img src="docs/screenshots/01-home.png" width="250" alt="Home: a five-line menu on orange — Chat, Lessons, Quiz, Settings, Quit — with Chat focused"><br><b>Home</b><br><sub>Five lines, Chat first</sub></td>
-<td align="center"><img src="docs/screenshots/02-theme-low-vision.png" width="250" alt="Home in the Low vision theme: the five-line menu in yellow on a near-black background"><br><b>Low vision theme</b><br><sub>One of twelve, a tap away</sub></td>
-<td align="center"><img src="docs/screenshots/03-chat.png" width="250" alt="Chat: the braille dots above the greeting and the ask bar with its camera and mic buttons"><br><b>Chat</b><br><sub>The voice tutor, by text or mic</sub></td>
+<td align="center"><img src="docs/assets/phone-01-home.png" width="250" alt="Home: a five-line menu on orange — Chat, Lessons, Quiz, Settings, Quit — with Chat focused"><br><b>Home</b><br><sub>Five lines, Chat first</sub></td>
+<td align="center"><img src="docs/assets/phone-02-theme-low-vision.png" width="250" alt="Home in the Low vision theme: the five-line menu in yellow on a near-black background"><br><b>Low vision theme</b><br><sub>One of twelve, a tap away</sub></td>
+<td align="center"><img src="docs/assets/phone-03-chat.png" width="250" alt="Chat: the braille dots above the greeting and the ask bar with its camera and mic buttons"><br><b>Chat</b><br><sub>The voice tutor, by text or mic</sub></td>
 </tr>
 <tr>
-<td align="center"><img src="docs/screenshots/04-lessons.png" width="250" alt="Lessons: the library of built-in lessons as cards with Continue buttons"><br><b>Lessons</b><br><sub>Six lessons that read themselves</sub></td>
-<td align="center"><img src="docs/screenshots/05-quiz.png" width="250" alt="Quizzes: 'Test what you know.' above one card per quiz set with Start buttons"><br><b>Quizzes</b><br><sub>Four sets, with retry rounds</sub></td>
+<td align="center"><img src="docs/assets/phone-04-lessons.png" width="250" alt="Lessons: the library of built-in lessons as cards with Continue buttons"><br><b>Lessons</b><br><sub>Six lessons that read themselves</sub></td>
+<td align="center"><img src="docs/assets/phone-05-quiz.png" width="250" alt="Quizzes: 'Test what you know.' above one card per quiz set with Start buttons"><br><b>Quizzes</b><br><sub>Four sets, with retry rounds</sub></td>
 </tr>
 </table>
 </div>
@@ -118,6 +113,11 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 
 ## How it works
 
+<img src="docs/assets/how.png" alt="Flow: a picture goes to Muse Spark 1.3, which returns title, overview and parts; the chat tutor describes it, then answers follow-ups, spoken and shown" width="100%">
+
+<details>
+<summary>Text version</summary>
+
 ```
  picture ──► Muse Spark 1.3 ──► title, overview, and a list of parts
                                 (short noun phrases + a tight box + what to say about each)
@@ -126,6 +126,8 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
    chat: the tutor describes the picture, then answers follow-ups from the
    picture and the last six exchanges
 ```
+
+</details>
 
 - **Muse Spark** (`muse-spark-1.3`) reads the picture and decides what its parts are, in reading
   order, with a tight box around each one. The chat announces the title, the parts and the
@@ -145,11 +147,18 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 Tap **Talk live** in chat (with a picture attached) and just talk. Start speaking while the tutor is mid-sentence
 and it stops and listens — that interruption is the point.
 
+<img src="docs/assets/live.png" alt="Flow: phone mic, LiveKit Cloud, Silero VAD, faster-whisper, Muse Spark, Kokoro, back to the phone" width="100%">
+
+<details>
+<summary>Text version</summary>
+
 ```
 phone mic ──► LiveKit Cloud (free tier, carries audio only) ──► agent/agent.py on your PC
               Silero VAD hears you start ──► faster-whisper writes it down
               ──► Muse Spark answers ──► Kokoro speaks (Piper is the fallback) ──► back to the phone
 ```
+
+</details>
 
 Everything except the audio relay runs on your own machine and costs nothing: Silero and
 faster-whisper listen locally, Kokoro is the local voice with Piper as the fallback, and Muse
