@@ -1,0 +1,30 @@
+<link rel=stylesheet href=common.css>
+<style>
+body{width:1600px;background:#0a0a0a;color:#fff;padding:70px 80px 56px}
+h2{font:900 46px M;color:#ffae00;margin-bottom:8px}
+.sub{font:400 26px A;color:#b5b5b5;margin-bottom:54px}
+.row{display:flex;align-items:stretch;gap:0}
+.box{flex:1;min-width:0;background:#171717;border:2px solid #2c2c2c;border-radius:28px;padding:28px 22px}
+.box.y{background:#ffae00;border-color:#ffae00;color:#0a0a0a}
+.box b{display:block;font:900 24px M;white-space:nowrap;margin-bottom:10px}
+.box span{font:400 22px/1.35 A;opacity:.85}
+.box.y span{opacity:.9}
+.ar{width:44px;display:flex;align-items:center;justify-content:center;font:900 38px M;color:#ffae00}
+.tag{font:600 18px M;letter-spacing:2px;text-transform:uppercase;color:#ffae00;margin-bottom:12px;display:block}
+.box.y .tag{color:#0a0a0a;opacity:.6}
+.cap{margin-top:34px;font:400 24px/1.4 A;color:#b5b5b5}
+.cap b{color:#fff;font-weight:600}
+</style>
+<div id=root></div>
+<script>
+const q=new URLSearchParams(location.search).get('d');
+const D={
+how:{t:'How it works',s:'One call reads the picture. The chat speaks it back, then keeps the conversation going.',
+ steps:[['Picture','Photo, gallery pick or bundled sample','Input'],['Muse Spark 1.3','Title, overview and the parts, each with a tight box','Backend'],['Chat tutor','Describes the picture, then answers follow-ups','App'],['Spoken and shown','Last six exchanges stay in memory','Output']],hi:1,
+ cap:'The Meta key lives <b>only on the backend</b>. After four questions the tutor offers a 5-question self-test, saved on the device.'},
+live:{t:'Talk live',s:'A real conversation you can interrupt mid-sentence. Everything but the audio relay runs on your own machine.',
+ steps:[['Phone mic','Student speaks','Phone'],['LiveKit Cloud','Carries audio only (free tier)','Relay'],['Silero VAD','Hears you start talking','Your PC'],['faster‑whisper','Writes it down','Your PC'],['Muse Spark','Answers with the picture in context','Meta'],['Kokoro','Speaks it back (Piper fallback)','Your PC']],hi:4,
+ cap:'Start speaking while the tutor talks and it <b>stops and listens</b>. Captions of both sides appear on screen.'}
+}[q];
+root.innerHTML=`<h2>${D.t}</h2><div class=sub>${D.s}</div><div class=row>`+D.steps.map((s,i)=>`${i?'<div class=ar>→</div>':''}<div class="box ${i==D.hi?'y':''}"><span class=tag>${s[2]}</span><b>${s[0]}</b><span>${s[1]}</span></div>`).join('')+`</div><div class=cap>${D.cap}</div>`;
+</script>

@@ -1,0 +1,8 @@
+@font-face{font-family:M;src:url(../../assets/fonts/metropolis_black.otf);font-weight:900}
+@font-face{font-family:M;src:url(../../assets/fonts/metropolis_semibold.otf);font-weight:600}
+@font-face{font-family:A;src:url(../../assets/fonts/atkinson_regular.ttf);font-weight:400}
+@font-face{font-family:A;src:url(../../assets/fonts/atkinson_semibold.ttf);font-weight:600}
+*{box-sizing:border-box;margin:0}
+body{font-family:A,sans-serif}
+.dots{position:relative}
+.dots i{position:absolute;border-radius:50%;background:#0a0a0a}
