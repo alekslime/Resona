@@ -87,7 +87,7 @@ class WhisperSTT(stt.STT):
     """Local faster-whisper: no STT bill, audio never leaves the laptop
     except as LiveKit media between the phone and this room."""
 
-    def __init__(self, model="base.en"):
+    def __init__(self, model="small.en"):
         super().__init__(
             capabilities=stt.STTCapabilities(streaming=False, interim_results=False, aligned_transcript=False)
         )

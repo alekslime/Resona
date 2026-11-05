@@ -6,10 +6,11 @@
 # Runs on Fly.io, Railway, or any VPS with Docker.
 FROM node:20-slim
 WORKDIR /app/backend
-COPY backend/package.json backend/package-lock.json ./
+COPY --chown=node:node backend/package.json backend/package-lock.json ./
 RUN npm install --omit=dev
-COPY backend/ ./
-COPY build/web/ ../build/web/
+COPY --chown=node:node backend/ ./
+COPY --chown=node:node build/web/ ../build/web/
+USER node
 ENV NODE_ENV=production PORT=3000
 EXPOSE 3000
 CMD ["npm", "start"]

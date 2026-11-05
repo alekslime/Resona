@@ -11,9 +11,9 @@ Be realistic about what each route needs.
 ## Why the web link comes first
 
 Judges will not install an app from a stranger in the middle of scoring. A link opens in one tap. The
-cost is vibration, which is why the sound design carries real weight: **pitch is height, stereo is
-left-right**, so an iPhone user can still find the sun in the top right of a picture with their eyes closed
-and headphones on. Tell judges to use headphones, and say so in the README and at the start of the video.
+cost is vibration, which is why every chat state also has a sound: listening, thinking and speaking
+all sound different, so an iPhone user can follow the conversation with their eyes closed and
+headphones on. Tell judges to use headphones, and say so at the start of the video.
 
 ## Build and serve the web version
 

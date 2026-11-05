@@ -1,13 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:resonant/core/providers.dart';
 import 'package:resonant/core/services/haptics.dart';
 import 'package:resonant/core/services/sound.dart';
 import 'package:resonant/core/services/speech.dart';
-import 'package:resonant/features/learn/domain/learn.dart';
 import 'package:resonant/features/touch/data/touch_repository.dart';
 import 'package:resonant/features/touch/domain/region.dart';
+import 'package:resonant/features/learn/domain/library.dart';
+import 'package:resonant/features/touch/application/chat_quizzes.dart';
+import 'package:resonant/features/touch/presentation/gesture_guide.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Records everything the session does, in order.
 class Log {
@@ -48,18 +53,32 @@ class FakeHaptics implements Haptics {
 }
 
 class FakeCues implements Cues {
+  @override
+  bool enabled = true;
+
   FakeCues(this.log);
   final Log log;
   @override
-  Future<void> play(HapticPattern pattern) async =>
-      log.events.add('cue:${pattern.name}');
+  Future<void> play(HapticPattern pattern) async {
+    if (!enabled) return;
+    log.events.add('cue:${pattern.name}');
+  }
   @override
-  Future<void> position({required double x01, required double y01}) async =>
-      log.events
-          .add('tone:${x01.toStringAsFixed(2)},${y01.toStringAsFixed(2)}');
+  Future<void> position({required double x01, required double y01}) async {
+    if (!enabled) return;
+    log.events.add('tone:${x01.toStringAsFixed(2)},${y01.toStringAsFixed(2)}');
+  }
   @override
-  Future<void> proximity({required double closeness}) async =>
-      log.events.add('prox:${closeness.toStringAsFixed(2)}');
+  Future<void> proximity({required double closeness}) async {
+    if (!enabled) return;
+    log.events.add('prox:${closeness.toStringAsFixed(2)}');
+  }
+
+  @override
+  Future<void> splash() async {
+    if (!enabled) return;
+    log.events.add('splash');
+  }
 }
 
 class FakeInput implements SpeechInput {
@@ -89,17 +108,9 @@ class FakeRepository implements TouchRepository {
   Future<Analysis> analyze(
     PictureBytes picture, {
     void Function(AnalyzeProgress progress)? onProgress,
+    void Function()? onSlow,
   }) =>
       throw UnimplementedError();
-  @override
-  Future<String> ask(
-    PictureBytes picture, {
-    required String question,
-    required String title,
-    String regionLabel = '',
-  }) async =>
-      chat(picture, question: question, title: title, regionLabel: regionLabel);
-
   @override
   Future<String> chat(
     PictureBytes picture, {
@@ -107,6 +118,7 @@ class FakeRepository implements TouchRepository {
     required String title,
     String regionLabel = '',
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   }) async {
     log.events.add('ask:$question|$regionLabel|past:${history.length}');
     if (fail != null) throw fail!;
@@ -114,46 +126,25 @@ class FakeRepository implements TouchRepository {
   }
 
   @override
-  Future<Lesson> lesson(Analysis analysis) async {
-    log.events.add('lesson');
-    final order = [...analysis.regions]
-      ..sort((a, b) => a.order.compareTo(b.order));
-    return Lesson([
-      const LessonStep(say: 'Welcome to the lesson.'),
-      for (final r in order)
-        LessonStep(regionId: r.id, say: '${r.label}. ${r.detail}'),
-      const LessonStep(say: 'That is the whole picture.'),
-    ]);
+  Future<String> chatText({
+    required String question,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  }) async {
+    log.events.add('ask:$question||past:${history.length}');
+    if (fail != null) throw fail!;
+    return answer;
   }
 
   @override
-  Future<Quiz> quiz(Analysis analysis) async {
-    log.events.add('quiz');
-    final order = [...analysis.regions]
-      ..sort((a, b) => a.order.compareTo(b.order));
-    return Quiz([
-      QuizQuestion(
-          kind: QuizKind.find,
-          regionId: order.first.id,
-          question: 'Find the ${order.first.label}.'),
-      QuizQuestion(
-        kind: QuizKind.say,
-        regionId: order.last.id,
-        question: 'What does the ${order.last.label} hold?',
-        expected: 'water',
-      ),
-    ]);
-  }
-
-  @override
-  Future<Grade> grade(
-      {required String question,
-      required String expected,
-      required String answer}) async {
-    log.events.add('grade:$answer');
-    final ok = answer.toLowerCase().contains(expected.toLowerCase());
-    return Grade(
-        ok, ok ? 'Correct. Well done.' : 'Not quite. The answer is $expected.');
+  Future<GeneratedQuiz> quiz({
+    required String topic,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  }) async {
+    log.events.add('quiz:$topic|past:${history.length}');
+    if (fail != null) throw fail!;
+    return cannedQuiz(topic);
   }
 
   @override
@@ -186,6 +177,20 @@ class FakeRepository implements TouchRepository {
 }
 
 /// The bundled sample: 800x600, with sun, cloud, mountain and sea.
+/// Serves the real bundled sample picture for widget tests.
+class SeedRepo extends FakeRepository {
+  SeedRepo(super.log);
+
+  @override
+  Future<(Analysis, PictureBytes)> openGallery(GallerySample entry) async => (
+        loadSample(),
+        PictureBytes(
+          File('assets/sample/sample.png').readAsBytesSync(),
+          'image/png',
+        ),
+      );
+}
+
 Analysis loadSample() {
   final json = jsonDecode(File('assets/sample/sample.json').readAsStringSync())
       as Map<String, dynamic>;
@@ -200,3 +205,84 @@ Analysis loadChart() {
 }
 
 final tinyPicture = PictureBytes(Uint8List.fromList([1, 2, 3]), 'image/png');
+
+/// An in-memory clipboard for widget tests: the test binding leaves
+/// Clipboard.setData hanging with no reply, so any test that taps a copy
+/// button must install this first. Returns the stored text.
+String? Function() mockClipboard() {
+  String? stored;
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(SystemChannels.platform,
+          (MethodCall call) async {
+    if (call.method == 'Clipboard.setData') {
+      stored = (call.arguments as Map)['text'] as String?;
+      return null;
+    }
+    if (call.method == 'Clipboard.getData') {
+      return <String, dynamic>{'text': stored};
+    }
+    return null;
+  });
+  return () => stored;
+}
+
+/// Prefs for widget tests of other behavior: a returning device whose
+/// guides were all seen, so no guide banner appears. Guide tests seed
+/// their own flags instead.
+Future<SharedPreferences> guidesSeenPrefs() async {
+  SharedPreferences.setMockInitialValues({
+    seenTourKey: true,
+    for (final s in GuideScreen.values) guideSeenKey(s): true,
+  });
+  return SharedPreferences.getInstance();
+}
+
+/// A 5-question generated quiz for tests.
+GeneratedQuiz cannedQuiz([String topic = 'The water cycle']) => GeneratedQuiz(
+      topic: topic,
+      questions: [
+        for (var i = 0; i < 5; i++)
+          LibraryQuizQuestion(
+            id: 'cq$i',
+            prompt: 'Canned question $i?',
+            options: [
+              for (var o = 0; o < 4; o++)
+                LibraryQuizOption(
+                  letter: String.fromCharCode(65 + o),
+                  text: 'Answer $o',
+                ),
+            ],
+            correctIndex: 0,
+            explanation: 'Because $i.',
+          ),
+      ],
+    );
+
+/// An in-memory generated-quiz store for tests.
+class FakeChatQuizStore implements ChatQuizStore {
+  FakeChatQuizStore(this.log);
+  final Log log;
+  final _quizzes = <StoredQuiz>[];
+
+  @override
+  List<StoredQuiz> get quizzes => List.unmodifiable(_quizzes);
+
+  @override
+  Future<StoredQuiz> saveQuiz({
+    required String title,
+    required List<LibraryQuizQuestion> questions,
+  }) async {
+    log.events.add('quiz-saved:$title');
+    final stored = StoredQuiz(
+      set: LibraryQuizSet(
+        id: 'fake-quiz-${_quizzes.length}',
+        title: title,
+        category: 'From your chats',
+        questions: questions,
+      ),
+      createdAt: DateTime(2026, 11, 5),
+    );
+    _quizzes.insert(0, stored);
+    return stored;
+  }
+}

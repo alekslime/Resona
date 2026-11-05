@@ -52,6 +52,33 @@ abstract final class SoundCues {
       CueNote(988, 30),
     ], gain: 0.8),
     HapticPattern.thinking: CueSpec([CueNote(523, 25)], gain: 0.4),
+    HapticPattern.optionA: CueSpec([CueNote(587, 70)]),
+    HapticPattern.optionB: CueSpec([CueNote(587, 70), CueNote(0, 50), CueNote(587, 70)]),
+    HapticPattern.optionC: CueSpec([
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+    ]),
+    HapticPattern.optionD: CueSpec([
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+      CueNote(0, 50),
+      CueNote(587, 70),
+    ]),
+    // The perfect-score fanfare: climbs past correct's top note and
+    // lands an octave shimmer. Stays under the 500 ms cue cap.
+    HapticPattern.celebration: CueSpec([
+      CueNote(523, 60),
+      CueNote(659, 60),
+      CueNote(784, 60),
+      CueNote(1047, 60),
+      CueNote(1319, 160),
+    ]),
   };
 }
 
@@ -90,13 +117,17 @@ Uint8List synthWav(List<CueNote> notes, {double gain = 1, double pan = 0}) {
         ..add((s * gr).round());
     }
   }
+  return _encodeWavStereo(frames);
+}
+
+Uint8List _encodeWavStereo(List<int> frames) {
   final dataBytes = frames.length * 2;
   final out = ByteData(44 + dataBytes);
   void tag(int offset, String s) {
     for (var i = 0; i < s.length; i++) {
       out.setUint8(offset + i, s.codeUnitAt(i));
     }
-  }
+}
 
   tag(0, 'RIFF');
   out.setUint32(4, 36 + dataBytes, Endian.little);
@@ -117,7 +148,109 @@ Uint8List synthWav(List<CueNote> notes, {double gain = 1, double pan = 0}) {
   return out.buffer.asUint8List();
 }
 
+/// One voice of the splash soundtrack: a tone at [hz], sweeping to [hzEnd].
+class SplashTone {
+  const SplashTone(this.startMs, this.durMs, this.hz, {int? hzEnd, required this.gain})
+      : hzEnd = hzEnd ?? hz;
+
+  final int startMs;
+  final int durMs;
+  final int hz;
+  final int hzEnd;
+  final double gain;
+}
+
+/// The splash soundtrack, ported from Resonant's SplashSound: tones
+/// synthesized in code, none below [SoundCues.minAudibleHz]. A rising sweep
+/// as the dots gather, quiet ticks while they orbit, four rising notes as
+/// they land in the R, then a soft chord as the rings ripple out. Times are
+/// on the animation's own timeline and are sped up by [speed].
+abstract final class SplashSound {
+  /// How much faster the splash plays than the timeline (the picture uses
+  /// the same number).
+  static const speed = 1.35;
+
+  /// Loudest point as a fraction of full scale.
+  static const peak = 0.5;
+
+  static const _attackMs = 20;
+  static const _floor = 1e-4;
+
+  static const tones = [
+    SplashTone(50, 650, 330, hzEnd: 523, gain: 0.05),
+    SplashTone(800, 100, 440, gain: 0.025),
+    SplashTone(1000, 100, 440, gain: 0.025),
+    SplashTone(1200, 100, 440, gain: 0.025),
+    SplashTone(1400, 100, 440, gain: 0.025),
+    SplashTone(1950, 500, 392, gain: 0.10),
+    SplashTone(2030, 500, 494, gain: 0.10),
+    SplashTone(2110, 500, 587, gain: 0.10),
+    SplashTone(2190, 500, 784, gain: 0.10),
+    SplashTone(2340, 1300, 392, gain: 0.05),
+    SplashTone(2340, 1300, 587, gain: 0.05),
+    SplashTone(2340, 1300, 784, gain: 0.05),
+  ];
+
+  static int durationMs() {
+    var end = 0;
+    for (final t in tones) {
+      end = math.max(end, t.startMs + t.durMs);
+    }
+    return (end / speed).toInt();
+  }
+
+  static int samplesFor(int ms) => (ms * _sampleRate / 1000).round();
+
+  /// The mono mix, normalized so the loudest moment hits [peak].
+  static List<double> render() {
+    final total = samplesFor(durationMs()) + 1;
+    final mix = List<double>.filled(total, 0);
+    for (final tone in tones) {
+      final start = samplesFor((tone.startMs / speed).toInt());
+      final n = samplesFor((tone.durMs / speed).toInt());
+      final attack = math.max(1, math.min(samplesFor(_attackMs), n ~/ 2));
+      final ratio = tone.hzEnd / tone.hz;
+      var phase = 0.0;
+      for (var i = 0; i < n; i++) {
+        final x = i / n;
+        final hz = tone.hz * math.pow(ratio, x);
+        phase += 2 * math.pi * hz / _sampleRate;
+        final double env;
+        if (i < attack) {
+          env = tone.gain * i / attack;
+        } else {
+          final d = (i - attack) / math.max(1, n - attack);
+          env = tone.gain * math.exp(math.log(_floor / tone.gain) * d);
+        }
+        final at = start + i;
+        if (at < total) mix[at] += math.sin(phase) * env;
+      }
+    }
+    var loudest = 0.0;
+    for (final v in mix) {
+      loudest = math.max(loudest, v.abs());
+    }
+    final scale = loudest > 0 ? peak / loudest : 0.0;
+    return [for (final v in mix) v * scale];
+  }
+}
+
+/// The splash soundtrack as a stereo WAV, same in both ears.
+Uint8List synthSplash() {
+  final frames = <int>[];
+  for (final v in SplashSound.render()) {
+    final s = (v * 32767).round().clamp(-32768, 32767);
+    frames..add(s)..add(s);
+  }
+  return _encodeWavStereo(frames);
+}
+
+
 abstract class Cues {
+  /// Off in settings: every cue stays silent. On by default.
+  bool get enabled;
+  set enabled(bool value);
+
   /// A named cue from [SoundCues.specs].
   Future<void> play(HapticPattern pattern);
 
@@ -128,16 +261,25 @@ abstract class Cues {
   /// The guide-mode proximity tone: higher as the finger nears the part.
   /// [closeness] is 0 (far) to 1 (on the part).
   Future<void> proximity({required double closeness});
+
+  /// The splash soundtrack, rendered once and cached like the other cues.
+  Future<void> splash();
 }
 
 class NoCues implements Cues {
   const NoCues();
+  @override
+  bool get enabled => true;
+  @override
+  set enabled(bool _) {}
   @override
   Future<void> play(HapticPattern pattern) async {}
   @override
   Future<void> position({required double x01, required double y01}) async {}
   @override
   Future<void> proximity({required double closeness}) async {}
+  @override
+  Future<void> splash() async {}
 }
 
 /// Where each named cue sits between the ears: back, slower and wrong go left, everything else

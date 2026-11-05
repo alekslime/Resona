@@ -55,8 +55,13 @@ String get sampleJsonLine => jsonEncode(jsonDecode(sampleJson));
 String sse(List<(String, String)> events) =>
     events.map((e) => 'event: ${e.$1}\ndata: ${e.$2}\n\n').join();
 
-HttpTouchRepository repo(http.Client client) => HttpTouchRepository(
-    baseUrl: 'http://x', client: client, bundle: FileBundle());
+HttpTouchRepository repo(http.Client client,
+        {Duration slowAfter = const Duration(milliseconds: 20)}) =>
+    HttpTouchRepository(
+        baseUrl: 'http://x',
+        client: client,
+        bundle: FileBundle(),
+        slowAfter: slowAfter);
 
 void main() {
   group('analyze', () {
@@ -170,6 +175,83 @@ void main() {
     });
   });
 
+  group('chatText', () {
+    test('posts the question and history with no image', () async {
+      Map<String, dynamic>? body;
+      final client = MockClient((req) async {
+        expect(req.url.path, '/api/chat');
+        body = jsonDecode(req.body) as Map<String, dynamic>;
+        return http.Response('{"answer":"Paris."}', 200);
+      });
+      final answer = await repo(client).chatText(
+        question: 'What is the capital of France?',
+        history: const [(q: 'Hi.', a: 'Hello.')],
+      );
+      expect(answer, 'Paris.');
+      expect(body!['question'], 'What is the capital of France?');
+      expect(body!['history'], [
+        {'q': 'Hi.', 'a': 'Hello.'}
+      ]);
+      expect(body!.containsKey('image'), isFalse);
+    });
+  });
+
+  group('quiz', () {
+    String quizJson() => jsonEncode({
+      'topic': 'The water cycle',
+      'questions': [
+        for (var i = 0; i < 5; i++)
+          {
+            'prompt': 'Q$i?',
+            'options': ['Right', 'Wrong a', 'Wrong b'],
+            'correctIndex': 0,
+            'explanation': 'Because $i.',
+          },
+      ],
+    });
+
+    test('posts the topic and history, parses letters and ids', () async {
+      Map<String, dynamic>? body;
+      final client = MockClient((req) async {
+        expect(req.url.path, '/api/quiz');
+        body = jsonDecode(req.body) as Map<String, dynamic>;
+        return http.Response(quizJson(), 200);
+      });
+      final quiz = await repo(client).quiz(
+        topic: 'The water cycle',
+        history: const [(q: 'Hi.', a: 'Hello.')],
+      );
+      expect(quiz.topic, 'The water cycle');
+      expect(quiz.questions.length, 5);
+      expect(quiz.questions[0].id, 'cq0');
+      expect(quiz.questions[0].options.map((o) => o.letter), ['A', 'B', 'C']);
+      expect(quiz.questions[0].correctIndex, 0);
+      expect(body!['topic'], 'The water cycle');
+      expect(body!['history'], [
+        {'q': 'Hi.', 'a': 'Hello.'}
+      ]);
+    });
+
+    test('an unreadable quiz is a plain error, not a crash', () async {
+      final client =
+          MockClient((_) async => http.Response('{"topic":"t"}', 200));
+      await expectLater(
+        repo(client).quiz(topic: 't'),
+        throwsA(isA<TouchApiException>().having(
+            (e) => e.message, 'message', contains('unreadable'))),
+      );
+    });
+
+    test('a server error speaks the server sentence', () async {
+      final client = MockClient(
+          (_) async => http.Response('{"error":"Slow down."}', 429));
+      await expectLater(
+        repo(client).quiz(topic: 't'),
+        throwsA(isA<TouchApiException>().having(
+            (e) => e.message, 'message', 'Slow down.')));
+    });
+  });
+
   group('gallery', () {
     test('bundled entries plus backend extras, bundled wins on id clash',
         () async {
@@ -280,5 +362,85 @@ void main() {
           repo(MockClient((_) async => http.Response('not json', 200)));
       expect((await junk.health()).reachable, isFalse);
     });
+
+  group('slow server', () {
+    test('a slow chatText announces exactly once', () async {
+      var slow = 0;
+      final client = MockClient((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        return http.Response('{"answer":"Hi."}', 200);
+      });
+      final answer = await repo(client)
+          .chatText(question: 'Hi.', onSlow: () => slow++);
+      expect(answer, 'Hi.');
+      expect(slow, 1);
+    });
+
+    test('a fast chatText stays silent', () async {
+      var slow = 0;
+      final client =
+          MockClient((_) async => http.Response('{"answer":"Hi."}', 200));
+      await repo(client).chatText(question: 'Hi.', onSlow: () => slow++);
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(slow, 0);
+    });
+
+    test('a slow failure announces once, then fails as before', () async {
+      var slow = 0;
+      final client = MockClient((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        return http.Response('{"error":"Down."}', 500);
+      });
+      await expectLater(
+        repo(client).chatText(question: 'Hi.', onSlow: () => slow++),
+        throwsA(isA<TouchApiException>()
+            .having((e) => e.message, 'message', 'Down.')),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(slow, 1);
+    });
+
+    test('a slow stream announces once; fast progress cancels it', () async {
+      var slow = 0;
+      final slowClient = MockClient((_) async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        return http.Response(
+          sse([('done', sampleJsonLine)]),
+          200,
+          headers: {'content-type': 'text/event-stream'},
+        );
+      });
+      await repo(slowClient).analyze(tinyPicture, onSlow: () => slow++);
+      expect(slow, 1);
+
+      slow = 0;
+      final fastClient = MockClient((_) async => http.Response(
+            sse([
+              ('progress', '{"done":1,"total":1,"label":"sun"}'),
+              ('done', sampleJsonLine),
+            ]),
+            200,
+            headers: {'content-type': 'text/event-stream'},
+          ));
+      await repo(fastClient).analyze(tinyPicture, onSlow: () => slow++);
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(slow, 0);
+    });
+
+    test('stream plus fallback announce once between them', () async {
+      var slow = 0;
+      final client = MockClient((req) async {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        if (req.url.path == '/api/analyze-stream') {
+          return http.Response('nope', 404);
+        }
+        return http.Response(sampleJson, 200);
+      });
+      await repo(client).analyze(tinyPicture, onSlow: () => slow++);
+      await Future<void>.delayed(const Duration(milliseconds: 60));
+      expect(slow, 1);
+    });
+  });
+
   });
 }

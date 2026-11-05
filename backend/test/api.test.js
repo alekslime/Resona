@@ -4,7 +4,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createApp } from "../server/index.js";
-import { DOCS_LINE, parseLine } from "./helpers.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const png = fs.readFileSync(path.join(here, "..", "sample", "sample.png"));
@@ -13,32 +12,16 @@ const image = `data:image/png;base64,${png.toString("base64")}`;
 // A stand-in for the Meta API so the whole server flow runs offline.
 const fakeMeta = {
   sparkModel: "fake-spark",
-  samModel: "fake-sam",
   async describeParts() {
     return {
       title: "Test picture",
       kind: "diagram",
       overview: "Two buttons.",
       parts: [
-        { label: "button", spoken: "A button.", detail: "A round button." },
+        { label: "button", spoken: "A button.", detail: "A round button.", where: [0.1, 0.2, 0.3, 0.4] },
         { label: "missing thing", spoken: "Nothing.", detail: "Nothing." },
       ],
     };
-  },
-  async segment(_img, concept) {
-    return parseLine(concept === "button" ? DOCS_LINE : "");
-  },
-  async ask(_img, question, ctx) {
-    return `You asked "${question}" near ${ctx.regionLabel || "nothing"}.`;
-  },
-  async lesson(ctx) {
-    return { steps: [{ regionId: null, say: `Lesson: ${ctx.title}` }, { regionId: ctx.regions[0].id, say: "First part." }] };
-  },
-  async quiz(ctx) {
-    return { questions: [{ kind: "find", regionId: ctx.regions[0].id, question: "Find the button." }] };
-  },
-  async grade({ answer }) {
-    return { correct: answer.includes("round"), say: answer.includes("round") ? "Correct." : "Not quite." };
   },
   async chat(_img, question, ctx) {
     return `Chat (${ctx.history.length} past): "${question}" near ${ctx.regionLabel || "nothing"}.`;
@@ -57,13 +40,15 @@ async function withServer(meta, fn) {
 const post = (base, url, body) =>
   fetch(base + url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
-test("analyze returns regions and reports parts SAM could not find", async () => {
+test("analyze returns regions and reports parts without a usable box", async () => {
   await withServer(fakeMeta, async (base) => {
     const res = await post(base, "/api/analyze", { image });
     assert.equal(res.status, 200);
     const data = await res.json();
     assert.equal(data.title, "Test picture");
-    assert.equal(data.regions.length, 2);
+    assert.equal(data.regions.length, 1);
+    assert.deepEqual(data.regions[0].box, [80, 120, 240, 240]);
+    assert.equal(data.regions[0].approximate, true);
     assert.deepEqual(data.skipped, ["missing thing"]);
     assert.equal(data.width, 800);
   });
@@ -87,42 +72,6 @@ test("without a key the server says so plainly and the sample still serves", asy
   });
 });
 
-test("ask passes the touched part as context", async () => {
-  await withServer(fakeMeta, async (base) => {
-    const res = await post(base, "/api/ask", { image, question: "What is this?", regionLabel: "sun" });
-    assert.equal((await res.json()).answer, 'You asked "What is this?" near sun.');
-  });
-});
-
-const learnBody = {
-  title: "Test picture",
-  overview: "Two buttons.",
-  regions: [{ id: "button-1", label: "button", spoken: "A button.", detail: "A round button." }],
-};
-
-test("lesson, quiz and grade work from region text alone (no image, no SAM)", async () => {
-  await withServer(fakeMeta, async (base) => {
-    const lesson = await post(base, "/api/lesson", learnBody);
-    assert.equal(lesson.status, 200);
-    assert.equal((await lesson.json()).steps.length, 2);
-    const quiz = await post(base, "/api/quiz", learnBody);
-    assert.equal((await quiz.json()).questions[0].kind, "find");
-    const grade = await post(base, "/api/grade", { question: "What shape?", expected: "round", answer: "It is round." });
-    assert.equal((await grade.json()).correct, true);
-  });
-});
-
-test("lesson without regions is a plain 400, and without a key a plain 503", async () => {
-  await withServer(fakeMeta, async (base) => {
-    const res = await post(base, "/api/lesson", { title: "x", regions: [] });
-    assert.equal(res.status, 400);
-  });
-  await withServer(null, async (base) => {
-    const res = await post(base, "/api/quiz", learnBody);
-    assert.equal(res.status, 503);
-  });
-});
-
 test("chat carries history and the touched part", async () => {
   await withServer(fakeMeta, async (base) => {
     const res = await post(base, "/api/chat", {
@@ -135,15 +84,30 @@ test("chat carries history and the touched part", async () => {
   });
 });
 
-test("analyze is cached: the same picture is only segmented once", async () => {
-  let segments = 0;
-  const counting = { ...fakeMeta, segment: async (...a) => { segments++; return fakeMeta.segment(...a); } };
+test("chat answers without a picture (text only)", async () => {
+  await withServer(fakeMeta, async (base) => {
+    const res = await post(base, "/api/chat", { question: "What is the capital of France?" });
+    assert.equal(res.status, 200);
+    assert.equal((await res.json()).answer, 'Chat (0 past): "What is the capital of France?" near nothing.');
+  });
+});
+
+test("chat rejects a malformed image instead of answering blind", async () => {
+  await withServer(fakeMeta, async (base) => {
+    const res = await post(base, "/api/chat", { image: "not-a-picture", question: "Hi?" });
+    assert.equal(res.status, 400);
+    assert.match((await res.json()).error, /PNG, JPEG or WebP/);
+  });
+});
+
+test("analyze is cached: the same picture is described once", async () => {
+  let describes = 0;
+  const counting = { ...fakeMeta, describeParts: async (...a) => { describes++; return fakeMeta.describeParts(...a); } };
   await withServer(counting, async (base) => {
     await post(base, "/api/analyze", { image });
     await post(base, "/api/analyze", { image });
-    // "button" once + "missing thing" retried with simpler concepts; the second
-    // analyze is a cache hit and segments nothing at all.
-    assert.equal(segments, 4);
+    // The second analyze is a cache hit and describes nothing at all.
+    assert.equal(describes, 1);
   });
 });
 
@@ -183,28 +147,8 @@ test("analyze-stream emits progress per part, then the full payload", async () =
     );
     const done = events.find(([e]) => e === "done");
     assert.equal(done[1].title, "Test picture");
-    assert.equal(done[1].regions.length, 2);
+    assert.equal(done[1].regions.length, 1);
     assert.ok(!events.some(([e]) => e === "error"));
-  });
-});
-
-test("parts are segmented in parallel, not one by one", async () => {
-  let active = 0;
-  let maxActive = 0;
-  const slow = {
-    ...fakeMeta,
-    segment: async (...a) => {
-      active++;
-      maxActive = Math.max(maxActive, active);
-      await new Promise((r) => setTimeout(r, 20));
-      active--;
-      return fakeMeta.segment(...a);
-    },
-  };
-  await withServer(slow, async (base) => {
-    const res = await post(base, "/api/analyze", { image });
-    assert.equal(res.status, 200);
-    assert.ok(maxActive >= 2, `expected parallel SAM calls, saw max ${maxActive} at once`);
   });
 });
 

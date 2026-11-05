@@ -6,22 +6,26 @@ import 'gesture_types.dart';
 /// Turns raw touches into Resonant gestures. Pure Dart: no Flutter, no clocks, no timers.
 /// The widget feeds it [PointerSample]s and calls [tick] on a short timer while a finger is down.
 ///
-/// The grammar is Resonant's (ported from the Kotlin GestureManager, written before the
-/// hackathon), with one addition: in the centre of the screen a single finger EXPLORES the picture.
+/// The grammar is Resonant's menu grammar (ported from the Kotlin GestureManager,
+/// written before the hackathon):
 ///
-///   CENTER      one finger down or dragging = explore. Tap = hear the part. Hold still 0.5 s =
-///               hold-to-talk. Move, then rest = hear its description.
-///   LEFT EDGE   tap = stop/resume talking, double tap = repeat, swipe = previous/next part.
+///   CENTER      tap = activate, swipe = move between items.
+///   LEFT EDGE   tap = stop/resume talking, double tap = repeat, swipe = previous/next.
 ///   RIGHT EDGE  hold, then drag up/down = speech speed. Hold without dragging = back. Tap = nothing.
 ///   ANYWHERE    three-finger tap = repeat last, three-finger hold = orientation.
 ///
-/// With [exploreEnabled] off, the centre behaves exactly like Resonant's lessons: swipes navigate.
+/// In lists one finger scrolls in silence and only a two-finger drag navigates.
 class GestureEngine {
-  GestureEngine({GestureConfig config = const GestureConfig(), this.exploreEnabled = true})
-    : _c = config;
+  GestureEngine({
+    GestureConfig config = const GestureConfig(),
+    this.twoFingerSwipe = false,
+  }) : _c = config;
 
   final GestureConfig _c;
-  bool exploreEnabled;
+
+  /// Lists (lessons, home): one finger scrolls in silence, and only a
+  /// two-finger drag navigates. Ported from Resonant's GestureSurface flag.
+  bool twoFingerSwipe;
 
   /// Screen width in logical pixels; decides which zone a touch starts in.
   double width = 0;
@@ -44,11 +48,7 @@ class GestureEngine {
   bool _holdMode = false;
   bool _holdDidStep = false;
   bool _threeHoldFired = false;
-  bool _exploring = false;
-  bool _restEmitted = false;
   double _holdAccumY = 0;
-  double _anchorX = 0, _anchorY = 0;
-  int _anchorMs = 0;
 
   bool get isTouching => _active;
 
@@ -69,10 +69,6 @@ class GestureEngine {
         } else {
           _down[s.id] = (s.x, s.y);
           _maxPointers = math.max(_maxPointers, _down.length);
-          if (_exploring) {
-            _exploring = false; // a second finger means this is not exploration
-            out.add(const ExploreEnd());
-          }
         }
       case PointerPhase.move:
         if (!_active || !_down.containsKey(s.id)) return out;
@@ -95,16 +91,12 @@ class GestureEngine {
     return out;
   }
 
-  /// Call every ~50 ms while [isTouching]. Fires holds and the rest-to-read event, which a perfectly
+  /// Call every ~50 ms while [isTouching]. Fires holds, which a perfectly
   /// still finger would otherwise never trigger because it produces no pointer events.
   List<Gesture> tick(int nowMs) {
     final out = <Gesture>[];
     if (!_active) return out;
     _checkThreshold(nowMs, out);
-    if (_exploring && _moved() && !_restEmitted && nowMs - _anchorMs >= _c.restMs) {
-      _restEmitted = true;
-      out.add(ExploreRest(_lastX, _lastY));
-    }
     return out;
   }
 
@@ -116,9 +108,8 @@ class GestureEngine {
     _firstId = s.id;
     _zone = zoneFor(s.x);
     _downMs = s.timeMs;
-    _startX = _lastX = _anchorX = s.x;
-    _startY = _lastY = _anchorY = s.y;
-    _anchorMs = s.timeMs;
+    _startX = _lastX = s.x;
+    _startY = _lastY = s.y;
     _maxDisp = 0;
     _maxPointers = 1;
     _thresholdHandled = false;
@@ -126,13 +117,7 @@ class GestureEngine {
     _holdMode = false;
     _holdDidStep = false;
     _threeHoldFired = false;
-    _exploring = false;
-    _restEmitted = false;
     _holdAccumY = 0;
-    if (exploreEnabled && _zone == Zone.center) {
-      _exploring = true;
-      out.add(ExploreStart(s.x, s.y));
-    }
   }
 
   void _onPrimaryMove(PointerSample s, List<Gesture> out) {
@@ -155,17 +140,6 @@ class GestureEngine {
     _lastX = s.x;
     _lastY = s.y;
 
-    if (_exploring) {
-      out.add(ExploreMove(s.x, s.y));
-      // Jitter from a resting fingertip must not reset the rest timer.
-      final jx = s.x - _anchorX, jy = s.y - _anchorY;
-      if (math.sqrt(jx * jx + jy * jy) > _c.restJitterPx) {
-        _anchorX = s.x;
-        _anchorY = s.y;
-        _anchorMs = s.timeMs;
-        _restEmitted = false;
-      }
-    }
   }
 
   // Runs once, when the finger(s) have been down for longPressMs.
@@ -182,10 +156,6 @@ class GestureEngine {
       out.add(const HoldStart());
     } else {
       _longPressFired = true;
-      if (_exploring) {
-        _exploring = false;
-        out.add(const ExploreEnd());
-      }
       out.add(LongPress(_zone));
     }
   }
@@ -210,15 +180,20 @@ class GestureEngine {
       if (_zone == Zone.center) out.add(LongPressEnd(_zone));
     } else if (_threeHoldFired) {
       // Already emitted.
-    } else if (_exploring) {
-      _exploring = false;
-      out.add(const ExploreEnd());
-      if (!_moved() && duration <= _c.tapMaxDurationMs) out.add(const Tap(Zone.center));
     } else if (_maxPointers >= 3) {
       out.add(duration > _c.longPressMs ? const ThreeFingerHold() : const ThreeFingerTap());
     } else if (_moved()) {
-      if (dx.abs() > _c.swipeMinDistance || dy.abs() > _c.swipeMinDistance) {
-        out.add(Swipe(_zone, _direction(dx, dy)));
+      // In two-finger mode a vertical swipe needs two fingers; one
+      // finger is left to scroll. Horizontal swipes keep working with
+      // one finger because a vertical list ignores them.
+      final direction = _direction(dx, dy);
+      final horizontal = direction == SwipeDirection.left ||
+          direction == SwipeDirection.right;
+      final swipeable =
+          !twoFingerSwipe || _maxPointers >= 2 || horizontal;
+      if (swipeable &&
+          (dx.abs() > _c.swipeMinDistance || dy.abs() > _c.swipeMinDistance)) {
+        out.add(Swipe(_zone, direction));
       }
     } else if (duration <= _c.tapMaxDurationMs && _maxPointers == 1) {
       if (_zone == Zone.rightEdge) return; // dead zone: no accidental triggers

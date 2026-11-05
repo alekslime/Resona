@@ -18,11 +18,13 @@ dependencies:
   image_picker: ^1.1.0
   speech_to_text: ^7.0.0
   livekit_client: ^2.13.2
+  shared_preferences: ^2.3.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^4.0.0
+  flutter_launcher_icons: ^0.14.4
 
 flutter:
   uses-material-design: true
@@ -45,3 +47,21 @@ flutter:
           weight: 600
         - asset: assets/fonts/atkinson_extrabold.ttf
           weight: 800
+    - family: Lexend
+      fonts:
+        - asset: assets/fonts/lexend_regular.ttf
+          weight: 400
+        - asset: assets/fonts/lexend_semibold.ttf
+          weight: 600
+        - asset: assets/fonts/lexend_black.ttf
+          weight: 900
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon-source.jpg"
+  adaptive_icon_foreground: "assets/icon-source.jpg"
+  adaptive_icon_background: "#FD740C"
+  web:
+    generate: true
+    image_path: "assets/icon-source.jpg"

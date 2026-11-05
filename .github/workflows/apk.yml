@@ -1,0 +1,77 @@
+name: Rolling APK
+
+# Every push to main that touches the app rebuilds the demo APK against the
+# public backend and republishes it on the rolling `latest` release, so one
+# stable link always serves the newest build:
+#   https://github.com/alekslime/Resona/releases/download/latest/resonant.apk
+#
+# One-time setup: repo Settings -> Secrets and variables -> Actions ->
+# Variables tab -> New variable PUBLIC_API_BASE=https://<your-render-host>
+# (no trailing slash). The build fails with a pointer until it exists.
+# Release signing needs four more entries on the Secrets tab (same page):
+# ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS,
+# ANDROID_KEY_PASSWORD. See docs/HOSTING.md section 6.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'lib/**'
+      - 'android/**'
+      - 'pubspec.yaml'
+      - 'pubspec.lock'
+      - '.github/workflows/apk.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.9'
+          channel: stable
+          cache: true
+
+      - run: flutter analyze
+      - run: flutter test
+
+      - name: Check PUBLIC_API_BASE
+        run: |
+          if [ -z "${{ vars.PUBLIC_API_BASE }}" ]; then
+            echo 'Set repo variable PUBLIC_API_BASE to the backend URL first:'
+            echo 'Settings -> Secrets and variables -> Actions -> Variables.'
+            exit 1
+          fi
+
+      - name: Set up release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ] || [ -z "$KEYSTORE_PASSWORD" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASSWORD" ]; then
+            echo 'Missing Android signing secrets. Add all four under Settings -> Secrets and variables -> Actions -> Secrets tab (not Variables):'
+            echo 'ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD.'
+            echo 'See docs/HOSTING.md section 6 for how to generate them.'
+            exit 1
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > android/app/upload-keystore.jks
+          printf 'storeFile=upload-keystore.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' "$KEYSTORE_PASSWORD" "$KEY_ALIAS" "$KEY_PASSWORD" > android/key.properties
+
+      - run: flutter build apk --release --dart-define=API_BASE=${{ vars.PUBLIC_API_BASE }} --build-number=${{ github.run_number }}
+      - run: mv build/app/outputs/flutter-apk/app-release.apk resonant.apk
+
+      - name: Publish rolling latest release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --yes 2>/dev/null || true
+          git push origin :refs/tags/latest 2>/dev/null || true
+          gh release create latest resonant.apk \
+            --title 'Latest demo build' \
+            --notes "Rolling build from main ($(git rev-parse --short HEAD)). This file is always the newest APK."

@@ -2,12 +2,16 @@ import 'package:flutter_tts/flutter_tts.dart';
 
 import 'speech.dart';
 
-/// The nicest English voice the phone already has, when one is installed:
-/// platform neural voices ("…-network" on Android, "Enhanced/Premium" voices
-/// on iOS) sound like a person; the default compact voice is the robot
-/// everyone knows. Returns null when nothing clearly beats the default.
+/// The nicest US English voice the phone already has, else the nicest GB
+/// one; platform neural voices ("…-network" on Android, "Enhanced/Premium"
+/// voices on iOS) sound like a person, the default compact voice is the
+/// robot everyone knows. Accent outranks quality: the locale is heard on
+/// every line, so a plain US voice beats a neural voice in any other
+/// English accent. Without US or GB English, returns the nicest remaining
+/// English voice, or null when nothing clearly beats the default.
 Map<String, String>? preferredVoice(List<dynamic> voices) {
   Map<String, String>? best;
+  var bestRank = -1;
   var bestScore = 0;
   for (final v in voices) {
     if (v is! Map) continue;
@@ -15,6 +19,12 @@ Map<String, String>? preferredVoice(List<dynamic> voices) {
     final locale = '${v['locale'] ?? ''}';
     if (name.isEmpty || !locale.toLowerCase().startsWith('en')) continue;
     final n = name.toLowerCase();
+    final l = locale.toLowerCase();
+    final rank = l.startsWith('en-us')
+        ? 2
+        : l.startsWith('en-gb')
+            ? 1
+            : 0;
     var score = 0;
     for (final good in const ['network', 'neural', 'wavenet', 'natural']) {
       if (n.contains(good)) score += 3;
@@ -23,12 +33,16 @@ Map<String, String>? preferredVoice(List<dynamic> voices) {
       if (n.contains(good)) score += 2;
     }
     if (n.contains('compact')) score -= 2;
-    if (score > bestScore) {
+    if (rank > bestRank || (rank == bestRank && score > bestScore)) {
+      bestRank = rank;
       bestScore = score;
       best = {'name': name, 'locale': locale};
     }
   }
-  return best;
+  // A US or GB voice is always set explicitly: that is the accent
+  // guarantee. Anything else must clearly beat the system default.
+  if (bestRank > 0 || bestScore > 0) return best;
+  return null;
 }
 
 /// Speech output through the phone's own voices (works offline; the same call works on
@@ -47,6 +61,16 @@ class FlutterTtsSpeech implements SpeechOutput {
   bool _speaking = false;
   bool _voiceTried = false;
   double _rate = 1.0;
+
+  /// Callers fire speaks without awaiting them, but the engine behind them
+  /// is one shared queue: mode flips and stop() calls only make sense in
+  /// call order. Every speak waits its turn in this chain, so a flush can
+  /// never land between two queued sentences and eat one.
+  Future<void> _chain = Future.value();
+
+  /// Bumped by every stop(): a speak still waiting its turn when the bump
+  /// lands is stale and stays silent.
+  int _epoch = 0;
 
   @override
   bool get isSpeaking => _speaking;
@@ -78,9 +102,20 @@ class FlutterTtsSpeech implements SpeechOutput {
   }
 
   @override
-  Future<void> speak(String text, {bool queue = false}) async {
-    if (text.trim().isEmpty) return;
+  Future<void> speak(String text, {bool queue = false}) {
+    if (text.trim().isEmpty) return Future.value();
+    final epoch = _epoch;
+    final run = _chain.then((_) => _speakNow(text, queue: queue, epoch: epoch));
+    // The chain never breaks: a failed utterance must not wedge later speech.
+    _chain = run.catchError((_) {});
+    return run;
+  }
+
+  Future<void> _speakNow(String text,
+      {required bool queue, required int epoch}) async {
+    if (epoch != _epoch) return;
     await _pickVoiceOnce();
+    if (epoch != _epoch) return;
     _speaking = true;
     try {
       if (queue) {
@@ -97,6 +132,7 @@ class FlutterTtsSpeech implements SpeechOutput {
 
   @override
   Future<void> stop() async {
+    _epoch++;
     _speaking = false;
     await _tts.stop();
   }

@@ -6,10 +6,10 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { imageSize } from "image-size";
-import { createMeta, mapLimit } from "./meta.js";
-import { buildRegions, conceptVariants, dedupeRegions } from "./regions.js";
+import { createMeta } from "./meta.js";
+import { createLimiter } from "./limit.js";
+import { buildRegions, dedupeRegions } from "./regions.js";
 import { orientedSize } from "./orient.js";
-import { cleanRegions } from "./learn.js";
 import { liveKitConfig, liveKitSession } from "./livekit.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -40,26 +40,16 @@ function httpError(status, message) {
   return Object.assign(new Error(message), { status, expose: true });
 }
 
-// Tiny in-memory limiter so a public demo can't burn through the API credits.
-function limiter(max, windowMs) {
-  const hits = new Map();
-  return (req, res, next) => {
-    const now = Date.now();
-    const key = req.ip;
-    const recent = (hits.get(key) ?? []).filter((t) => now - t < windowMs);
-    if (recent.length >= max) {
-      return res.status(429).json({ error: "Too many requests. Wait a minute and try again." });
-    }
-    recent.push(now);
-    hits.set(key, recent);
-    next();
-  };
-}
-
 export function createApp(meta) {
   const app = express();
-  // One analyze costs 1 Spark + up to 8 SAM calls. Cache by picture so lesson,
-  // quiz and chat demos re-opening the same picture never pay for it twice.
+  app.disable("x-powered-by");
+  // Behind Fly.io/Railway the client IP arrives in X-Forwarded-For; without
+  // this the limiter would put every visitor in one bucket. Off unless the
+  // deploy says otherwise, so a directly exposed server never trusts a
+  // client-spoofed header.
+  app.set("trust proxy", Number(process.env.TRUST_PROXY ?? 0) || 0);
+  // One analyze is one Spark call. Cache by picture so lesson, quiz and chat
+  // demos re-opening the same picture never pay for it twice.
   const analyzeCache = new Map();
   const cacheGet = (image) => analyzeCache.get(crypto.createHash("sha256").update(image).digest("hex"));
   const cachePut = (image, value) => {
@@ -70,16 +60,14 @@ export function createApp(meta) {
   const requireMeta = () => {
     if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env.");
   };
-  const learnCtx = (body) => {
-    const regions = cleanRegions(body?.regions);
-    if (!regions.length) throw httpError(400, "Explore a picture first, then start this.");
-    return {
-      title: String(body?.title ?? "Picture").slice(0, 200),
-      overview: String(body?.overview ?? "").slice(0, 1000),
-      regions,
-    };
-  };
   app.use(express.json({ limit: "12mb" }));
+  app.use((_req, res, next) => {
+    res.set({
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+    });
+    next();
+  });
   // The mobile app and a separately hosted web build call this API from other origins.
   app.use((req, res, next) => {
     res.set({
@@ -94,7 +82,7 @@ export function createApp(meta) {
   app.use(express.static(webDir)); // no-op until `flutter build web` has been run
 
   app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, metaConfigured: Boolean(meta), sparkModel: meta?.sparkModel ?? null, samModel: meta?.samModel ?? null, liveKitConfigured: Boolean(liveKitConfig()) });
+    res.json({ ok: true, metaConfigured: Boolean(meta), liveKitConfigured: Boolean(liveKitConfig()) });
   });
 
   // Instant demo pictures: every *.json in sample/ with a matching *.png beside it.
@@ -128,42 +116,18 @@ export function createApp(meta) {
     res.json({ samples });
   });
 
-  // The full pipeline: Spark names the parts, SAM outlines each one in parallel.
-  // onPart fires after every part finishes, so callers can stream progress.
+  // The full pipeline: one Spark call names the parts and places a tight box
+  // around each one. onPart fires per part, so callers can stream progress.
   const analyzeImage = async (dataUrl, width, height, onPart) => {
-    // 1. Muse Spark reads the picture and names its parts.
     const described = await meta.describeParts(dataUrl);
-
-    // 2. SAM 3.1 finds the exact pixels of each part (one request per concept).
-    //    Labels SAM cannot ground ("orthodontic braces row") get retried with
-    //    simpler concepts ("braces") before we give up on the mask.
-    const segmentPart = async (part) => {
-      for (const variant of conceptVariants(part.label)) {
-        try {
-          const records = (await meta.segment(dataUrl, variant)).records;
-          if (records.length) return records;
-        } catch (err) {
-          console.error(`segment "${variant}" failed:`, err?.message ?? err);
-        }
-      }
-      return [];
-    };
-    const limit = Math.min(8, Math.max(1, Number.parseInt(process.env.SAM_CONCURRENCY ?? "5", 10) || 5));
-    let done = 0;
-    const results = await mapLimit(described.parts, limit, async (part) => {
-      const records = await segmentPart(part);
-      done += 1;
-      onPart?.({ done, total: described.parts.length, label: part.label });
-      return { part, records };
+    const perPart = described.parts.map((part, partIndex) => {
+      const regions = buildRegions({ part, partIndex, imgW: width, imgH: height });
+      onPart?.({ done: partIndex + 1, total: described.parts.length, label: part.label });
+      return { part, regions };
     });
-
-    const perPart = results.map(({ part, records }, partIndex) => ({
-      part,
-      regions: buildRegions({ part, partIndex, records, imgW: width, imgH: height }),
-    }));
     const regions = dedupeRegions(perPart.flatMap((p) => p.regions));
     if (!regions.length) {
-      throw httpError(422, "No parts could be outlined in this picture. Try a clearer picture with distinct shapes.");
+      throw httpError(422, "No parts could be placed in this picture. Try a clearer picture with distinct shapes.");
     }
     return {
       width,
@@ -176,7 +140,7 @@ export function createApp(meta) {
     };
   };
 
-  app.post("/api/analyze", limiter(6, 60_000), async (req, res, next) => {
+  app.post("/api/analyze", createLimiter({ max: 6, windowMs: 60_000 }), async (req, res, next) => {
     try {
       if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env, or try the sample picture.");
       const { width, height } = parseImage(req.body?.image);
@@ -192,10 +156,9 @@ export function createApp(meta) {
   });
 
   // Same pipeline as /api/analyze, as server-sent events: one "progress" event
-  // per outlined part ({done, total, label}), then "done" with the full payload
-  // or "error" with {error}. The phone speaks the progress, so a 30-second
-  // analysis feels alive instead of frozen.
-  app.post("/api/analyze-stream", limiter(6, 60_000), async (req, res, next) => {
+  // per part ({done, total, label}), then "done" with the full payload
+  // or "error" with {error}. The phone speaks the progress instead of sitting silent.
+  app.post("/api/analyze-stream", createLimiter({ max: 6, windowMs: 60_000 }), async (req, res, next) => {
     try {
       if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env, or try the sample picture.");
       const { width, height } = parseImage(req.body?.image);
@@ -203,9 +166,25 @@ export function createApp(meta) {
       const cached = cacheGet(dataUrl);
       res.set({ "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
       res.flushHeaders?.();
-      const send = (event, obj) => res.write(`event: ${event}\ndata: ${JSON.stringify(obj)}\n\n`);
+      // A phone that locks mid-analysis drops the stream: stop writing
+      // instead of throwing into finished work. The analysis is still
+      // cached below, so the paid work is never wasted.
+      let alive = true;
+      let finished = false;
+      res.on("close", () => {
+        if (!finished) alive = false;
+      });
+      const send = (event, obj) => {
+        if (!alive || res.writableEnded) return;
+        try {
+          res.write(`event: ${event}\ndata: ${JSON.stringify(obj)}\n\n`);
+        } catch {
+          alive = false;
+        }
+      };
       if (cached) {
         send("done", cached);
+        finished = true;
         return res.end();
       }
       try {
@@ -216,70 +195,29 @@ export function createApp(meta) {
         send("error", { error: err?.expose ? err.message : "The Meta model request failed. Try again in a moment." });
         if (!err?.expose) console.error(err);
       }
+      finished = true;
       res.end();
     } catch (err) {
       next(err);
     }
   });
 
-  app.post("/api/ask", limiter(20, 60_000), async (req, res, next) => {
-    try {
-      if (!meta) throw httpError(503, "This server has no Meta API key. Add MODEL_API_KEY to .env.");
-      parseImage(req.body?.image);
-      const question = String(req.body?.question ?? "").trim().slice(0, 500);
-      if (!question) throw httpError(400, "Say or type a question first.");
-      const answer = await meta.ask(req.body.image, question, {
-        title: String(req.body?.title ?? "").slice(0, 200),
-        regionLabel: String(req.body?.regionLabel ?? "").slice(0, 200),
-      });
-      res.json({ answer });
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/lesson", limiter(10, 60_000), async (req, res, next) => {
+  app.post("/api/chat", createLimiter({ max: 20, windowMs: 60_000 }), async (req, res, next) => {
     try {
       requireMeta();
-      res.json(await meta.lesson(learnCtx(req.body)));
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/quiz", limiter(10, 60_000), async (req, res, next) => {
-    try {
-      requireMeta();
-      res.json(await meta.quiz(learnCtx(req.body)));
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/grade", limiter(20, 60_000), async (req, res, next) => {
-    try {
-      requireMeta();
-      const question = String(req.body?.question ?? "").trim().slice(0, 500);
-      const expected = String(req.body?.expected ?? "").trim().slice(0, 900);
-      const answer = String(req.body?.answer ?? "").trim().slice(0, 500);
-      if (!question || !expected || !answer) throw httpError(400, "Say your answer first.");
-      res.json(await meta.grade({ question, expected, answer }));
-    } catch (err) {
-      next(err);
-    }
-  });
-
-  app.post("/api/chat", limiter(20, 60_000), async (req, res, next) => {
-    try {
-      requireMeta();
-      parseImage(req.body?.image);
+      // The image is optional: with one the tutor sees the picture, without
+      // one it answers from the question and history alone. A present but
+      // malformed image is still a 400 — never answer blind by accident.
+      const rawImage = req.body?.image;
+      const image = typeof rawImage === "string" && rawImage ? rawImage : null;
+      if (image) parseImage(image);
       const question = String(req.body?.question ?? "").trim().slice(0, 500);
       if (!question) throw httpError(400, "Say or type a question first.");
       const history = (Array.isArray(req.body?.history) ? req.body.history : [])
         .filter((h) => h && typeof h.q === "string" && typeof h.a === "string")
         .slice(-6)
         .map((h) => ({ q: h.q.slice(0, 500), a: h.a.slice(0, 1000) }));
-      const answer = await meta.chat(req.body.image, question, {
+      const answer = await meta.chat(image, question, {
         title: String(req.body?.title ?? "").slice(0, 200),
         regionLabel: String(req.body?.regionLabel ?? "").slice(0, 200),
         history,
@@ -290,7 +228,25 @@ export function createApp(meta) {
     }
   });
 
-  app.post("/api/livekit-token", limiter(10, 60_000), async (req, res, next) => {
+  // Text-only self-test: the topic plus the conversation so far, capped
+  // and truncated exactly like /api/chat. Always 5 valid questions or a
+  // clear error — never a half-empty quiz.
+  app.post("/api/quiz", createLimiter({ max: 6, windowMs: 60_000 }), async (req, res, next) => {
+    try {
+      requireMeta();
+      const topic = String(req.body?.topic ?? "").trim().slice(0, 200);
+      if (!topic) throw httpError(400, "Name a topic for the quiz first.");
+      const history = (Array.isArray(req.body?.history) ? req.body.history : [])
+        .filter((h) => h && typeof h.q === "string" && typeof h.a === "string")
+        .slice(-6)
+        .map((h) => ({ q: h.q.slice(0, 500), a: h.a.slice(0, 1000) }));
+      res.json(await meta.quiz(topic, { history }));
+    } catch (err) {
+      next(err);
+    }
+  });
+
+  app.post("/api/livekit-token", createLimiter({ max: 10, windowMs: 60_000 }), async (req, res, next) => {
     try {
       const cfg = liveKitConfig();
       if (!cfg) {
@@ -302,6 +258,9 @@ export function createApp(meta) {
     }
   });
 
+  // Unknown API routes answer JSON like the rest of the API; anything else
+  // keeps Express's default page for browsers.
+  app.use("/api", (_req, res) => res.status(404).json({ error: "No such API route." }));
   // eslint-disable-next-line no-unused-vars
   app.use((err, _req, res, _next) => {
     if (err?.type === "entity.too.large") return res.status(413).json({ error: "That picture is too large. Try one under 8 MB." });
@@ -327,7 +286,6 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
         apiKey,
         baseURL: process.env.MODEL_BASE_URL || undefined,
         sparkModel: process.env.SPARK_MODEL || undefined,
-        samModel: process.env.SAM_MODEL || undefined,
         effort: process.env.SPARK_REASONING_EFFORT || undefined,
       })
     : null;

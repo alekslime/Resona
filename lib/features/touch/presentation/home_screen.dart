@@ -1,301 +1,343 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
+/// The menu home screen, ported from Resonant's HomeScreen.
+///
+/// A fixed brand surface — flat theme background, matching the splash it
+/// visually continues from. Five big lines; the focused one draws in ink and
+/// the rest in dim. A tap opens the item; a two-finger swipe moves focus and
+/// speaks it, while one finger only scrolls.
+///
+/// The old menu (Chat, Lessons, Quiz, Settings, Quit) with Chat first. Chat
+/// hangs off the last attached picture, like old Chat answering from the
+/// material opened last; without a picture it still talks.
+///
+/// Menu words are huge already, so the text size stops at 1.2x here.
+library;
 
+import 'dart:async';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../core/nav/menu_focus.dart';
+import '../../../core/nav/resonant_nav.dart';
 import '../../../core/providers.dart';
-import '../../../core/theme/resonant_theme.dart';
-import '../../../core/ui/resonant_dots.dart';
-import '../application/touch_controller.dart';
-import '../data/touch_repository.dart';
-import 'touch_screen.dart';
+import '../../../core/services/haptics.dart';
+import '../../../core/theme/motion.dart';
+import '../../../core/ui/capped_text.dart';
+import '../../../core/ui/enter.dart';
+import '../../../core/ui/focus_fade.dart';
+import '../../../core/ui/key_shortcuts.dart';
+import '../../../core/ui/system_bars.dart';
+import '../application/pictures_controller.dart';
+import '../gestures/gesture_types.dart';
+import 'chat_screen.dart';
+import 'gesture_guide.dart';
+import 'gesture_surface.dart';
+import 'lessons_screen.dart';
+import 'quiz_browser_screen.dart';
+import 'settings_screen.dart';
+
+class _HomeItem {
+  const _HomeItem(this.label, this.route);
+
+  final String label;
+  final String route;
+}
+
+const _items = [
+  _HomeItem('Chat', Routes.chat),
+  _HomeItem('Lessons', Routes.lessons),
+  _HomeItem('Quiz', Routes.quiz),
+  _HomeItem('Settings', Routes.settings),
+  _HomeItem('Quit', Routes.quit),
+];
 
 class HomeScreen extends ConsumerStatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({super.key, this.showKeyHint = kIsWeb});
+
+  /// A one-line keyboard hint for desktop browsers. On by default on
+  /// web, where there is no touchscreen to discover gestures with.
+  final bool showKeyHint;
 
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  List<GallerySample>? _gallery;
-  ServerHealth? _health;
+  final _focus = MenuFocus(count: _items.length);
+  final _scroll = ScrollController();
+  final _guideKey = GlobalKey();
+  late final List<GlobalKey> _keys = [
+    for (var i = 0; i < _items.length; i++) GlobalKey()
+  ];
+  Timer? _exitTimer;
 
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref
-          .read(speechProvider)
-          .speak('Resonant. Choose a picture to explore by touch.');
-    });
-    _loadGallery();
+  void dispose() {
+    _exitTimer?.cancel();
+    _scroll.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadGallery() async {
-    // Neither call throws: offline, the repository answers with the bundled
-    // pictures and an unreachable health.
-    final repo = ref.read(repositoryProvider);
-    final (entries, health) = await (repo.gallery(), repo.health()).wait;
-    if (mounted) {
-      setState(() {
-        _gallery = entries;
-        _health = health;
+  /// A tap the menu lines took themselves: the surface drops its echo.
+  bool _onItem(Offset position) =>
+      guideContains(_guideKey, position) || _keys.any((k) {
+        final box = k.currentContext?.findRenderObject() as RenderBox?;
+        if (box == null || !box.attached) return false;
+        return Rect.fromPoints(
+          box.localToGlobal(Offset.zero),
+          box.localToGlobal(box.size.bottomRight(Offset.zero)),
+        ).contains(position);
       });
+
+  bool get _reduce => MediaQuery.of(context).disableAnimations;
+
+  void _push(Widget screen) {
+    Navigator.of(context).push(resonantRoute(screen, reduce: _reduce));
+  }
+
+  /// The picture everything hangs off, or null before the first explore.
+  RecentPicture? get _last {
+    final recents = ref.read(picturesControllerProvider).recents;
+    return recents.isEmpty ? null : recents.first;
+  }
+
+  Future<void> _open(int i) async {
+    final item = _items[i];
+    ref.read(hapticsProvider).play(HapticPattern.select);
+    if (item.route == Routes.quit) {
+      ref.read(speechProvider).speak('Exiting Resonant.');
+      // The spoken confirmation is already playing, so the finish waits a
+      // beat to let it land.
+      _exitTimer?.cancel();
+      _exitTimer = Timer(const Duration(milliseconds: 900), () {
+        SystemNavigator.pop();
+      });
+      return;
+    }
+    ref.read(speechProvider).speak('Opening ${item.label}.');
+    switch (item.route) {
+      case Routes.chat:
+        _push(ChatScreen(recent: _last));
+      case Routes.lessons:
+        _push(const LessonsScreen());
+      case Routes.quiz:
+        _push(const QuizBrowserScreen());
+      case Routes.settings:
+        _push(const SettingsScreen());
     }
   }
 
-  Future<void> _pick(ImageSource source) async {
-    final file = await ImagePicker().pickImage(
-      source: source,
-      maxWidth: 1280,
-      maxHeight: 1280,
-      imageQuality: 88,
-    );
-    if (file == null) return;
-    final bytes = await file.readAsBytes();
-    final mime = file.mimeType ??
-        (file.name.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg');
-    await ref
-        .read(touchControllerProvider.notifier)
-        .analyze(PictureBytes(bytes, mime));
+  void _move(int delta) {
+    final moved = delta > 0 ? _focus.next() : _focus.previous();
+    if (!moved) return;
+    setState(() {});
+    final target = _keys[_focus.index].currentContext;
+    if (target != null) {
+      unawaited(Scrollable.ensureVisible(
+        target,
+        duration: MediaQuery.of(context).disableAnimations
+            ? Duration.zero
+            : const Duration(milliseconds: 250),
+      ));
+    }
+    ref.read(speechProvider).speak(_items[_focus.index].label);
+    _buzz(delta > 0 ? HapticPattern.next : HapticPattern.previous);
+  }
+
+  void _buzz(HapticPattern pattern) {
+    ref.read(hapticsProvider).play(pattern);
+    ref.read(cuesProvider).play(pattern);
+  }
+
+  void _repeat() {
+    ref.read(speechProvider).speak(_items[_focus.index].label);
+  }
+
+  void _alreadyHome() {
+    _buzz(HapticPattern.back);
+    ref
+        .read(speechProvider)
+        .speak('You are already on the Home screen.');
+  }
+
+  /// A hold that started on a menu line: the surface drops holds on
+  /// rows, so the row reports it. A right-edge hold says you are
+  /// already home; anywhere else the hold just swallows the tap.
+  void _rowHold(Offset position) {
+    final width = MediaQuery.of(context).size.width;
+    if (position.dx > width - 64) {
+      _alreadyHome();
+    }
+  }
+
+  void _speed(double delta) {
+    final speech = ref.read(speechProvider);
+    speech.rate = (speech.rate + delta).clamp(0.5, 2.0);
+    speech.speak(delta > 0 ? 'Faster.' : 'Slower.');
+  }
+
+  void _onGesture(Gesture gesture) {
+    switch (gesture) {
+      case Swipe(zone: Zone.center, direction: SwipeDirection.up):
+        _move(1);
+      case Swipe(zone: Zone.center, direction: SwipeDirection.down):
+        _move(-1);
+      case Tap(zone: Zone.center):
+        _open(_focus.index);
+      case Tap(zone: Zone.leftEdge):
+        ref.read(speechProvider).stop();
+        _buzz(HapticPattern.confirm);
+      case DoubleTap(zone: Zone.leftEdge):
+        _repeat();
+      case LongPress(zone: Zone.rightEdge):
+        _alreadyHome();
+      case ThreeFingerTap():
+        _repeat();
+      case ThreeFingerHold():
+        ref.read(speechProvider).speak(
+            'You are on the Home screen. Currently focused: ${_items[_focus.index].label}.');
+      case HoldSpeedUp():
+        _speed(0.1);
+        _buzz(HapticPattern.speedUp);
+      case HoldSpeedDown():
+        _speed(-0.1);
+        _buzz(HapticPattern.speedDown);
+      default:
+        break;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(touchControllerProvider);
-    if (state.phase == Phase.explore) return const TouchScreen();
-
     final palette = ref.watch(paletteProvider);
-    final busy = state.phase == Phase.busy;
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ResonantDots(
-                    state: busy ? DotsState.thinking : DotsState.idle,
-                    size: 140,
-                    color: palette.ink,
-                  ),
-                  const SizedBox(height: 12),
-                  Semantics(
-                    header: true,
-                    child: Text('Resonant', style: brandStyle(64, palette.ink)),
-                  ),
-                  const SizedBox(height: 4),
-                  _ServerDot(health: _health),
-                  const SizedBox(height: 12),
-                  Text(
-                    busy
-                        ? (state.progress.isEmpty
-                            ? 'Reading the picture.'
-                            : state.progress)
-                        : 'Learn by sound and touch. Drag a finger across a picture and feel its parts.',
-                    style: TextStyle(
-                      fontSize: 22,
-                      height: 1.3,
-                      fontWeight: FontWeight.w600,
-                      color: palette.ink,
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  if (!busy) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => _pick(ImageSource.gallery),
-                        child: const Text('Choose a picture'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: () => _pick(ImageSource.camera),
-                        child: const Text('Take a photo'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      'Try a sample',
-                      style: TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.w800,
-                        color: palette.ink,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    for (final entry in (_gallery ?? bundledSamples))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: FilledButton(
-                            onPressed: () => ref
-                                .read(touchControllerProvider.notifier)
-                                .openGallery(entry),
-                            child: Text(
-                              '${entry.title} (${entry.regions} parts)',
-                            ),
+    paintSystemBars(palette.background);
+    return Container(
+      color: palette.background,
+      child: SafeArea(
+        child: ListShortcuts(
+          onMove: _move,
+          onActivate: () => _open(_focus.index),
+          onBack: _alreadyHome,
+          child: GestureSurface(
+            twoFingerSwipe: true,
+            ignoreChildGestureAt: _onItem,
+            onGesture: _onGesture,
+            child: Semantics(
+            customSemanticsActions: {
+              const CustomSemanticsAction(label: 'Next'): () => _move(1),
+              const CustomSemanticsAction(label: 'Previous'): () => _move(-1),
+            },
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
+                controller: _scroll,
+                // Five lines at this size do not fit every phone: one finger
+                // scrolls when they overflow, and a two-finger swipe moves
+                // focus whether they fit or not.
+                child: ConstrainedBox(
+                  constraints:
+                      BoxConstraints(minHeight: constraints.maxHeight),
+                  child: CappedText(
+                    max: 1.2,
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        FirstVisitGuide(
+                            key: _guideKey, screen: GuideScreen.home),
+                        for (var i = 0; i < _items.length; i++)
+                          _MenuItem(
+                            key: _keys[i],
+                            label: _items[i].label,
+                            focused: i == _focus.index,
+                            index: i,
+                            onTap: () {
+                              setState(() => _focus.jumpTo(i));
+                              _open(i);
+                            },
+                            onHold: _rowHold,
                           ),
-                        ),
-                      ),
-                    if (state.recents.isNotEmpty) ...[
-                      const SizedBox(height: 20),
-                      Text(
-                        'Recent pictures',
-                        style: TextStyle(
-                          fontSize: 19,
-                          fontWeight: FontWeight.w800,
-                          color: palette.ink,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      for (final r in state.recents)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton(
-                              onPressed: () => ref
-                                  .read(touchControllerProvider.notifier)
-                                  .openRecent(r),
-                              child: Text(
-                                '${r.analysis.title} (${r.analysis.regions.length} parts)',
+                        if (widget.showKeyHint)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 12),
+                            child: Text(
+                              'Keyboard: arrows move, Enter opens, ? lists shortcuts.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontFamily: ref
+                                    .watch(fontProvider)
+                                    .family,
+                                fontSize: 14,
+                                color: palette.dim,
                               ),
                             ),
                           ),
-                        ),
-                    ],
-                    const SizedBox(height: 20),
-                    // The gesture grammar at a glance, for sighted helpers and
-                    // anyone with some vision. The app itself is eyes-free.
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: palette.card,
-                        borderRadius: BorderRadius.circular(palette.cardRadius),
-                        border: palette.outline == null
-                            ? null
-                            : Border.all(
-                                color: palette.outline!,
-                                width: palette.outlineWidth),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'How exploring works',
-                            style: TextStyle(
-                              fontSize: 19,
-                              fontWeight: FontWeight.w800,
-                              color: palette.ink,
-                            ),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            'Drag a finger over the picture: each part speaks, buzzes '
-                            'and plays a tone. Rest to hear more. Hold and ask a '
-                            'question. Hold three fingers for the map in words.',
-                            style: TextStyle(
-                                fontSize: 17, height: 1.35, color: palette.ink),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: () {
-                        final next = ref.read(paletteProvider.notifier).next();
-                        ref.read(speechProvider).speak('${next.label} theme.');
-                      },
-                      child: Text(
-                        'Theme: ${palette.label}',
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: palette.ink,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                  if (state.message.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Semantics(
-                      liveRegion: true,
-                      child: Text(
-                        state.message,
-                        style: TextStyle(
-                          fontSize: 18,
-                          color: palette.ink,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+                  ),
+                ),
               ),
             ),
           ),
+        ),
         ),
       ),
     );
   }
 }
 
-/// Green when the backend can analyze, amber when it is reachable but keyless,
-/// red when offline (the samples still work). Words, not color alone, so a
-/// screen reader announces the same state a sighted judge sees.
-class _ServerDot extends ConsumerWidget {
-  const _ServerDot({required this.health});
-  final ServerHealth? health;
+class _MenuItem extends ConsumerWidget {
+  const _MenuItem({
+    super.key,
+    required this.label,
+    required this.focused,
+    required this.index,
+    required this.onTap,
+    required this.onHold,
+  });
+
+  final String label;
+  final bool focused;
+  final int index;
+  final VoidCallback onTap;
+  final void Function(Offset position) onHold;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final palette = ref.watch(paletteProvider);
-    final (Color color, String words) = switch (health) {
-      null => (const Color(0xFF8B949E), 'Checking server.'),
-      ServerHealth(reachable: false) => (
-          const Color(0xFFDA3633),
-          'Offline. Samples still work.',
-        ),
-      ServerHealth(metaConfigured: false) => (
-          const Color(0xFFD29922),
-          'Server connected. Samples only, no API key.',
-        ),
-      _ => (const Color(0xFF2EA043), 'Server connected. New pictures work.'),
-    };
-    return Semantics(
-      label: words,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ExcludeSemantics(
-            child: Container(
-              width: 12,
-              height: 12,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              words,
-              style: TextStyle(
-                fontSize: 16,
-                color: palette.ink,
-                fontWeight: FontWeight.w600,
+    final font = ref.watch(fontProvider);
+    return EnterStagger(
+      index: index,
+      child: FocusLift(
+        focused: focused,
+        amount: 1.06,
+        themeFloor: MotionProfiles.forTheme(palette.id).minDamping,
+        child: FocusColor(
+          target: focused ? palette.ink : palette.dim,
+          builder: (context, color) => Semantics(
+            label: focused ? '$label, focused' : label,
+            button: true,
+            onTap: onTap,
+            child: ExcludeSemantics(
+              child: GestureDetector(
+                onTap: onTap,
+                onLongPressStart: (d) => onHold(d.globalPosition),
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: font.family,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 60,
+                    height: 83 / 60,
+                  ).copyWith(color: color),
+                ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }

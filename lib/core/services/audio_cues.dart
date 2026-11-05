@@ -12,11 +12,15 @@ class AudioPlayersCues implements Cues {
   AudioPlayersCues({int voices = 4})
     : _pool = List.generate(voices, (_) => AudioPlayer()..setReleaseMode(ReleaseMode.stop));
 
+  @override
+  bool enabled = true;
+
   final List<AudioPlayer> _pool;
   final _cache = <String, Uint8List>{};
   int _next = 0;
 
   Future<void> _play(Uint8List wav) async {
+    if (!enabled) return;
     final p = _pool[_next++ % _pool.length];
     try {
       await p.stop();
@@ -57,5 +61,10 @@ class AudioPlayersCues implements Cues {
       () => synthWav([CueNote(hz, 60)], gain: 0.6, pan: 0),
     );
     return _play(wav);
+  }
+
+  @override
+  Future<void> splash() {
+    return _play(_cache.putIfAbsent('splash', synthSplash));
   }
 }

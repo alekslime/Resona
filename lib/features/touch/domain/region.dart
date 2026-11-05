@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-/// One touchable part of a picture: a label, what to say about it, and its exact outline.
+/// One touchable part of a picture: a label, what to say about it, and where it is.
 ///
-/// The outline is a small 0/1 grid ([maskW] x [maskH]) stretched over the box. It comes from
-/// SAM 3.1 via the backend, so a finger can land on a river or a lung, not just a rectangle.
+/// The shape is a small 0/1 grid ([maskW] x [maskH]) stretched over the box. New pictures
+/// carry Muse Spark's box as a solid filled grid; the bundled samples carry hand-drawn outlines.
 class Region {
   Region({
     required this.id,
@@ -41,8 +41,7 @@ class Region {
   final double areaFrac;
   final double? confidence;
 
-  /// True when SAM could not outline this part and the region is Muse Spark's
-  /// rough rectangle instead — touchable, but not the part's true shape.
+  /// True when the region is a box rather than a traced outline of the part's true shape.
   final bool approximate;
 
   factory Region.fromJson(
@@ -73,16 +72,6 @@ class Region {
     );
   }
 
-  /// Is the picture pixel ([x], [y]) inside this part's outline?
-  bool contains(num x, num y) {
-    if (x < left || x >= right || y < top || y >= bottom) return false;
-    final u = (((x - left) / (right - left)) * maskW).floor().clamp(0, maskW - 1);
-    final v = (((y - top) / (bottom - top)) * maskH).floor().clamp(0, maskH - 1);
-    return bits[v * maskW + u] == 1;
-  }
-
-  double get centerX => (left + right) / 2;
-  double get centerY => (top + bottom) / 2;
 }
 
 /// What the backend returns for one picture.
@@ -102,7 +91,7 @@ class Analysis {
   final String title, kind, overview;
   final List<Region> regions;
 
-  /// Labels Muse Spark proposed that SAM could not find in the picture.
+  /// Labels Muse Spark proposed that had no usable box, so they are not touchable.
   final List<String> skipped;
 
   /// True only for the bundled sample, whose outlines are hand-authored, not model output.

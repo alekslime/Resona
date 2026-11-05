@@ -4,6 +4,8 @@ import 'package:resonant/core/services/haptics.dart';
 import 'package:resonant/core/services/sound.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'fakes.dart';
+
 void main() {
   test('every cue stays short and audible on a phone speaker', () {
     for (final e in SoundCues.specs.entries) {
@@ -27,6 +29,13 @@ void main() {
       expect(t.length.isEven, isTrue); // off, on, off, on...
       expect(t.first, 0);
     }
+  });
+
+  test('celebration climbs past correct and ends on top', () {
+    final spec = SoundCues.specs[HapticPattern.celebration]!;
+    expect(spec.notes.last.freqHz,
+        greaterThan(spec.notes.first.freqHz));
+    expect(spec.notes.last.freqHz, greaterThan(1200));
   });
 
   test('direction is contour: next rises, previous falls', () {
@@ -86,5 +95,34 @@ void main() {
     for (final p in HapticPattern.values) {
       expect(panFor(p) != 0, isTrue);
     }
+  });
+
+  test('a disabled cue player stays silent', () async {
+    final log = Log();
+    final cues = FakeCues(log)..enabled = false;
+    await cues.play(HapticPattern.next);
+    await cues.position(x01: 0.5, y01: 0.5);
+    await cues.proximity(closeness: 0.9);
+    expect(log.events, isEmpty);
+    cues.enabled = true;
+    await cues.play(HapticPattern.next);
+    expect(log.events, ['cue:next']);
+  });
+
+  test('silence is still silent when enabled was never touched', () async {
+    const cues = NoCues();
+    expect(cues.enabled, isTrue);
+    await cues.play(HapticPattern.next);
+    await cues.position(x01: 0, y01: 0);
+    await cues.proximity(closeness: 1);
+  });
+  test('the splash track plays through the cue player', () async {
+    final log = Log();
+    final cues = FakeCues(log);
+    await cues.splash();
+    expect(log.events, ['splash']);
+    cues.enabled = false;
+    await cues.splash();
+    expect(log.events, ['splash']);
   });
 }

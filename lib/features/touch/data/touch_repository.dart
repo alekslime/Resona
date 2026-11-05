@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 
-import '../../learn/domain/learn.dart';
 import '../domain/region.dart';
+import '../../learn/domain/library.dart';
 
 /// The picture the user chose, already downscaled for upload.
 class PictureBytes {
@@ -58,6 +58,11 @@ const bundledSamples = [
       id: 'chart', title: 'Spring rainfall', kind: 'chart', regions: 5),
 ];
 
+/// Spoken and shown when a backend call is slow enough that the server is
+/// probably waking from sleep. One announcement per request, never repeated.
+const serverWakingMessage =
+    'Waking up the server. This can take up to 30 seconds.';
+
 /// Progress while the backend outlines a picture: [done] of [total] parts.
 class AnalyzeProgress {
   const AnalyzeProgress(
@@ -74,39 +79,70 @@ class ServerHealth {
   final bool metaConfigured;
 }
 
-abstract class TouchRepository {
-  /// Muse Spark names the parts, SAM 3.1 outlines them (see backend/).
-  /// [onProgress] fires after every part is outlined, so the phone can speak
-  /// the progress instead of sitting silent for half a minute.
-  Future<Analysis> analyze(PictureBytes picture,
-      {void Function(AnalyzeProgress progress)? onProgress});
+/// A self-test the tutor generated from a chat conversation: the topic plus
+/// 5 multiple-choice questions. The store wraps it in a [LibraryQuizSet].
+class GeneratedQuiz {
+  const GeneratedQuiz({required this.topic, required this.questions});
+  final String topic;
+  final List<LibraryQuizQuestion> questions;
+}
 
-  Future<String> ask(
-    PictureBytes picture, {
-    required String question,
-    required String title,
-    String regionLabel = '',
-  });
+/// A quiz the tutor generated from a chat conversation, kept with its save
+/// date so the Quiz shelf can show it under "From your chats".
+class StoredQuiz {
+  const StoredQuiz({required this.set, required this.createdAt});
+  final LibraryQuizSet set;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+        'set': set.toJson(),
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory StoredQuiz.fromJson(Map<String, dynamic> json) => StoredQuiz(
+        set: LibraryQuizSet.fromJson(json['set'] as Map<String, dynamic>),
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
+}
+
+abstract class TouchRepository {
+  /// Muse Spark names the parts and places a box around each one (see backend/).
+  /// [onProgress] fires after every part is placed, so the phone can speak
+  /// the progress instead of sitting silent while it works. [onSlow] fires
+  /// once when no response has arrived in a while, so the caller can say
+  /// the server is waking up; it never fires after a response lands.
+  Future<Analysis> analyze(PictureBytes picture,
+      {void Function(AnalyzeProgress progress)? onProgress,
+      void Function()? onSlow});
 
   /// Multi-turn voice tutor: [history] is the conversation so far, oldest first.
+  /// [onSlow] fires once when no answer has arrived in a while.
   Future<String> chat(
     PictureBytes picture, {
     required String question,
     required String title,
     String regionLabel = '',
     List<({String q, String a})> history = const [],
+    void Function()? onSlow,
   });
 
-  /// A guided lesson over the parts of a picture that was already analyzed.
-  Future<Lesson> lesson(Analysis analysis);
+  /// Text-only tutor for chat without a picture: same endpoint as [chat],
+  /// no image attached. History is the conversation so far, oldest first.
+  /// [onSlow] fires once when no answer has arrived in a while.
+  Future<String> chatText({
+    required String question,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  });
 
-  /// Check-me questions (find-it by touch, say-it by voice) over the same parts.
-  Future<Quiz> quiz(Analysis analysis);
-
-  Future<Grade> grade(
-      {required String question,
-      required String expected,
-      required String answer});
+  /// A 5-question self-test on the topic just discussed: the topic plus the
+  /// conversation so far, oldest first. [onSlow] fires once when no quiz
+  /// has arrived in a while.
+  Future<GeneratedQuiz> quiz({
+    required String topic,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  });
 
   /// Join details for a live, interruptible voice conversation about a picture.
   Future<LiveVoiceConnection> liveVoice({
