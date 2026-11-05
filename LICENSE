@@ -1,21 +1,37 @@
-MIT License
+Resonant: Proprietary License. All Rights Reserved.
 
-Copyright (c) 2026 Resonant contributors
+Copyright (c) 2026 Aleks Lime. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+This repository is published so that people can read the source code and see
+how the project works. It is not open source software.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+You MAY:
+  - View and read the source code and documentation in this repository.
+  - Use the features GitHub itself provides for public repositories, such as
+    viewing and forking the repository inside GitHub, as allowed by the GitHub
+    Terms of Service. A fork made this way gives you no license to anything in
+    it beyond reading it.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+You MAY NOT, without prior written permission from the copyright holder:
+  - Use the software or any part of it, for any purpose, personal or commercial.
+  - Copy, reproduce, or redistribute the software or any part of it.
+  - Modify, adapt, translate, or create derivative works based on it.
+  - Build, compile, install, or run it, or publish builds of it.
+  - Sublicense, sell, rent, lease, or otherwise commercialize it.
+  - Use the code, design, text, images, icons, logo, name "Resonant", or the
+    braille "R" mark to train, fine-tune, or evaluate machine learning models.
+  - Remove or alter this notice.
+
+Third-party components. This license applies only to the original work of the
+copyright holder. Third-party libraries, fonts, models and tools used by or
+referenced in this project (listed in the Credits section of README.md) remain
+under their own licenses, which are not changed by this file.
+
+NO WARRANTY. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO
+EVENT SHALL THE COPYRIGHT HOLDER BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+To ask for permission, contact the copyright holder through the GitHub profile
+that owns this repository.
