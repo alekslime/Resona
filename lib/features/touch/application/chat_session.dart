@@ -10,6 +10,7 @@ import '../../learn/domain/sentences.dart';
 import '../data/touch_repository.dart';
 import '../gestures/gesture_phrases.dart';
 import '../gestures/gesture_types.dart';
+import 'chat_quizzes.dart';
 import 'recents.dart';
 
 /// What the chat screen shows. Sentences flatten across every exchange, so
@@ -22,6 +23,10 @@ class ChatView {
     this.statusText = '',
     this.flatIndex = 0,
     this.offline = false,
+    this.quizOfferPending = false,
+    this.quizTopic = '',
+    this.quizGenerating = false,
+    this.quizError = '',
   });
 
   final List<ChatExchange> exchanges;
@@ -33,6 +38,16 @@ class ChatView {
   /// True once an answer has failed, until a fresh one lands. The screen
   /// shows the offline banner for this.
   final bool offline;
+
+  /// The tutor just offered a quiz on [quizTopic]: the screen shows Yes/No.
+  final bool quizOfferPending;
+  final String quizTopic;
+
+  /// A yes is generating: the screen shows progress instead of the offer.
+  final bool quizGenerating;
+
+  /// Generation failed: the screen shows this with a Dismiss.
+  final String quizError;
 
   bool get hero => exchanges.isEmpty;
 
@@ -51,6 +66,9 @@ class ChatView {
   }
 }
 
+/// The quiz offer, spoken and shown identically: "Want a quiz on <topic>?"
+String quizOfferQuestion(String topic) => 'Want a quiz on $topic?';
+
 /// The voice tutor's chat, ported from Resonant's ChatScreen (phone side).
 /// Ask by voice or by typing; the backend tutor answers with or without a
 /// picture, and when the server fails the shipped lessons do.
@@ -64,7 +82,11 @@ class ChatSession {
     required this.haptics,
     required this.cues,
     required this.input,
+    required this.quizStore,
+    this.onQuizOfferChanged,
     RecentPicture? recent,
+    bool quizOffered = false,
+    bool quizDeclined = false,
     List<ChatExchange> previous = const [],
     this.lessons = builtInLessons,
     this.onBack,
@@ -72,6 +94,8 @@ class ChatSession {
     this.thinkingTick = const Duration(seconds: 2),
     this.thinkingSpokenEvery = const Duration(seconds: 10),
   })  : _recent = recent,
+        _quizOffered = quizOffered,
+        _quizDeclined = quizDeclined,
         _exchanges = previous.length > maxChatExchanges
             ? previous.sublist(previous.length - maxChatExchanges)
             : List.of(previous);
@@ -81,6 +105,10 @@ class ChatSession {
   final Haptics haptics;
   final Cues cues;
   final SpeechInput input;
+  final ChatQuizStore quizStore;
+
+  /// Persists the once-per-conversation offer state next to the history.
+  final void Function(bool offered, bool declined)? onQuizOfferChanged;
   final List<LibraryLesson> lessons;
 
   /// The right-edge hold: back out of chat.
@@ -97,6 +125,12 @@ class ChatSession {
   bool _thinking = false;
   bool _listening = false;
   bool _picturedHintGiven = false;
+  bool _quizOffered;
+  bool _quizDeclined;
+  bool _quizOfferPending = false;
+  bool _quizGenerating = false;
+  String _quizTopic = '';
+  String _quizError = '';
   bool _offline = false;
   String _status = '';
   int _flatIndex = 0;
@@ -111,6 +145,10 @@ class ChatSession {
         statusText: _status,
         flatIndex: _flatIndex,
         offline: _offline,
+        quizOfferPending: _quizOfferPending,
+        quizTopic: _quizTopic,
+        quizGenerating: _quizGenerating,
+        quizError: _quizError,
       );
 
   List<String> get _flat => [
@@ -151,6 +189,11 @@ class ChatSession {
     _cancelRequest();
     _recent = recent;
     _exchanges.clear();
+    _quizOffered = false;
+    _quizDeclined = false;
+    _quizOfferPending = false;
+    _quizError = '';
+    _persistOffer();
     _flatIndex = 0;
     _offline = false;
     final a = recent.analysis;
@@ -162,6 +205,11 @@ class ChatSession {
   /// A typed question from the pill. Same barge-in as voice: it interrupts
   /// anything in flight.
   Future<void> askTyped(String question) async {
+    final yn = _quizOfferPending ? _yesNo(question) : null;
+    if (yn != null) {
+      answerQuizOffer(yn);
+      return;
+    }
     _cancelRequest();
     await speech.stop();
     _buzz(HapticPattern.confirm);
@@ -217,6 +265,11 @@ class ChatSession {
       return;
     }
     _buzz(HapticPattern.confirm);
+    final heardYn = _quizOfferPending ? _yesNo(heard) : null;
+    if (heardYn != null) {
+      answerQuizOffer(heardYn);
+      return;
+    }
     // No echo of what was heard: straight to thinking, then the answer.
     _say('Thinking.');
     await _ask(heard);
@@ -280,6 +333,7 @@ class ChatSession {
     _thinking = false;
     _status = '';
     _addExchange(ChatExchange(question, sentences));
+    _maybeOfferQuiz();
     if (cameBack) {
       // The server just returned: lead with the news, queue the answer
       // behind it. Spoken, not stored — the exchange keeps the model's
@@ -300,6 +354,122 @@ class ChatSession {
           queue: true);
     }
     _emit();
+  }
+
+  /// What the quiz would be on: the picture's title, or the first
+  /// question trimmed to a topic when chatting without a picture.
+  String _quizTopicFor() {
+    final title = _recent?.analysis.title.trim();
+    if (title != null && title.isNotEmpty) return title;
+    if (_exchanges.isEmpty) return 'this topic';
+    final words = _exchanges.first.userText.trim().split(RegExp(r'\s+'));
+    final short = words.length > 8
+        ? '${words.take(8).join(' ')}…'
+        : words.join(' ');
+    if (short.isEmpty) return 'this topic';
+    return short.length > 80 ? '${short.substring(0, 80)}…' : short;
+  }
+
+  /// After the 4th answer lands, offer a quiz once per conversation.
+  void _maybeOfferQuiz() {
+    if (_exchanges.length != 4 || _quizOffered || _quizDeclined) return;
+    _quizOffered = true;
+    _quizTopic = _quizTopicFor();
+    _quizOfferPending = true;
+    _persistOffer();
+    // Queued behind the answer just spoken, never cutting into it.
+    _say(quizOfferQuestion(_quizTopic), queue: true);
+  }
+
+  void _persistOffer() => onQuizOfferChanged?.call(_quizOffered, _quizDeclined);
+
+  /// The first word of a yes ("yes please") or a no ("no thanks") while
+  /// the offer is pending, or null for anything else — which stays a
+  /// normal question with the offer still up.
+  bool? _yesNo(String text) {
+    const yes = {'yes', 'yeah', 'yep', 'yup', 'sure', 'okay', 'ok'};
+    const no = {'no', 'nope', 'nah'};
+    final first = text
+        .trim()
+        .toLowerCase()
+        .split(RegExp(r"[\s,.!?;:']+"))
+        .firstWhere((w) => w.isNotEmpty, orElse: () => '');
+    if (yes.contains(first)) return true;
+    if (no.contains(first)) return false;
+    return null;
+  }
+
+  /// Answer the pending offer from the Yes/No buttons, the pill, or voice.
+  void answerQuizOffer(bool yes) {
+    if (!_quizOfferPending) return;
+    if (!yes) {
+      _quizOfferPending = false;
+      _quizDeclined = true;
+      _status = '';
+      _persistOffer();
+      _say('No problem. Ask me anything.');
+      _emit();
+      return;
+    }
+    _quizOfferPending = false;
+    unawaited(_generateQuiz());
+  }
+
+  /// Clear a generation failure from the screen. The offer stays consumed:
+  /// the tutor asked once, and asking again would nag.
+  void dismissQuizError() {
+    _quizError = '';
+    _emit();
+  }
+
+  /// Make the quiz, save it on the device, and say where it landed. Spoken
+  /// and visible progress throughout, with the same waking-up announcement
+  /// as a slow answer. A failure speaks the error and saves nothing.
+  Future<void> _generateQuiz() async {
+    _quizGenerating = true;
+    _quizError = '';
+    _status = 'Making your quiz…';
+    _emit();
+    _buzz(HapticPattern.confirm);
+    _say('Making your quiz.');
+    void onSlow() {
+      if (_disposed) return;
+      _status = serverWakingMessage;
+      _say(serverWakingMessage, queue: true);
+      _emit();
+    }
+
+    try {
+      final tail = _exchanges.length > maxChatExchanges
+          ? _exchanges.sublist(_exchanges.length - maxChatExchanges)
+          : _exchanges;
+      final history = [
+        for (final e in tail) (q: e.userText, a: e.sentences.join(' ')),
+      ];
+      final generated = await quizStore.saveQuiz(
+        title: _quizTopic,
+        questions: (await repository.quiz(
+          topic: _quizTopic,
+          history: history,
+          onSlow: onSlow,
+        ))
+            .questions,
+      );
+      if (_disposed) return;
+      _quizGenerating = false;
+      _status = '';
+      _say(
+          'Your quiz on ${generated.set.title} is ready. Find it in Quizzes, under From your chats.');
+      _emit();
+    } catch (e) {
+      if (_disposed) return;
+      _quizGenerating = false;
+      _status = '';
+      _quizError =
+          e is TouchApiException ? e.message : 'Something went wrong. Try again.';
+      _say(_quizError);
+      _emit();
+    }
   }
 
   void _addExchange(ChatExchange exchange) {

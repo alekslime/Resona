@@ -51,12 +51,30 @@ class SlowRepo extends FakeRepository {
   }
 }
 
+/// A quiz maker that reports a slow server, then generates.
+class SlowQuizRepo extends FakeRepository {
+  SlowQuizRepo(super.log);
+
+  @override
+  Future<GeneratedQuiz> quiz({
+    required String topic,
+    List<({String q, String a})> history = const [],
+    void Function()? onSlow,
+  }) async {
+    onSlow?.call();
+    return super.quiz(topic: topic, history: history);
+  }
+}
+
 class Rig {
-  Rig(this.log, this.session, this.input, this.backs);
+  Rig(this.log, this.session, this.input, this.backs, this.store,
+      this.offerStates);
   final Log log;
   final ChatSession session;
   final FakeInput input;
   final List<bool> backs;
+  final FakeChatQuizStore store;
+  final List<(bool, bool)> offerStates;
 }
 
 Rig rig({
@@ -67,16 +85,24 @@ Rig rig({
   List<ChatExchange> previous = const [],
   Duration tick = const Duration(seconds: 2),
   Duration spokenFor = const Duration(seconds: 10),
+  bool quizOffered = false,
+  bool quizDeclined = false,
 }) {
   final log = Log();
   final backs = <bool>[];
   final input = FakeInput(log, heard: heard, available: micAvailable);
+  final store = FakeChatQuizStore(log);
+  final offerStates = <(bool, bool)>[];
   final session = ChatSession(
     repository: repo ?? FakeRepository(log),
     speech: FakeSpeech(log),
     haptics: FakeHaptics(log),
     cues: FakeCues(log),
     input: input,
+    quizStore: store,
+    quizOffered: quizOffered,
+    quizDeclined: quizDeclined,
+    onQuizOfferChanged: (o, d) => offerStates.add((o, d)),
     recent: recent,
     previous: previous,
     onBack: () => backs.add(true),
@@ -84,7 +110,7 @@ Rig rig({
     thinkingSpokenEvery: spokenFor,
   );
   addTearDown(session.dispose);
-  return Rig(log, session, input, backs);
+  return Rig(log, session, input, backs, store, offerStates);
 }
 
 /// Let an unawaited ask run until it parks (on the mic or the model).
@@ -512,6 +538,7 @@ void main() {
         haptics: FakeHaptics(log),
         cues: FakeCues(log),
         input: FakeInput(log),
+        quizStore: FakeChatQuizStore(log),
         onChanged: (view) => statuses.add(view.statusText),
       );
       addTearDown(session.dispose);
@@ -520,5 +547,183 @@ void main() {
       expect(log.where('say+: $serverWakingMessage'), hasLength(1));
     });
 
+  });
+
+  group('quiz offer', () {
+    Future<Rig> askedTimes(int n,
+        {TouchRepository? repo, RecentPicture? recent}) async {
+      final r = rig(repo: repo, recent: recent);
+      for (var i = 0; i < n; i++) {
+        await r.session.askTyped('question $i');
+      }
+      return r;
+    }
+
+    Future<void> flushQuiz(Rig r) async {
+      for (var i = 0; i < 20 && r.session.view.quizGenerating; i++) {
+        await flushAsk();
+      }
+    }
+
+    test('fires once at the 4th question, on the picture title', () async {
+      final r = await askedTimes(3, recent: sunRecent());
+      expect(r.session.view.quizOfferPending, isFalse);
+      await r.session.askTyped('question 3');
+      expect(r.session.view.quizOfferPending, isTrue);
+      final topic = r.session.view.quizTopic;
+      expect(topic, r.session.recent!.analysis.title);
+      expect(r.log.events,
+          contains('say+: ${quizOfferQuestion(topic)}'));
+      await r.session.askTyped('question 4');
+      expect(r.log.where('say+: Want a quiz'), hasLength(1));
+      expect(r.offerStates.last, (true, false));
+    });
+
+    test('without a picture the topic trims the first question', () async {
+      final r = rig();
+      await r.session.askTyped(
+          'why is the sky blue and what makes sunsets red and orange');
+      await r.session.askTyped('and why 2');
+      await r.session.askTyped('and why 3');
+      await r.session.askTyped('and why 4');
+      expect(r.session.view.quizOfferPending, isTrue);
+      expect(r.session.view.quizTopic,
+          'why is the sky blue and what makes\u2026');
+    });
+
+    test('no suppresses the offer for the conversation', () async {
+      final r = await askedTimes(4);
+      r.session.answerQuizOffer(false);
+      expect(r.session.view.quizOfferPending, isFalse);
+      expect(r.log.events, contains('say: No problem. Ask me anything.'));
+      await r.session.askTyped('question 4');
+      await r.session.askTyped('question 5');
+      expect(r.log.where('say+: Want a quiz'), hasLength(1));
+      expect(r.offerStates.last, (true, true));
+    });
+
+    test('yes generates, saves and announces the quiz', () async {
+      final r = await askedTimes(4, recent: sunRecent());
+      final topic = r.session.view.quizTopic;
+      r.session.answerQuizOffer(true);
+      await flushQuiz(r);
+      expect(r.session.view.quizGenerating, isFalse);
+      expect(r.session.view.quizOfferPending, isFalse);
+      expect(r.log.events, contains('say: Making your quiz.'));
+      expect(
+        r.log.events,
+        contains(
+            'say: Your quiz on $topic is ready. '
+            'Find it in Quizzes, under From your chats.'),
+      );
+      expect(r.log.events, contains('quiz:$topic|past:4'));
+      expect(r.store.quizzes, hasLength(1));
+      expect(r.store.quizzes.single.set.questions, hasLength(5));
+    });
+
+    test('voice yes and no answer the pending offer', () async {
+      final r = await askedTimes(4);
+      r.input.heard = 'yes please';
+      await r.session.askTapped();
+      await r.session.askTapped();
+      await flushQuiz(r);
+      expect(r.store.quizzes, hasLength(1));
+      final r2 = await askedTimes(4);
+      r2.input.heard = 'no thanks';
+      await r2.session.askTapped();
+      await r2.session.askTapped();
+      expect(r2.session.view.quizOfferPending, isFalse);
+      expect(r2.store.quizzes, isEmpty);
+    });
+
+    test('anything else stays a normal question with the offer still up',
+        () async {
+      final r = await askedTimes(4);
+      r.input.heard = 'maybe later';
+      await r.session.askTapped();
+      await r.session.askTapped();
+      expect(r.log.events, contains('ask:maybe later||past:4'));
+      expect(r.session.view.quizOfferPending, isTrue);
+      await r.session.askTyped('tell me more');
+      expect(r.log.events, contains('ask:tell me more||past:5'));
+      expect(r.session.view.quizOfferPending, isTrue);
+    });
+
+    test('typed yes skips the thinking preamble', () async {
+      final r = await askedTimes(4);
+      r.log.events.clear();
+      await r.session.askTyped('yes');
+      await flushQuiz(r);
+      expect(r.log.events, contains('say: Making your quiz.'));
+      expect(r.log.events, isNot(contains('say: Thinking.')));
+      expect(r.store.quizzes, hasLength(1));
+    });
+
+    test('a failed generation speaks the error and saves nothing', () async {
+      final log = Log();
+      final repo = FakeRepository(log)..fail = TouchApiException('Down.');
+      final r = rig(repo: repo);
+      for (var i = 0; i < 4; i++) {
+        await r.session.askTyped('q$i');
+      }
+      expect(r.session.view.quizOfferPending, isTrue);
+      r.session.answerQuizOffer(true);
+      await flushQuiz(r);
+      expect(r.session.view.quizGenerating, isFalse);
+      expect(r.session.view.quizError, 'Down.');
+      expect(r.log.events, contains('say: Down.'));
+      expect(r.store.quizzes, isEmpty);
+      r.session.dismissQuizError();
+      expect(r.session.view.quizError, isEmpty);
+    });
+
+    test('a slow generation reuses the waking-up announcement', () async {
+      final log = Log();
+      final statuses = <String>[];
+      final session = ChatSession(
+        repository: SlowQuizRepo(log),
+        speech: FakeSpeech(log),
+        haptics: FakeHaptics(log),
+        cues: FakeCues(log),
+        input: FakeInput(log),
+        quizStore: FakeChatQuizStore(log),
+        onChanged: (view) => statuses.add(view.statusText),
+      );
+      addTearDown(session.dispose);
+      for (var i = 0; i < 4; i++) {
+        await session.askTyped('q$i');
+      }
+      session.answerQuizOffer(true);
+      for (var i = 0; i < 20 && session.view.quizGenerating; i++) {
+        await flushAsk();
+      }
+      expect(statuses, contains(serverWakingMessage));
+      expect(log.where('say+: $serverWakingMessage'), hasLength(1));
+    });
+
+    test('a new picture resets the offer for the fresh conversation',
+        () async {
+      final r = await askedTimes(4);
+      r.session.answerQuizOffer(false);
+      r.session.attachPicture(sunRecent());
+      expect(r.offerStates.last, (false, false));
+      for (var i = 0; i < 4; i++) {
+        await r.session.askTyped('q$i');
+      }
+      expect(r.log.where('say+: Want a quiz'), hasLength(2));
+    });
+
+    test('an already-offered conversation stays quiet on return', () async {
+      final r = rig(quizOffered: true);
+      for (var i = 0; i < 5; i++) {
+        await r.session.askTyped('q$i');
+      }
+      expect(r.log.where('say+: Want a quiz'), isEmpty);
+      final r2 = rig(quizDeclined: true);
+      for (var i = 0; i < 5; i++) {
+        await r2.session.askTyped('q$i');
+      }
+      expect(r2.log.where('say+: Want a quiz'), isEmpty);
+    });
   });
 }

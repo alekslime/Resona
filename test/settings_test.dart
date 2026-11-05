@@ -245,6 +245,19 @@ void main() {
       expect(log.events, contains('haptic:confirm'));
     });
 
+    testWidgets('clearing history resets the quiz offer', (tester) async {
+      final container = await rigged(Log());
+      container.read(quizOfferProvider.notifier).set(true, true);
+      await open(tester, container);
+      await tester.scrollUntilVisible(find.text('Clear chat history'), 200);
+      await tester.tap(find.text('Clear chat history'));
+      await tester.pump();
+      await tester.tap(find.text('Clear chat history'));
+      await tester.pump();
+      expect(container.read(quizOfferProvider).offered, isFalse);
+      expect(container.read(quizOfferProvider).declined, isFalse);
+    });
+
     testWidgets('swiping away cancels the clear confirm', (tester) async {
       final log = Log();
       final container = await rigged(log);

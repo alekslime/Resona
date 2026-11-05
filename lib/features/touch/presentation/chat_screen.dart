@@ -59,6 +59,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       haptics: ref.read(hapticsProvider),
       cues: ref.read(cuesProvider),
       input: ref.read(speechInputProvider),
+      quizStore: ref.read(chatQuizStoreProvider),
+      quizOffered: ref.read(quizOfferProvider).offered,
+      quizDeclined: ref.read(quizOfferProvider).declined,
+      onQuizOfferChanged: (offered, declined) {
+        ref.read(quizOfferProvider.notifier).set(offered, declined);
+      },
       recent: widget.recent,
       previous: ref.read(chatHistoryProvider),
 
@@ -184,6 +190,15 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   filled: false,
                   onPressed: _talkLive,
                 ),
+              ),
+            if (view.quizOfferPending ||
+                view.quizGenerating ||
+                view.quizError.isNotEmpty)
+              _QuizOfferBar(
+                view: view,
+                onYes: () => _session.answerQuizOffer(true),
+                onNo: () => _session.answerQuizOffer(false),
+                onDismiss: () => _session.dismissQuizError(),
               ),
             AskPill(
               listening: view.listening,
@@ -340,6 +355,110 @@ class _Answer extends StatelessWidget {
           ink: ink,
         ),
       ],
+    );
+  }
+}
+
+/// The quiz offer under the answer: Yes/No buttons while pending, a
+/// thinking face while generating, the error with a Dismiss when
+/// generation fails. Real buttons outside the gesture surface, like the
+/// ask pill, so screen readers reach them.
+class _QuizOfferBar extends ConsumerWidget {
+  const _QuizOfferBar({
+    required this.view,
+    required this.onYes,
+    required this.onNo,
+    required this.onDismiss,
+  });
+
+  final ChatView view;
+  final VoidCallback onYes;
+  final VoidCallback onNo;
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final palette = ref.watch(paletteProvider);
+    final font = ref.watch(fontProvider);
+    final textStyle = TextStyle(
+      fontFamily: font.family,
+      fontWeight: FontWeight.w600,
+      fontSize: 19,
+      height: 24 / 19,
+      color: palette.ink,
+    );
+    if (view.quizError.isNotEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Semantics(
+              liveRegion: true,
+              child: Text(view.quizError, style: textStyle),
+            ),
+            const SizedBox(height: 8),
+            ResonantButton(text: 'Dismiss', onPressed: onDismiss),
+          ],
+        ),
+      );
+    }
+    if (view.quizGenerating) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+        child: Semantics(
+          label: view.statusText.isEmpty
+              ? 'Making your quiz'
+              : view.statusText,
+          child: ExcludeSemantics(
+            child: Row(
+              children: [
+                ResonantDots(
+                    state: DotsState.thinking, size: 44, color: palette.ink),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    view.statusText.isEmpty
+                        ? 'Making your quiz…'
+                        : view.statusText,
+                    style: textStyle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(quizOfferQuestion(view.quizTopic), style: textStyle),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: Semantics(
+                  label: 'Yes, make the quiz',
+                  button: true,
+                  child: ResonantButton(text: 'Yes', onPressed: onYes),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Semantics(
+                  label: 'No thanks',
+                  button: true,
+                  child: ResonantButton(
+                      text: 'No', filled: false, onPressed: onNo),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

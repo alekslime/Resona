@@ -208,6 +208,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       case 'Clear chat history':
         if (_awaitingClearConfirm) {
           ref.read(chatHistoryProvider.notifier).clear();
+          ref.read(quizOfferProvider.notifier).reset();
           _awaitingClearConfirm = false;
           _buzz(HapticPattern.confirm);
           _speak('Chat history cleared.');

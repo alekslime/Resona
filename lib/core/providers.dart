@@ -166,6 +166,28 @@ final speechRateProvider =
 /// The running chat conversation, newest last. ChatScreen loads it on open
 /// and saves it on close, so the conversation survives navigation; settings
 /// clears it. Session-only for now, like the recents shelf.
+/// Whether the tutor already offered a quiz in this conversation, and
+/// whether the answer was no. Reset with the history: a fresh conversation
+/// may be offered again, a declined one never is.
+class QuizOfferState {
+  const QuizOfferState({this.offered = false, this.declined = false});
+  final bool offered;
+  final bool declined;
+}
+
+class QuizOfferNotifier extends Notifier<QuizOfferState> {
+  @override
+  QuizOfferState build() => const QuizOfferState();
+
+  void set(bool offered, bool declined) =>
+      state = QuizOfferState(offered: offered, declined: declined);
+
+  void reset() => state = const QuizOfferState();
+}
+
+final quizOfferProvider =
+    NotifierProvider<QuizOfferNotifier, QuizOfferState>(QuizOfferNotifier.new);
+
 class ChatHistoryNotifier extends Notifier<List<ChatExchange>> {
   @override
   List<ChatExchange> build() => const [];

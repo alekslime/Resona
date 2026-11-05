@@ -197,4 +197,74 @@ void main() {
           container.read(chatHistoryProvider).single.userText, 'what is this?');
     });
   });
+
+  group('quiz offer bar', () {
+    Future<void> ask(WidgetTester tester, String q) async {
+      await tester.enterText(find.byType(TextField), q);
+      await tester.testTextInput.receiveAction(TextInputAction.send);
+      await settle(tester);
+    }
+
+    testWidgets('after 4 questions Yes makes the quiz', (tester) async {
+      final log = Log();
+      final container = await chatContainer(log);
+      await tester.pumpWidget(harnessedChat(container, sunRecent()));
+      await tester.pump();
+      for (var i = 0; i < 4; i++) {
+        await ask(tester, 'question $i');
+      }
+      expect(find.text('Want a quiz on The water cycle?'), findsOneWidget);
+      expect(find.text('Yes'), findsOneWidget);
+      expect(find.text('No'), findsOneWidget);
+      await tester.tap(find.text('Yes'));
+      await settle(tester);
+      expect(log.events, contains('say: Making your quiz.'));
+      expect(
+        log.events,
+        contains(
+            'say: Your quiz on The water cycle is ready. '
+            'Find it in Quizzes, under From your chats.'),
+      );
+      expect(container.read(chatQuizStoreProvider).quizzes, hasLength(1));
+      expect(find.text('Yes'), findsNothing);
+    });
+
+    testWidgets('No never offers again', (tester) async {
+      final log = Log();
+      final container = await chatContainer(log);
+      await tester.pumpWidget(harnessedChat(container, sunRecent()));
+      await tester.pump();
+      for (var i = 0; i < 4; i++) {
+        await ask(tester, 'question $i');
+      }
+      await tester.tap(find.text('No'));
+      await settle(tester);
+      expect(find.text('No'), findsNothing);
+      await ask(tester, 'question 4');
+      await ask(tester, 'question 5');
+      expect(find.text('Yes'), findsNothing);
+      expect(container.read(chatQuizStoreProvider).quizzes, isEmpty);
+      expect(container.read(quizOfferProvider).declined, isTrue);
+    });
+
+    testWidgets('a failed generation shows the error with a Dismiss',
+        (tester) async {
+      final log = Log();
+      final repo = FakeRepository(log)..fail = TouchApiException('Down.');
+      final container = await chatContainer(log, repo: repo);
+      await tester.pumpWidget(harnessedChat(container, null));
+      await tester.pump();
+      for (var i = 0; i < 4; i++) {
+        await ask(tester, 'matters $i');
+      }
+      await tester.tap(find.text('Yes'));
+      await settle(tester);
+      expect(find.text('Down.'), findsOneWidget);
+      expect(find.text('Dismiss'), findsOneWidget);
+      expect(container.read(chatQuizStoreProvider).quizzes, isEmpty);
+      await tester.tap(find.text('Dismiss'));
+      await tester.pump();
+      expect(find.text('Dismiss'), findsNothing);
+    });
+  });
 }
