@@ -243,17 +243,17 @@ GeneratedQuiz cannedQuiz([String topic = 'The water cycle']) => GeneratedQuiz(
       questions: [
         for (var i = 0; i < 5; i++)
           LibraryQuizQuestion(
-            id: 'cq',
-            prompt: 'Canned question ',
+            id: 'cq$i',
+            prompt: 'Canned question $i?',
             options: [
               for (var o = 0; o < 4; o++)
                 LibraryQuizOption(
                   letter: String.fromCharCode(65 + o),
-                  text: 'Answer ',
+                  text: 'Answer $o',
                 ),
             ],
             correctIndex: 0,
-            explanation: 'Because .',
+            explanation: 'Because $i.',
           ),
       ],
     );

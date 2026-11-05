@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/nav/resonant_nav.dart';
@@ -130,6 +131,20 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
     _queueIndex = 0;
     setState(() {});
     _speak(_session.question.prompt);
+  }
+
+  /// Screen-reader "Next": browse on, or advance once submitted.
+  void _srNext() {
+    if (_session.submitted) {
+      _advance();
+    } else {
+      _next();
+    }
+  }
+
+  /// Screen-reader "Previous": step back while browsing.
+  void _srPrevious() {
+    if (!_session.submitted) _previous();
   }
 
   void _repeat() => _speak(_unit(_queueIndex));
@@ -324,7 +339,21 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
                               ),
                             ),
                             Expanded(
-                              child: Container(
+                              child: Semantics(
+                                label: visible != null
+                                    ? quizOptionUnit(
+                                        _session.question.options[visible].letter,
+                                        _session.question.options[visible].text)
+                                    : const GesturePhrases().seeOptions,
+                                onTap: visible != null && !submitted ? _select : null,
+                                customSemanticsActions: {
+                                  const CustomSemanticsAction(label: 'Next'): _srNext,
+                                  const CustomSemanticsAction(label: 'Previous'): _srPrevious,
+                                  if (!submitted)
+                                    const CustomSemanticsAction(label: 'Submit'): _submit,
+                                },
+                                child: ExcludeSemantics(
+                                  child: Container(
                                 width: double.infinity,
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 28, vertical: 20),
@@ -357,6 +386,8 @@ class _QuizReaderScreenState extends ConsumerState<QuizReaderScreen> {
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
+                              ),
+                                ),
                               ),
                             ),
                             SizedBox(

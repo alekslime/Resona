@@ -20,6 +20,7 @@ import '../../../core/ui/top_bar.dart';
 import '../../learn/domain/library.dart';
 import '../../learn/domain/progress.dart';
 import '../../learn/domain/quiz_data.dart';
+import '../application/chat_quizzes.dart';
 import '../gestures/gesture_types.dart';
 import 'gesture_guide.dart';
 import 'gesture_surface.dart';
@@ -39,6 +40,11 @@ class QuizBrowserScreen extends ConsumerStatefulWidget {
 }
 
 class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
+  /// Built-in sets first, then the newest generated quizzes.
+  late final List<LibraryQuizSet> _sets;
+
+  /// The saved-date line per set: null for built-ins.
+  late final List<String?> _subtitles;
   late final MenuFocus _focus;
   final _scroll = ScrollController();
   late final List<GlobalKey> _keys;
@@ -49,8 +55,14 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
   @override
   void initState() {
     super.initState();
-    _focus = MenuFocus(count: allQuizSets.length);
-    _keys = [for (var i = 0; i < allQuizSets.length; i++) GlobalKey()];
+    final stored = ref.read(chatQuizStoreProvider).quizzes;
+    _sets = [...allQuizSets, for (final s in stored) s.set];
+    _subtitles = [
+      for (var i = 0; i < allQuizSets.length; i++) null,
+      for (final s in stored) quizDateLabel(s.createdAt),
+    ];
+    _focus = MenuFocus(count: _sets.length);
+    _keys = [for (var i = 0; i < _sets.length; i++) GlobalKey()];
   }
 
   @override
@@ -73,7 +85,7 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
       ref.read(quizBookProvider.notifier).of(id);
 
   String _unit(int i) {
-    final quiz = allQuizSets[i];
+    final quiz = _sets[i];
     final p = _progressOf(quiz.id);
     return quizBrowserUnit(
       title: quiz.title,
@@ -85,7 +97,7 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
   }
 
   void _open(int i) {
-    final quiz = allQuizSets[i];
+    final quiz = _sets[i];
     _buzz(HapticPattern.select);
     ref.read(speechProvider).speak(quizOpenSpoken(quiz.title));
     ref
@@ -113,7 +125,7 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
     if (quizId != 'quiz_review') {
       pool = sampleQuiz.questions;
       title = sampleQuiz.title;
-      for (final q in allQuizSets) {
+      for (final q in _sets) {
         if (q.id == quizId) {
           pool = q.questions;
           title = q.title;
@@ -210,15 +222,18 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
       case ThreeFingerTap():
         ref.read(speechProvider).speak(_unit(_focus.index));
       case ThreeFingerHold():
-        final quiz = allQuizSets[_focus.index];
-        final done = book.values
-            .where((p) => p.status == QuizStatus.completed)
+        final quiz = _sets[_focus.index];
+        final ids = _sets.map((s) => s.id).toSet();
+        final done = book.entries
+            .where((e) =>
+                ids.contains(e.key) &&
+                e.value.status == QuizStatus.completed)
             .length;
         ref.read(speechProvider).speak(quizBrowserHold(
               currentTitle: quiz.title,
               status: _progressOf(quiz.id).statusLabel,
               done: done,
-              total: allQuizSets.length,
+              total: _sets.length,
             ));
       case HoldSpeedUp():
         _speed(0.1);
@@ -284,12 +299,27 @@ class _QuizBrowserScreenState extends ConsumerState<QuizBrowserScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      for (var i = 0; i < allQuizSets.length; i++) ...[
-                        if (i > 0) const SizedBox(height: 20),
+                      for (var i = 0; i < _sets.length; i++) ...[
+                        if (i == allQuizSets.length) ...[
+                          const SizedBox(height: 28),
+                          Text(
+                            'From your chats',
+                            style: TextStyle(
+                              fontFamily: font.family,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 28,
+                              height: 34 / 28,
+                              color: palette.ink,
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+                        ] else if (i > 0)
+                          const SizedBox(height: 20),
                         _QuizCard(
                           key: _keys[i],
-                          quiz: allQuizSets[i],
-                          progress: _progressOf(allQuizSets[i].id),
+                          quiz: _sets[i],
+                          subtitle: _subtitles[i],
+                          progress: _progressOf(_sets[i].id),
                           focused: i == _focus.index,
                           index: i,
                           onTap: () {
@@ -320,6 +350,7 @@ class _QuizCard extends ConsumerWidget {
     required this.progress,
     required this.focused,
     required this.index,
+    this.subtitle,
     required this.onTap,
   });
 
@@ -327,6 +358,7 @@ class _QuizCard extends ConsumerWidget {
   final QuizProgress progress;
   final bool focused;
   final int index;
+  final String? subtitle;
   final VoidCallback onTap;
 
   @override
@@ -337,6 +369,7 @@ class _QuizCard extends ConsumerWidget {
       label:
           '${quiz.title}. ${quiz.category}. ${quiz.questions.length} questions. '
           '${progress.statusLabel}. ${progress.percentComplete} percent complete.'
+          '${subtitle == null ? '' : '$subtitle. '}'
           '${focused ? ' Focused.' : ''}',
       child: EnterStagger(
         index: index,
@@ -366,6 +399,18 @@ class _QuizCard extends ConsumerWidget {
                         quiz.title,
                         color: focused ? palette.onInk : palette.ink,
                       ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          subtitle!,
+                          style: TextStyle(
+                            fontFamily: font.family,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 17,
+                            color: focused ? palette.onInk : palette.ink,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 22),
                       Container(
                         constraints: const BoxConstraints(

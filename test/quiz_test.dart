@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:resonant/core/providers.dart';
+import 'package:resonant/features/learn/domain/progress.dart';
 import 'package:resonant/features/learn/domain/quiz_data.dart';
 import 'package:resonant/core/ui/celebration.dart';
+import 'package:resonant/features/touch/application/chat_quizzes.dart';
 import 'package:resonant/features/touch/presentation/quiz_browser_screen.dart';
 import 'package:resonant/features/touch/presentation/quiz_reader_screen.dart';
 import 'package:resonant/features/touch/presentation/quiz_results_screen.dart';
@@ -79,7 +82,8 @@ void main() {
     testWidgets('headline plus one card per set with title-cased buttons',
         (tester) async {
       final container = await quizContainer(Log());
-      await tester.pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
+      await tester
+          .pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
       await tester.pump();
       expect(find.text('Test what you know.'), findsOneWidget);
       for (final set in allQuizSets) {
@@ -92,7 +96,8 @@ void main() {
     testWidgets('tapping a card opens the reader', (tester) async {
       final log = Log();
       final container = await quizContainer(log);
-      await tester.pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
+      await tester
+          .pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
       await tester.pump();
       await tester.scrollUntilVisible(find.text('Cells and their parts'), 200);
       await tester.tap(find.text('Cells and their parts'));
@@ -105,7 +110,8 @@ void main() {
     testWidgets('finished quizzes show Review Answers', (tester) async {
       final log = Log();
       final container = await quizContainer(log);
-      await tester.pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
+      await tester
+          .pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
       await tester.pump();
       // One full pass of the smallest set marks it completed.
       await tester.scrollUntilVisible(find.text('Plant adaptations'), 200);
@@ -128,9 +134,11 @@ void main() {
 
   group('quiz reader', () {
     Widget reader({void Function(int, int, List<String>)? onFinished}) =>
-        QuizReaderScreen(quiz: quizCells, onFinished: onFinished ?? (_, __, ___) {});
+        QuizReaderScreen(
+            quiz: quizCells, onFinished: onFinished ?? (_, __, ___) {});
 
-    testWidgets('browsing speaks each option with its own haptic', (tester) async {
+    testWidgets('browsing speaks each option with its own haptic',
+        (tester) async {
       final log = Log();
       final container = await quizContainer(log);
       await tester.pumpWidget(harnessedQuiz(container, reader()));
@@ -152,7 +160,8 @@ void main() {
       expect(log.events, contains('haptic:edge'));
     });
 
-    testWidgets('tap selects, swipe right submits a right answer', (tester) async {
+    testWidgets('tap selects, swipe right submits a right answer',
+        (tester) async {
       final log = Log();
       final container = await quizContainer(log);
       await tester.pumpWidget(harnessedQuiz(container, reader()));
@@ -160,7 +169,8 @@ void main() {
       await swipe(tester, const Offset(0, 300)); // option A
       await swipe(tester, const Offset(0, 300)); // option B
       await tester.tapAt(const Offset(400, 400));
-      expect(log.events, contains('say: Option B selected. Swipe right to submit.'));
+      expect(log.events,
+          contains('say: Option B selected. Swipe right to submit.'));
       await swipe(tester, const Offset(300, 0)); // submit
       expect(
         log.events,
@@ -193,12 +203,14 @@ void main() {
       await swipe(tester, const Offset(300, 0)); // submit at the prompt
       expect(
         log.events,
-        contains('say: No option selected. Swipe up or down to browse, then tap to select.'),
+        contains(
+            'say: No option selected. Swipe up or down to browse, then tap to select.'),
       );
       expect(log.events, contains('haptic:error'));
     });
 
-    testWidgets('after submit a swipe moves to the next question', (tester) async {
+    testWidgets('after submit a swipe moves to the next question',
+        (tester) async {
       final log = Log();
       final container = await quizContainer(log);
       await tester.pumpWidget(harnessedQuiz(container, reader()));
@@ -208,7 +220,8 @@ void main() {
       await swipe(tester, const Offset(300, 0));
       await swipe(tester, const Offset(0, 300)); // advance
       await tester.pump();
-      expect(find.text('Which organelle is known as the powerhouse of the cell?'),
+      expect(
+          find.text('Which organelle is known as the powerhouse of the cell?'),
           findsOneWidget);
       expect(log.events, contains('haptic:next'));
     });
@@ -259,9 +272,14 @@ void main() {
       await tester.pumpWidget(harnessedQuiz(
           container,
           QuizResultsScreen(
-              correct: 4, total: 4, missedCount: 0, onRetryMissed: () {}, onDone: () {})));
+              correct: 4,
+              total: 4,
+              missedCount: 0,
+              onRetryMissed: () {},
+              onDone: () {})));
       await settle(tester);
-      expect(log.events, contains('say: You scored 4 out of 4. Tap to return home.'));
+      expect(log.events,
+          contains('say: You scored 4 out of 4. Tap to return home.'));
       expect(find.text('4 / 4'), findsOneWidget);
       expect(find.text('Perfect score!'), findsOneWidget);
       expect(find.text('Tap anywhere to go back.'), findsOneWidget);
@@ -282,7 +300,11 @@ void main() {
       await tester.pumpWidget(harnessedQuiz(
           container,
           QuizResultsScreen(
-              correct: 4, total: 5, missedCount: 1, onRetryMissed: () {}, onDone: () {})));
+              correct: 4,
+              total: 5,
+              missedCount: 1,
+              onRetryMissed: () {},
+              onDone: () {})));
       await settle(tester);
       expect(
         log.events,
@@ -320,15 +342,13 @@ void main() {
       expect(done, isTrue);
     });
 
-    testWidgets('copy score copies the share text and says so',
-        (tester) async {
+    testWidgets('copy score copies the share text and says so', (tester) async {
       // The test binding answers no platform channels: catch the
       // clipboard write with a mock instead of reading it back.
       Map<Object?, Object?>? clipboard;
-      final messenger = TestDefaultBinaryMessengerBinding
-          .instance.defaultBinaryMessenger;
-      messenger.setMockMethodCallHandler(
-          SystemChannels.platform, (call) async {
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
         if (call.method == 'Clipboard.setData') {
           clipboard = Map<Object?, Object?>.from(call.arguments as Map);
         }
@@ -353,6 +373,104 @@ void main() {
       expect(clipboard?['text'],
           'I scored 4 out of 5 on Binary Search with Resonant!');
       expect(log.events, contains('say: Score copied.'));
+    });
+  });
+
+  group('from your chats', () {
+    testWidgets('generated quizzes shelf under their own header',
+        (tester) async {
+      final log = Log();
+      final container = await quizContainer(log);
+      await tester
+          .pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
+      await tester.pump();
+      expect(find.text('From your chats'), findsNothing);
+      final stored = await container
+          .read(chatQuizStoreProvider)
+          .saveQuiz(title: 'Water stuff', questions: const []);
+      await tester.pumpWidget(harnessedQuiz(
+          container, const QuizBrowserScreen(key: ValueKey('fresh'))));
+      await tester.pump();
+      await tester.scrollUntilVisible(find.text('From your chats'), 200);
+      expect(find.text('From your chats'), findsOneWidget);
+      expect(find.text('Water stuff'), findsOneWidget);
+      expect(find.text(quizDateLabel(stored.createdAt)), findsOneWidget);
+    });
+
+    testWidgets('a generated quiz opens, scores and retries its own',
+        (tester) async {
+      final log = Log();
+      final container = await quizContainer(log);
+      final stored = await container.read(chatQuizStoreProvider).saveQuiz(
+            title: 'Water stuff',
+            questions: cannedQuiz('Water stuff').questions,
+          );
+      await tester
+          .pumpWidget(harnessedQuiz(container, const QuizBrowserScreen()));
+      await tester.pump();
+      await tester.scrollUntilVisible(find.text('Water stuff'), 200);
+      await tester.tap(find.text('Water stuff'));
+      await settle(tester);
+      expect(find.text('Canned question 0?'), findsOneWidget);
+      for (var q = 0; q < 5; q++) {
+        await swipe(tester, const Offset(0, 300));
+        if (q == 0) await swipe(tester, const Offset(0, 300));
+        await tester.tapAt(const Offset(400, 400));
+        await swipe(tester, const Offset(300, 0));
+        await settle(tester);
+        await swipe(tester, const Offset(0, 300));
+        await settle(tester);
+      }
+      expect(find.text('Retry 1 missed'), findsOneWidget);
+      await tester.tap(find.text('Retry 1 missed'));
+      await settle(tester);
+      expect(find.text('Canned question 0?'), findsOneWidget);
+      final progress = container.read(quizBookProvider)[stored.set.id];
+      expect(progress?.status, QuizStatus.completed);
+    });
+  });
+
+  group('reader screen-reader controls', () {
+    testWidgets('browse, select and submit by semantics', (tester) async {
+      final handle = tester.ensureSemantics();
+      try {
+        final log = Log();
+        final container = await quizContainer(log);
+        await tester.pumpWidget(harnessedQuiz(container,
+            QuizReaderScreen(quiz: quizCells, onFinished: (_, __, ___) {})));
+        await settle(tester);
+        // The one card exposing screen-reader actions.
+        Semantics card() =>
+            tester.widget<Semantics>(find.byWidgetPredicate((w) =>
+                w is Semantics && w.properties.customSemanticsActions != null));
+        void customAction(String label) => card()
+            .properties
+            .customSemanticsActions!
+            .entries
+            .firstWhere((e) => e.key.label == label)
+            .value();
+        expect(
+          card().properties.customSemanticsActions!.keys.map((a) => a.label),
+          containsAll(['Next', 'Previous', 'Submit']),
+        );
+        expect(
+            find.bySemanticsLabel('Swipe down to see options'), findsOneWidget);
+        customAction('Next');
+        await tester.pump();
+        expect(find.bySemanticsLabel('Option A. The nucleus.'), findsOneWidget);
+        final node = tester
+            .getSemantics(find.bySemanticsLabel('Option A. The nucleus.'));
+        expect(node.getSemanticsData().hasAction(SemanticsAction.tap), isTrue);
+        card().properties.onTap!();
+        await tester.pump();
+        expect(log.events,
+            contains('say: Option A selected. Swipe right to submit.'));
+        customAction('Submit');
+        await tester.pump();
+        expect(log.events.any((e) => e.startsWith('say: Incorrect.')), isTrue);
+      } finally {
+        handle.dispose();
+      }
     });
   });
 }
