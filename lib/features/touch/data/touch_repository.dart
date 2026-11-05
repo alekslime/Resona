@@ -95,14 +95,14 @@ class StoredQuiz {
   final DateTime createdAt;
 
   Map<String, Object?> toJson() => {
-    'set': set.toJson(),
-    'createdAt': createdAt.toIso8601String(),
-  };
+        'set': set.toJson(),
+        'createdAt': createdAt.toIso8601String(),
+      };
 
   factory StoredQuiz.fromJson(Map<String, dynamic> json) => StoredQuiz(
-    set: LibraryQuizSet.fromJson(json['set'] as Map<String, dynamic>),
-    createdAt: DateTime.parse(json['createdAt'] as String),
-  );
+        set: LibraryQuizSet.fromJson(json['set'] as Map<String, dynamic>),
+        createdAt: DateTime.parse(json['createdAt'] as String),
+      );
 }
 
 abstract class TouchRepository {

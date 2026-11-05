@@ -297,6 +297,7 @@ class ChatSession {
       _say(serverWakingMessage, queue: true);
       _emit();
     }
+
     List<String> sentences;
     var cameBack = false;
     final tail = _exchanges.length > maxChatExchanges
@@ -350,7 +351,8 @@ class ChatSession {
     // so a fresh chat still teaches where pictures live.
     if (_recent == null && !_picturedHintGiven) {
       _picturedHintGiven = true;
-      _say('Tap the camera button below to add a picture, and I can answer about that too.',
+      _say(
+          'Tap the camera button below to add a picture, and I can answer about that too.',
           queue: true);
     }
     _emit();
@@ -363,9 +365,8 @@ class ChatSession {
     if (title != null && title.isNotEmpty) return title;
     if (_exchanges.isEmpty) return 'this topic';
     final words = _exchanges.first.userText.trim().split(RegExp(r'\s+'));
-    final short = words.length > 8
-        ? '${words.take(8).join(' ')}…'
-        : words.join(' ');
+    final short =
+        words.length > 8 ? '${words.take(8).join(' ')}…' : words.join(' ');
     if (short.isEmpty) return 'this topic';
     return short.length > 80 ? '${short.substring(0, 80)}…' : short;
   }
@@ -465,8 +466,9 @@ class ChatSession {
       if (_disposed) return;
       _quizGenerating = false;
       _status = '';
-      _quizError =
-          e is TouchApiException ? e.message : 'Something went wrong. Try again.';
+      _quizError = e is TouchApiException
+          ? e.message
+          : 'Something went wrong. Try again.';
       _say(_quizError);
       _emit();
     }

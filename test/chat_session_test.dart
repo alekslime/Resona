@@ -340,8 +340,10 @@ void main() {
 
     test('a fresh answer after a failure says the server is back', () async {
       final log = Log();
-      final repo = FakeRepository(log,
-          answer: 'It is the sun.',)..fail = TouchApiException('Down.');
+      final repo = FakeRepository(
+        log,
+        answer: 'It is the sun.',
+      )..fail = TouchApiException('Down.');
       final r = rig(repo: repo, recent: sunRecent());
       await r.session.askTyped('matters');
       expect(r.session.view.offline, isTrue);
@@ -546,7 +548,6 @@ void main() {
       expect(statuses, contains(serverWakingMessage));
       expect(log.where('say+: $serverWakingMessage'), hasLength(1));
     });
-
   });
 
   group('quiz offer', () {
@@ -572,8 +573,7 @@ void main() {
       expect(r.session.view.quizOfferPending, isTrue);
       final topic = r.session.view.quizTopic;
       expect(topic, r.session.recent!.analysis.title);
-      expect(r.log.events,
-          contains('say+: ${quizOfferQuestion(topic)}'));
+      expect(r.log.events, contains('say+: ${quizOfferQuestion(topic)}'));
       await r.session.askTyped('question 4');
       expect(r.log.where('say+: Want a quiz'), hasLength(1));
       expect(r.offerStates.last, (true, false));
@@ -587,8 +587,8 @@ void main() {
       await r.session.askTyped('and why 3');
       await r.session.askTyped('and why 4');
       expect(r.session.view.quizOfferPending, isTrue);
-      expect(r.session.view.quizTopic,
-          'why is the sky blue and what makes\u2026');
+      expect(
+          r.session.view.quizTopic, 'why is the sky blue and what makes\u2026');
     });
 
     test('no suppresses the offer for the conversation', () async {
@@ -612,8 +612,7 @@ void main() {
       expect(r.log.events, contains('say: Making your quiz.'));
       expect(
         r.log.events,
-        contains(
-            'say: Your quiz on $topic is ready. '
+        contains('say: Your quiz on $topic is ready. '
             'Find it in Quizzes, under From your chats.'),
       );
       expect(r.log.events, contains('quiz:$topic|past:4'));
@@ -701,8 +700,7 @@ void main() {
       expect(log.where('say+: $serverWakingMessage'), hasLength(1));
     });
 
-    test('a new picture resets the offer for the fresh conversation',
-        () async {
+    test('a new picture resets the offer for the fresh conversation', () async {
       final r = await askedTimes(4);
       r.session.answerQuizOffer(false);
       r.session.attachPicture(sunRecent());

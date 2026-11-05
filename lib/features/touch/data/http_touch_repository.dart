@@ -190,6 +190,7 @@ class HttpTouchRepository implements TouchRepository {
       slow?.cancel();
     }
   }
+
   /// One server-sent event: "event: <name>\ndata: <json>". Null when the block
   /// is a heartbeat, a partial write, or anything else unparseable.
   (String, Map<String, dynamic>)? _sseEvent(String raw) {
@@ -281,12 +282,12 @@ class HttpTouchRepository implements TouchRepository {
         topic: json['topic'] as String,
         questions: [
           for (var i = 0; i < (json['questions'] as List).length; i++)
-            _quizQuestion(i, (json['questions'] as List)[i] as Map<String, dynamic>),
+            _quizQuestion(
+                i, (json['questions'] as List)[i] as Map<String, dynamic>),
         ],
       );
     } catch (_) {
-      throw TouchApiException(
-          'The quiz came back unreadable. Try again.');
+      throw TouchApiException('The quiz came back unreadable. Try again.');
     }
   }
 

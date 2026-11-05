@@ -58,8 +58,7 @@ void main() {
       final config = entry.value;
       final phrases = GesturePhrases(config);
 
-      test('next and previous name the physical swipe the engine reports',
-          () {
+      test('next and previous name the physical swipe the engine reports', () {
         final downReported = _swipeReport(config, 0, 80);
         final upReported = _swipeReport(config, 0, -80);
         expect(downReported, isNot(upReported));
@@ -97,15 +96,13 @@ void main() {
       test('the speed words name the drag the engine speeds on', () {
         expect(
           _holdDragNames(config, -65),
-          contains(phrases.fasterWord == 'up'
-              ? 'HoldSpeedUp'
-              : 'HoldSpeedDown'),
+          contains(
+              phrases.fasterWord == 'up' ? 'HoldSpeedUp' : 'HoldSpeedDown'),
         );
         expect(
           _holdDragNames(config, 65),
-          contains(phrases.fasterWord == 'down'
-              ? 'HoldSpeedUp'
-              : 'HoldSpeedDown'),
+          contains(
+              phrases.fasterWord == 'down' ? 'HoldSpeedUp' : 'HoldSpeedDown'),
         );
         expect(phrases.slowerWord, isNot(phrases.fasterWord));
         expect(phrases.holdToChangeSpeed, contains(phrases.fasterWord));
@@ -142,13 +139,16 @@ void main() {
         );
         expect(
           quizHoldSummary(
-              questionIndex: 1, total: 5, submitted: true, correct: true,
+              questionIndex: 1,
+              total: 5,
+              submitted: true,
+              correct: true,
               phrases: phrases),
           contains(phrases.swipeToContinue),
         );
         expect(
-          quizHoldSummary(questionIndex: 0, total: 5, submitted: false,
-              phrases: phrases),
+          quizHoldSummary(
+              questionIndex: 0, total: 5, submitted: false, phrases: phrases),
           contains(phrases.swipeBrowse()),
         );
         expect(phrases.seeOptions, contains(phrases.nextWord));

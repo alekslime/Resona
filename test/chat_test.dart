@@ -165,9 +165,9 @@ void main() {
     testWidgets('a returning chat greets with its history', (tester) async {
       final log = Log();
       final container = await chatContainer(log);
-      container
-          .read(chatHistoryProvider.notifier)
-          .set(const [ChatExchange('q', ['a.'])]);
+      container.read(chatHistoryProvider.notifier).set(const [
+        ChatExchange('q', ['a.'])
+      ]);
       await tester.pumpWidget(harnessedChat(container, null));
       await tester.pump();
       expect(
@@ -221,8 +221,7 @@ void main() {
       expect(log.events, contains('say: Making your quiz.'));
       expect(
         log.events,
-        contains(
-            'say: Your quiz on The water cycle is ready. '
+        contains('say: Your quiz on The water cycle is ready. '
             'Find it in Quizzes, under From your chats.'),
       );
       expect(container.read(chatQuizStoreProvider).quizzes, hasLength(1));

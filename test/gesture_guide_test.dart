@@ -66,8 +66,8 @@ void main() {
     });
 
     test('gesture guides name the engine-tracked next direction', () {
-      const flipped = GesturePhrases(
-          GestureConfig(invertVerticalSwipes: false));
+      const flipped =
+          GesturePhrases(GestureConfig(invertVerticalSwipes: false));
       expect(flipped.nextWord, 'up');
       for (final screen in [
         GuideScreen.home,
@@ -109,11 +109,10 @@ void main() {
       final (container, prefs) = await guideContainer(log, {});
       await tester.pumpWidget(harnessed(container, const HomeScreen()));
       await settle(tester);
-      expect(find.text(guideLines(GuideScreen.home).join('\n')),
-          findsOneWidget);
+      expect(
+          find.text(guideLines(GuideScreen.home).join('\n')), findsOneWidget);
       expect(find.text('Got it'), findsOneWidget);
-      expect(log.events,
-          contains('say+: ${guideSpoken(GuideScreen.home)}'));
+      expect(log.events, contains('say+: ${guideSpoken(GuideScreen.home)}'));
       expect(prefs.getBool(guideSeenKey(GuideScreen.home)), isTrue);
     });
 
@@ -159,8 +158,7 @@ void main() {
       final (container, prefs) = await guideContainer(log, {
         for (final s in GuideScreen.values) guideSeenKey(s): true,
       });
-      await tester.pumpWidget(
-          harnessed(container, const SettingsScreen()));
+      await tester.pumpWidget(harnessed(container, const SettingsScreen()));
       await settle(tester);
       await tester.tap(find.text('Replay guides'));
       await tester.pump();

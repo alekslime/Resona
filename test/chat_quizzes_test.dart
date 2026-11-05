@@ -27,15 +27,15 @@ void main() {
     test('saves with a title and date, newest first', () async {
       final s = await store();
       expect(s.quizzes, isEmpty);
-      final first =
-          await s.saveQuiz(title: 'Water', questions: [canned(0)]);
-      final second =
-          await s.saveQuiz(title: 'Cells', questions: [canned(1)]);
+      final first = await s.saveQuiz(title: 'Water', questions: [canned(0)]);
+      final second = await s.saveQuiz(title: 'Cells', questions: [canned(1)]);
       expect(s.quizzes.map((q) => q.set.title), ['Cells', 'Water']);
       expect(first.set.category, 'From your chats');
       expect(first.set.questions.single.prompt, 'Question 0?');
-      expect(second.createdAt.isAfter(first.createdAt) ||
-          second.createdAt.isAtSameMomentAs(first.createdAt), isTrue);
+      expect(
+          second.createdAt.isAfter(first.createdAt) ||
+              second.createdAt.isAtSameMomentAs(first.createdAt),
+          isTrue);
       expect(first.set.id, isNot(second.set.id));
     });
 
@@ -58,8 +58,7 @@ void main() {
     test('a corrupt shelf starts fresh instead of crashing', () async {
       final s = await store({chatQuizzesKey: 'not json {'});
       expect(s.quizzes, isEmpty);
-      final badShape =
-          await store({chatQuizzesKey: '[{"nope":true}]'});
+      final badShape = await store({chatQuizzesKey: '[{"nope":true}]'});
       expect(badShape.quizzes, isEmpty);
     });
 

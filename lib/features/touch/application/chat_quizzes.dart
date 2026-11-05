@@ -52,8 +52,7 @@ class SharedPreferencesChatQuizStore implements ChatQuizStore {
       if (raw == null || raw.isEmpty) return [];
       final list = jsonDecode(raw) as List;
       return [
-        for (final e in list)
-          StoredQuiz.fromJson(e as Map<String, dynamic>)
+        for (final e in list) StoredQuiz.fromJson(e as Map<String, dynamic>)
       ].take(maxChatQuizzes).toList();
     } catch (_) {
       return [];
