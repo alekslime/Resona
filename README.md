@@ -44,6 +44,11 @@ The braille R is also the app's face while it works: in chat the dots gather whe
 listening, orbit while it thinks, and settle when it is idle — and every state also has a sound
 and a vibration, so the face is a sighted extra, never the only signal.
 
+<div align="center">
+<img src="docs/assets/dots-states.gif" width="720" alt="The braille R in four states: idle spelling out the word, listening with the right dot leaning in, thinking with the dots orbiting, speaking with the dots moving to the voice">
+<br><sub>Idle, listening, thinking, speaking. Pose maths ported line for line from <code>lib/core/ui/dots_engine.dart</code> (<code>tool/readme-assets/dots_gif.py</code>).</sub>
+</div>
+
 ## Pre-existing work
 
 Resonant began as an Android app (Kotlin and Jetpack Compose) that I started **before** the
@@ -201,6 +206,17 @@ Low vision (enormous contrast), Cataracts (high clarity), Handsfree (screen read
 Paper gray and White on blue. They are not just colour swaps — the high-contrast ones add outlines
 and change the corner shapes too. Every theme's text pairings are checked at 7:1 or better by a
 unit test (`test/palette_test.dart`), so a future edit cannot quietly make a theme unreadable.
+
+<div align="center">
+<img src="docs/assets/themes.png" width="100%" alt="All twelve themes side by side, each showing the top bar, a menu and a lesson card, with its text contrast ratio">
+<br><sub>Drawn from the colours, outlines and corner radii in <code>lib/core/theme/palettes.dart</code>; the contrast figure is text on background. Captured screenshots of every theme: see below.</sub>
+</div>
+
+<div align="center">
+<img src="docs/assets/themes.gif" width="300" alt="The same screen cycling through all twelve themes">
+</div>
+
+To capture all twelve from the real app, run the generator in `tool/` (see `docs/screenshots/README.md`); they land in `docs/screenshots/themes/`.
 
 ## Architecture
 
