@@ -18,9 +18,9 @@ PART 1 - AUTOMATED TESTS (no key needed, ~2 min)
 1. flutter analyze
    Expect: "No issues found!"
 2. flutter test
-   Expect: "All tests passed!" (383 tests)
+   Expect: "All tests passed!" (426 tests)
 3. cd backend && npm test
-   Expect: pass 36, fail 0. Then cd .. back to the root.
+   Expect: pass 43, fail 0. Then cd .. back to the root.
 
 PART 2 - BACKEND WITHOUT A KEY (no key needed)
 ----------------------------------------------
@@ -37,6 +37,9 @@ PART 2 - BACKEND WITHOUT A KEY (no key needed)
      Expect: HTTP 503 with "no Meta API key ... try the sample picture".
    - POST chat with no key:
      curl -X POST http://localhost:3000/api/chat -H "Content-Type: application/json" -d "{\"question\":\"hi\"}"
+     Expect: HTTP 503 with "no Meta API key".
+   - POST quiz with no key:
+     curl -X POST http://localhost:3000/api/quiz -H "Content-Type: application/json" -d "{\"topic\":\"cells\"}"
      Expect: HTTP 503 with "no Meta API key".
 3. Stop the server with Ctrl+C.
 
@@ -63,6 +66,9 @@ PART 4 - RUN THE APP, NO KEY (samples + lessons only)
 2. First launch on a device shows the Tutorial first; finish it or leave
    early (hold the right edge) to reach Home. Later launches go straight
    to Home, which shows five lines: Chat, Lessons, Quiz, Settings, Quit.
+   Each screen shows a short spoken-and-visible gesture guide on its
+   first visit (Got it dismisses); Settings > Replay guides shows
+   them again. To re-test first-run, reinstall the app.
 3. Open Chat. It greets you with no picture attached.
    - Type or speak a question about one of the six lesson topics
      (photosynthesis, cells, ecosystems, plant adaptations, binary
@@ -80,6 +86,8 @@ PART 4 - RUN THE APP, NO KEY (samples + lessons only)
      with a spoken error. Nothing crashes, nothing stalls silently.
 5. Lessons: open a lesson, it reads itself; swipes move through it.
    Quiz: start a set, answer, retry rounds work - all offline.
+   Quizzes the tutor generated earlier appear under "From your chats"
+   with title and date - offline once saved.
 6. Settings: switch themes/fonts/sizes (each previews before keeping).
 
 PART 5 - RUN THE APP WITH A KEY (full tutor, end to end)
@@ -97,10 +105,17 @@ PART 5 - RUN THE APP WITH A KEY (full tutor, end to end)
    type it. Follow up ("and why?") - the tutor remembers the last six
    exchanges. Answers are spoken and shown as swipable sentences;
    swipe through them, tap an edge to stop the voice.
-5. Attach another picture mid-conversation: a fresh conversation
+5. Ask a 4th question: the tutor offers a quiz once ("Want a quiz on
+   <topic>?") by voice with Yes/No buttons. Say or tap No: it never
+   asks again in that conversation. Yes by voice works too.
+6. Tap Yes: "Making your quiz..." shows and speaks (a slow server gets
+   the waking-up line), then the quiz saves under Quizzes > "From your
+   chats" with its title and date. Open it: same reader, scoring and
+   progress, fully offline; retry rounds use its own questions.
+7. Attach another picture mid-conversation: a fresh conversation
    starts about it (announced, never silent).
-6. Reopen a recent from the sheet: instant, no model calls.
-7. Talk live: hidden unless you run with
+8. Reopen a recent from the sheet: instant, no model calls.
+9. Talk live: hidden unless you run with
      --dart-define=LIVE_VOICE=true
    and only works with the agent running (cd agent, see agent/README.md)
    plus LiveKit creds. With a picture attached, a Talk live button
@@ -115,6 +130,8 @@ PART 6 - WHAT "GOOD" LOOKS LIKE (checklist)
 - Every failure speaks a plain sentence; nothing stalls silently.
 - Full suite still green after any change: flutter analyze, flutter
   test, cd backend && npm test.
+- After 4 questions the tutor offers a quiz once; Yes saves it under
+  "From your chats", No never asks again.
 
 TROUBLESHOOTING
 ---------------

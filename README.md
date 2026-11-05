@@ -7,7 +7,7 @@
 ![Platform](https://img.shields.io/badge/platform-Flutter%20·%20Android%20·%20iOS%20·%20web-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![AI](https://img.shields.io/badge/AI-Muse%20Spark%201.3-FFAE00?style=flat-square&labelColor=0A0A0A)
 ![Accessibility](https://img.shields.io/badge/built%20for-eyes--free%20use-FFAE00?style=flat-square&labelColor=0A0A0A)
-![Tests](https://img.shields.io/badge/tests-383%20Flutter%20%2B%2036%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
+![Tests](https://img.shields.io/badge/tests-426%20Flutter%20%2B%2043%20backend-FFAE00?style=flat-square&labelColor=0A0A0A)
 
 [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
@@ -17,7 +17,8 @@ Diagrams, charts and photos are the part of school that screen readers cannot re
 "a diagram of the water cycle" and stops. Resonant is a voice tutor for pictures: photograph
 anything or pick from the gallery, the AI reads it and describes what it sees, and then you just
 talk — ask anything, follow up, hold a conversation. Six built-in lessons and four quiz sets
-round it out for studying offline.
+round it out for studying offline — and after four questions the tutor offers a self-test
+on what you discussed, saved for offline review.
 
 Every answer is spoken and shown: tap to talk, or type. The tutor remembers the last six
 exchanges, so follow-ups ("and why?") just work. With a picture attached it sees the picture
@@ -88,9 +89,12 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
   so real conversations hold. With a picture attached the tutor sees it too.
 - **Study library**: six built-in lessons that read themselves, four quiz sets
   with retry rounds, and settings that preview each theme, font and size before
-  keeping it — all working offline, with progress kept for the session.
-- Screen-reader buttons for every gesture, twelve themes, 383 Flutter tests +
-  36 backend tests, all green.
+  keeping it — all working offline, with progress kept for the session. After four chat
+  questions the tutor offers a 5-question self-test on the topic, saved on the device
+  under "From your chats" and available offline once generated.
+- Screen-reader buttons for every gesture, twelve themes, a spoken-and-shown gesture
+  guide on each screen's first visit (Settings replays them), 426 Flutter tests +
+  43 backend tests, all green.
 
 **Built, one step from proven:**
 
@@ -104,8 +108,9 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 - No public hosted link: for now the backend runs on your own computer and the phone talks to it
   over the same Wi-Fi. (A Modal hosting spike is planned; Baseten credits are held in reserve and
   untouched, because on-device speech works.)
-- Nothing is saved between launches: the recents shelf holds the last five pictures for the
-  session, with no accounts and no progress carried over.
+- Little persists between launches: settings, the tutorial and guide flags, and quizzes
+  the tutor generated stay on the device; the recents shelf holds the last five
+  pictures for the session, with no accounts and no progress carried over.
 - New pictures need the backend, a Meta API key and internet. The study library and the
   built-in samples work fully offline.
 - The parts list is the model's reading of the picture; the tutor answers from the picture
@@ -129,6 +134,9 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
 - Without a picture open, chat is a text-only tutor on the same endpoint: same voice, no
   picture to look at. When the server is unreachable, the six built-in lessons answer instead,
   and the app says so.
+- After four questions in one conversation the tutor offers a self-test once: `POST
+  /api/quiz` turns the topic and the conversation into 5 multiple-choice questions
+  (3-4 options, the correct index, a one-line explanation), saved on the device.
 - The Meta key lives only on the backend. The app never holds it. Re-analyzing a picture you already
   opened is served from the backend's cache, not paid for twice.
 
@@ -192,8 +200,8 @@ lib/
   core/            speech, haptics, sound behind interfaces; theme; the animated braille logo
   features/touch/
     gestures/      the gesture engine: touches -> menu navigation (pure Dart, no clock, no timers)
-    application/   ChatSession: conversation -> speech (pure Dart) + pictures intake (Riverpod)
-    data/          the backend client (analyze + chat + gallery)
+    application/   ChatSession: conversation -> speech (pure Dart) + pictures intake and quiz shelf (Riverpod)
+    data/          the backend client (analyze + chat + quiz + gallery)
     presentation/  home, chat + camera sheet, lessons, quizzes, settings
   features/learn/
     domain/        library lessons, quiz sets, progress, offline answers (pure Dart)
@@ -234,8 +242,8 @@ speech and sound, but not vibration, because Safari has none. A native iPhone bu
 ## Tests
 
 ```bash
-flutter test            # gestures, chat, camera sheet, pictures intake, lessons, quizzes, library, progress, themes, sound, dots, shell, nav, home, settings, splash, first-run (383 tests)
-cd backend && npm test  # analyze, text + picture chat, samples gallery, streaming, LiveKit tokens (36 tests)
+flutter test            # gestures, phrases, guides, chat, quiz offer + shelf, camera sheet, pictures intake, lessons, quizzes, library, progress, themes, sound, dots, shell, nav, home, settings, splash, first-run (426 tests)
+cd backend && npm test  # analyze, text + picture chat, quiz generation, samples gallery, streaming, LiveKit tokens (43 tests)
 ```
 
 ## Known limits
