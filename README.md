@@ -4,7 +4,7 @@
 
 **A voice tutor for pictures.** Photograph anything, ask anything, hold a conversation.
 
-[Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
+[Why](#why-resonant) · [Screens](#screens) · [How it works](#how-it-works) · [Live voice](#live-voice-talk-live) · [Gestures](#gestures) · [Sound and haptics](#sound-and-haptics) · [TalkBack](#talkback-and-voiceover) · [Themes](#themes) · [Run it](#run-it) · [Status](#status--what-is-in-the-app-and-what-is-not) · [Credits](#credits)
 
 </div>
 
@@ -20,6 +20,18 @@ exchanges, so follow-ups ("and why?") just work. With a picture attached it sees
 too; without one it is a text-only tutor on the same voice.
 
 The logo is the letter R in braille (⠗: dots 1-2-3-5), because sound and touch resonate through everything.
+
+## Why Resonant
+
+Most apps assume you can see the screen: find the button, tap the button. For someone who can't, that is the whole problem.
+
+Resonant takes the screen out of the equation. There is nothing to find. Gestures are read by zone, not by position, they mean the same thing on every screen, and every action answers back in speech, a vibration pattern, and a tone.
+
+- **Learn by listening.** Lessons are read aloud one unit at a time. Pause, repeat, slow down, speed up.
+- **Ask instead of searching.** Talk to the tutor and hear the answer.
+- **Quizzes without looking.** Every answer option has its own counted buzz and tone.
+- **No perfect connection needed.** The study library works fully offline, and chat falls back to the lessons when the server is down.
+- **Made for every kind of low vision, too.** Twelve color themes, adjustable text size and spacing, and a Reduce motion switch.
 
 ## Screens
 
@@ -39,6 +51,8 @@ Regenerate them with the golden-test generator in `tool/` (see `docs/screenshots
 </tr>
 </table>
 </div>
+
+Everything is driven by gestures; the screen is for sighted helpers and for people with some vision. Focus is always drawn as the inverted item, so it is never only spoken.
 
 The braille R is also the app's face while it works: in chat the dots gather when it is
 listening, orbit while it thinks, and settle when it is idle — and every state also has a sound
@@ -138,14 +152,16 @@ no old code copied; inventoried in `docs/private/HACKATHON.md`):
   order, with a tight box around each one. The chat announces the title, the parts and the
   overview, then the same model answers follow-up questions as a multi-turn tutor, seeing the
   picture and the conversation so far.
-- Without a picture open, chat is a text-only tutor on the same endpoint: same voice, no
-  picture to look at. When the server is unreachable, the six built-in lessons answer instead,
+- Without a picture open, chat is a text-only tutor on the same endpoint: same voice,
+  no picture to look at. When the server is unreachable, the six built-in lessons answer instead,
   and the app says so.
 - After four questions in one conversation the tutor offers a self-test once: `POST
   /api/quiz` turns the topic and the conversation into 5 multiple-choice questions
   (3-4 options, the correct index, a one-line explanation), saved on the device.
 - The Meta key lives only on the backend. The app never holds it. Re-analyzing a picture you already
   opened is served from the backend's cache, not paid for twice.
+
+What chat does so that silence never looks like a crash: it says "Listening." first and opens the mic only when it has finished (otherwise the recognizer hears the app's own voice); while the model works it pulses softly and says "Still thinking. Tap the center to cancel."; tapping while an answer is spoken starts a new question; and every failure is announced in one plain sentence, never an HTTP body.
 
 ## Live voice (Talk live)
 
@@ -182,30 +198,77 @@ python agent.py console          # no phone handy? Talk to it in the terminal
 
 ## Gestures
 
-Carried over from the earlier app:
+<div align="center">
+<img src="docs/assets/gestures.png" alt="Gesture cheat sheet: center, left edge, right edge and anywhere" width="100%">
+</div>
+
+Gestures are read by zone (left edge, center, right edge) using relative boundaries, so nothing depends on fixed screen coordinates. They are almost the same on every screen. Holds are decided by a real timeout, so the "hold engaged" haptic fires at the half-second mark, not on release.
 
 | Where | Gesture | Does |
 | --- | --- | --- |
-| Centre | Tap | Chat: ask by voice; menus: open the focused line |
-| Centre | Swipe | Move between items or sentences |
-| Left edge | Tap / double tap | Stop and resume talking / repeat |
+| Centre | Tap | Chat: ask by voice, or cancel while thinking; menus: open the focused line; elsewhere select / confirm |
+| Centre | Swipe down / up (one finger) | Next / previous: quiz option, chat sentence, lesson-mode choice |
+| Centre | Swipe down / up (two fingers) | Next / previous on menus and scrolling lists. One finger scrolls those lists instead |
+| Centre | Swipe right / left | Continue or submit / back (lesson: next / previous section; quiz: submit) |
+| Left edge | Tap | Pause / resume speech, from the exact spot you paused at |
+| Left edge | Double tap | Repeat the current unit |
 | Left edge | Swipe (finger down = next) | Step through items or sentences |
-| Right edge | Hold, then drag up or down | Speech faster or slower |
-| Right edge | Hold without dragging | Back |
-| Anywhere | Three-finger tap / hold | Repeat last / hear where you are |
-| Menus and lists | Two-finger swipe up/down, tap | Move focus (one finger scrolls), open the focused line |
+| Right edge | Hold ~½ s (three quick ticks), then drag up / down | Speech faster / slower, in steps (0.75×–2.0×); remembered between launches |
+| Right edge | Hold ~½ s, release without dragging | Back / leave screen |
+| Right edge | Tap | Nothing, deliberately (no accidental triggers) |
+| Anywhere | Three-finger tap | Repeat the current unit |
+| Anywhere | Three-finger hold | "Where am I?" — screen, position, playback state |
 | Quiz answers | Swipe to browse, tap to choose, swipe right | Answer; each option buzzes its letter |
-| Settings rows | Hold a theme/font/size row, swipe sideways | Preview each option on screen, tap to keep |
+| Settings rows | Hold a theme / font / size row, swipe sideways | Preview each option on screen and by voice ("Warm, 7 of 12"), tap to keep, hold the right edge to cancel |
 | Chat pill | Type, mic, camera buttons | Ask by text, voice, or attach a picture |
+
+**Spoken hints.** If you go quiet, the screen says one short hint, for example "Swipe down for the next option, tap the middle to choose, or hold three fingers to hear where you are." It speaks after about 25 s of silence from both you and the app, or after three gestures in a row that did nothing ("Having trouble?"). It never speaks over the app's own voice, while paused, in the background, or in the tutorial, at most three per visit to a screen.
+
+**Tutorial and practice area.** Every first launch goes through a spoken gesture tutorial (a hold on the left edge skips it). After it comes a practice area: try any gesture and Resonant says what you just did and what it means ("You just swiped down with two fingers, which means next"), with the real haptic and tone, and nothing is acted on. Settings replays it.
+
+## Sound and haptics
+
+Every action answers in three ways at once: speech, a vibration pattern and a short tone.
+
+- **Haptics** are a named vocabulary of patterns kept in one place. Quiz options A–D are a separate, counted family of long pulses (1–4) that shares nothing with the navigation patterns.
+- **Sound cues** are one tone per haptic pattern, generated in code (no audio files), kept above 300 Hz because phone speakers can't reproduce lower notes. Several patterns buzz almost alike (a 50 ms pulse is both "next" and "confirm"); their tones do not. Direction is pitch contour (rising = forward / faster / correct, falling = back / slower / wrong), quiz options are 1–4 beeps, and the repeating "thinking" tick is much quieter than the rest. They follow media volume and can be switched off in Settings.
+- **Stereo panning.** With headphones connected, every cue sits a little to one side so it is not heard as part of the voice: back, slower and wrong on the left, everything else on the right, the far ear at 65% rather than silent so a single earbud still hears them all. Speech is never moved. On the phone speaker nothing is panned.
+- **Quiz feedback** never depends on telling red from green: the result shows a check or a cross and the words Correct or Incorrect, and the two fills always differ a lot in brightness.
+
+<div align="center">
+<img src="docs/assets/quiz-states.png" alt="Quiz states: browsing an option, correct, incorrect, and correct in the Low vision theme" width="100%">
+</div>
+
+## TalkBack and VoiceOver
+
+Resonant's gestures are raw touches read by its own detector. With a screen reader on, the screen reader owns the touch stream, so Resonant's swipes, taps and holds never arrive. The app detects this and shows a notice with two ways forward:
+
+1. Turn the screen reader off and use the gestures above.
+2. Keep it on and use the buttons on each screen. Every gesture (Next, Previous, Select, Continue, Back, Leave screen, Pause or resume, Repeat, Where am I, Faster, Slower) has a screen-reader button that goes through the same handler as the real gesture.
+
+Known limit: Resonant's own voice and the screen reader's voice can overlap, and this has not yet been tested with real screen-reader users.
 
 ## Themes
 
 Twelve themes carried over from Resonant, switched in Settings: Resonant native,
 Low vision (enormous contrast), Cataracts (high clarity), Handsfree (screen reader), Monochrome
 (colorblind), Photophobia (low glare), Warm ambiance, Night red, Blue on yellow, Soft cream,
-Paper gray and White on blue. They are not just colour swaps — the high-contrast ones add outlines
-and change the corner shapes too. Every theme's text pairings are checked at 7:1 or better by a
-unit test (`test/palette_test.dart`), so a future edit cannot quietly make a theme unreadable.
+Paper gray and White on blue. They are not just colour swaps — each one also sets its own
+corner radius, outline and edge contrast, so they feel like different places: Low vision uses tight 12 dp
+corners with a yellow outline, Monochrome 4 dp with a black outline, Photophobia 36 dp cards with pill buttons.
+Every theme except the default keeps its card, bar and button edges visible (an outline or at least 3:1 against
+the screen); the default orange theme is exempt on purpose, because white cards on orange are the brand look.
+
+Every theme's text pairings are checked at 7:1 or better by a unit test (`test/palette_test.dart`), so a
+future edit cannot quietly make a theme unreadable. Body text is one solid, full-opacity colour per theme,
+never alpha-blended, and the focused item is a solid filled chip rather than a colour swap, so contrast never
+depends on where text sits on the background.
+
+Each theme also has its own type and motion defaults until you pick yours: Low vision, Cataracts and
+Handsfree start with Atkinson Hyperlegible, the calm themes with a softer face, the rest with Metropolis. The
+light-sensitive themes (Photophobia, Night red) stay completely still; the low-vision ones draw a thick steady
+ring around the focused card instead of animating it. A Reduce motion switch turns animation off everywhere,
+and motion is never the only signal.
 
 <div align="center">
 <img src="docs/assets/themes.png" width="100%" alt="All twelve themes side by side, each showing the top bar, a menu and a lesson card, with its text contrast ratio">
@@ -217,6 +280,10 @@ unit test (`test/palette_test.dart`), so a future edit cannot quietly make a the
 </div>
 
 To capture all twelve from the real app, run the generator in `tool/` (see `docs/screenshots/README.md`); they land in `docs/screenshots/themes/`.
+
+### Type and touch size
+
+The type scale is tuned for low vision: body text starts large, line heights are generous (tight leading is hard to track with field loss), and the smallest text on screen is still 20 sp. Settings cycles text size, typeface and text spacing, and previews each before you keep it. Anything you tap is at least 56 dp, and screen margins are symmetric.
 
 ## Architecture
 
